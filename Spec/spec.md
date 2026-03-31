@@ -71,8 +71,24 @@ Hệ thống quản lý tập trung với các công cụ phân tích và điề
 
 #### C. Quản lý danh mục & Dịch vụ (Service Management)
 
-- **Danh sách dịch vụ:** Hiển thị bảng danh sách các dịch vụ đang có.
-- **Tính năng:** Thêm mới, Chỉnh sửa thông tin (tên, giá, mô tả), Xóa dịch vụ, Thay đổi thứ tự ưu tiên hiển thị.
+- **Danh sách dịch vụ:** Hiển thị bảng danh sách các dịch vụ đang có:
+  - **Total service:** Tổng số dịch vụ.
+  - **Service Views:** Tổng số lượt xem dịch vụ.
+  - **Growth:** Tỷ lệ tăng trưởng lượt xem so với ngày hôm qua. Nếu tăng thì + còn giảm thì - tương ứng với màu xanh và đỏ.
+- **Search:** Thanh tìm kiếm cho phép khách hàng tra cứu nhanh dịch vụ theo tên.
+- **Category:** Dropdown danh sách các danh mục: Skincare, Massage, Combo, Therapy.
+- **Status:** Hiển thị trạng thái của serivce là inactive hay active.
+- **Button Add New Service:** Để thêm 1 dịch vụ mới nav đến trang thêm nhé!
+- **Ở nút kebab trong card** thì dropdown có 2 lựa chọn: - **Edit:** Chỉnh sửa thông tin dịch vụ. - **Delete:** Xóa dịch vụ. -**Ở table**: Hiển thị mặc định 20 per page
+- **Tính năng:** Thêm mới, Chỉnh sửa thông tin (tên, giá, mô tả), Xóa dịch vụ.
+- **Tính năng thêm mới**:
+  **Service Name:** Đây là tên dịch vụ sẽ hiển thị trên Service Card và trong danh sách dịch vụ.
+  **Description:** Đây là mô tả chi tiết của dịch vụ, sẽ hiển thị khi bấm vào xem chi tiết dịch vụ.
+  **Price:** Đây là giá của dịch vụ, sẽ hiển thị trên Service Card và trong danh sách dịch vụ.
+  **Category:** Dropdown danh sách các danh mục: Skincare, Massage, Combo, Therapy.
+  **Image:** Đây là ảnh của dịch vụ, sẽ hiển thị trên Service Card và trong danh sách dịch vụ.
+  **Time:** Đây là thời gian của dịch vụ, sẽ hiển thị trên Service Card và trong danh sách dịch vụ.
+  **Status:** Hiển thị trạng thái của serivce là inactive hay active.
 
 #### D. Sidebar Navigation
 
@@ -112,3 +128,7 @@ Hệ thống quản lý tập trung với các công cụ phân tích và điề
 
 - Hệ thống cần tích hợp bộ giải mã QR và tạo QR động.
 - Trang Khách hàng yêu cầu tốc độ tải trang cực nhanh (Performance) để đảm bảo trải nghiệm tức thì khi quét mã.
+- **Middleware Logic (Trạng thái QR):**
+  - **Active:** Load trang Menu bình thường.
+  - **Paused:** Không hiển thị Menu, tự động chuyển hướng hoặc hiển thị màn hình thông báo: "Dịch vụ đang tạm ngưng bảo trì, quý khách vui lòng quay lại sau." (Giao diện vẫn giữ Brand identity nhưng khóa các tương tác).
+  - **Inactive / Not Generated:** Hiển thị trang lỗi 404 hoặc thông báo: "Mã QR chưa được kích hoạt hoặc không hợp lệ."
