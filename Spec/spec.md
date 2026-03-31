@@ -21,12 +21,13 @@ Giao diện tối ưu cho thiết bị di động, mang lại trải nghiệm sa
 
 #### A. Header & Brand Identity
 
-- **Hero Banner:** Hiển thị hình ảnh thương hiệu (Azure Luxury Spa).
-- **Thông tin chào mừng:** Hiển thị tên Spa và thông tin vị trí cụ thể (ví dụ: "Phòng trị liệu 04 • Chào mừng quý khách").
+- **Hero Banner:** Hiển thị hình ảnh thương hiệu (Ví dụ: Azure Luxury Spa).
+- **Thông tin chào mừng:** Hiển thị tên Spa và welcome message lấy từ apis config (ví dụ: "Phòng trị liệu 04 • Chào mừng quý khách").
 
 #### C. Article slide
 
 - **Article:** Hiện tại hiển thị hình ảnh 5 sản phẩm được xem nhiều nhất ( Sau này bổ sung trang để config article riêng).
+  Khi nhấn vào thì vẫn hiển thị popup service detail.
 
 #### B. Danh mục dịch vụ (Menu)
 
@@ -42,9 +43,10 @@ Giao diện tối ưu cho thiết bị di động, mang lại trải nghiệm sa
 - **Danh sách thẻ dịch vụ (Service Cards):** Mỗi thẻ bao gồm:
   - Ảnh minh họa chất lượng cao.
   - Tên dịch vụ (ví dụ: Azure Signature Treatment).
-  - Mô tả ngắn (ví dụ: 90 phút trải nghiệm thư giãn cao cấp).
-  - Nhãn trạng thái (Best seller, New service).
+  - Mô tả ngắn lấy từ des của apis truncate lại (ví dụ: 90 phút trải nghiệm thư giãn cao cấp).
+  - Nhãn trạng thái (Best seller, New service) nếu không thì để trống .
   - Giá tiền (USD).
+  - Khi click vào thẻ thì hiển thị popup service detail.
 
 ---
 
@@ -54,14 +56,14 @@ Hệ thống quản lý tập trung với các công cụ phân tích và điề
 
 #### A. Dashboard (Trang tổng quan)
 
-- **Biểu đồ lưu lượng (Traffic View):** Hiển thị thống kê số lượt truy cập (Traffic) theo 7 ngày gần nhất dưới dạng biểu đồ cột.
-- **Thống kê nhanh:** Dịch vụ được xem nhiều nhất.
+- **Biểu đồ lưu lượng (Traffic View):** Hiển thị thống kê số lượt truy cập (Traffic) theo 7 ngày gần nhất dưới dạng biểu đồ cột. Nếu không có thì để text "No view available."
+- **Thống kê nhanh:** Dịch vụ được xem nhiều nhất. Nếu không có thì cho ẩn đi
 
 #### B. Quản lý mã QR (QR Code Management)
 
 - **Trạng thái QR:** Hiển thị trạng thái hiện tại (Active/Paused).
 - **Điều khiển:** Nút "Tạm dừng dịch vụ" (Pause Service) hoặc "Kích hoạt" (Resume) để kiểm soát việc quét mã khách hàng.
-- **Tải xuống QR (Download QR):** Cho phép xuất mã QR dưới dạng ảnh để in ấn và dán tại các phòng.
+- **Tải xuống QR (Download QR):** Cho phép xuất mã QR dưới dạng ảnh để in ấn và dán tại các phòng. Nếu pause service thì không cho tải xuống nhé.
 
 ### B.1 Quản lý mã QR (QR Code Management) (Khi chưa generate QR và chặn khi chưa có service)
 
@@ -130,5 +132,4 @@ Hệ thống quản lý tập trung với các công cụ phân tích và điề
 - Trang Khách hàng yêu cầu tốc độ tải trang cực nhanh (Performance) để đảm bảo trải nghiệm tức thì khi quét mã.
 - **Middleware Logic (Trạng thái QR):**
   - **Active:** Load trang Menu bình thường.
-  - **Paused:** Không hiển thị Menu, tự động chuyển hướng hoặc hiển thị màn hình thông báo: "Dịch vụ đang tạm ngưng bảo trì, quý khách vui lòng quay lại sau." (Giao diện vẫn giữ Brand identity nhưng khóa các tương tác).
-  - **Inactive / Not Generated:** Hiển thị trang lỗi 404 hoặc thông báo: "Mã QR chưa được kích hoạt hoặc không hợp lệ."
+  - **Inactive / Not Generated:** Hiển thị trang lỗi 404.
