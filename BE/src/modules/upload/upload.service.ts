@@ -13,11 +13,11 @@ export class UploadService implements OnModuleInit {
   constructor(private readonly configService: ConfigService) {
     this.bucketName = this.configService.get<string>('MINIO_BUCKET_NAME', 'qrhome');
     // Robust removal of quotes injected by Docker Compose / .env parsers
-    const cleanStr = (val: string) => val ? val.replace(/['"]/g, '').trim() : '';
+    const cleanStr = (val: string | undefined | null) => val ? val.replace(/['"]/g, '').trim() : '';
 
     const endPoint = cleanStr(this.configService.get<string>('MINIO_ENDPOINT', 'localhost'));
     const port = parseInt(cleanStr(this.configService.get<string>('MINIO_PORT', '9002')), 10);
-    const useSSL = cleanStr(this.configService.get<string>('MINIO_USE_SSL')) === 'true';
+    const useSSL = cleanStr(this.configService.get<string>('MINIO_USE_SSL', 'false')) === 'true';
 
     const accessKey = cleanStr(this.configService.get<string>('MINIO_ACCESS_KEY', 'minioadmin'));
     const secretKey = cleanStr(this.configService.get<string>('MINIO_SECRET_KEY', 'minioadmin'));
