@@ -14,7 +14,7 @@ export class UploadService implements OnModuleInit {
     this.bucketName = this.configService.get<string>('MINIO_BUCKET_NAME', 'qrhome');
     this.minioClient = new Minio.Client({
       endPoint: this.configService.get<string>('MINIO_ENDPOINT', 'localhost'),
-      port: parseInt(this.configService.get<string>('MINIO_PORT', '9000'), 10),
+      port: parseInt(this.configService.get<string>('MINIO_PORT', '9002'), 10),
       useSSL: this.configService.get<string>('MINIO_USE_SSL') === 'true',
       accessKey: this.configService.get<string>('MINIO_ACCESS_KEY', 'minioadmin'),
       secretKey: this.configService.get<string>('MINIO_SECRET_KEY', 'minioadmin'),
@@ -22,6 +22,12 @@ export class UploadService implements OnModuleInit {
   }
 
   async onModuleInit() {
+    const endPoint = this.configService.get<string>('MINIO_ENDPOINT', 'localhost');
+    const port = this.configService.get<string>('MINIO_PORT', '9002');
+    const useSSL = this.configService.get<string>('MINIO_USE_SSL') === 'true';
+    
+    this.logger.log(`Attempting to connect to Minio at ${endPoint}:${port} (SSL: ${useSSL}, Bucket: ${this.bucketName})`);
+
     try {
       const exists = await this.minioClient.bucketExists(this.bucketName);
       if (!exists) {
