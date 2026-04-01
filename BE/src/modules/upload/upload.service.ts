@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as Minio from 'minio';
 import { v4 as uuidv4 } from 'uuid';
 import { extname } from 'path';
@@ -7,15 +8,16 @@ import { extname } from 'path';
 export class UploadService implements OnModuleInit {
   private minioClient: Minio.Client;
   private readonly logger = new Logger(UploadService.name);
-  private readonly bucketName = process.env.MINIO_BUCKET_NAME || 'qrhome';
+  private bucketName: string;
 
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
+    this.bucketName = this.configService.get<string>('MINIO_BUCKET_NAME', 'qrhome');
     this.minioClient = new Minio.Client({
-      endPoint: process.env.MINIO_ENDPOINT || 'localhost',
-      port: parseInt(process.env.MINIO_PORT || '9000', 10),
-      useSSL: process.env.MINIO_USE_SSL === 'true',
-      accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
-      secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
+      endPoint: this.configService.get<string>('MINIO_ENDPOINT', 'localhost'),
+      port: parseInt(this.configService.get<string>('MINIO_PORT', '9000'), 10),
+      useSSL: this.configService.get<string>('MINIO_USE_SSL') === 'true',
+      accessKey: this.configService.get<string>('MINIO_ACCESS_KEY', 'minioadmin'),
+      secretKey: this.configService.get<string>('MINIO_SECRET_KEY', 'minioadmin'),
     });
   }
 
@@ -56,9 +58,10 @@ export class UploadService implements OnModuleInit {
     
     // Determine the public URL format based on environment
     // In dev: localhost:9000/qrhome/..., In prod, it might be behind a reverse proxy
-    const endPoint = process.env.MINIO_ENDPOINT === 'minio' ? 'localhost' : process.env.MINIO_ENDPOINT || 'localhost';
-    const port = process.env.MINIO_PORT || '9000';
-    const protocol = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http';
+    const minioEndPoint = this.configService.get<string>('MINIO_ENDPOINT', 'localhost');
+    const endPoint = minioEndPoint === 'minio' ? 'localhost' : minioEndPoint;
+    const port = this.configService.get<string>('MINIO_PORT', '9000');
+    const protocol = this.configService.get<string>('MINIO_USE_SSL') === 'true' ? 'https' : 'http';
     const baseUrl = `${protocol}://${endPoint}:${port}`;
 
     try {
