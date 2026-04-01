@@ -70,10 +70,13 @@ export class UploadService implements OnModuleInit {
     
     if (!baseUrl) {
       const minioEndPoint = this.configService.get<string>('MINIO_ENDPOINT', 'localhost');
-      const endPoint = minioEndPoint === 'minio' ? 'localhost' : minioEndPoint;
-      const port = this.configService.get<string>('MINIO_PORT', '9002');
+      let defaultPublicEndpoint = minioEndPoint === 'minio' ? 'localhost' : minioEndPoint;
+      
+      const publicEndpoint = this.configService.get<string>('MINIO_PUBLIC_ENDPOINT', defaultPublicEndpoint);
+      const publicPort = this.configService.get<string>('MINIO_PUBLIC_PORT', '9000');
       const protocol = this.configService.get<string>('MINIO_USE_SSL') === 'true' ? 'https' : 'http';
-      baseUrl = `${protocol}://${endPoint}:${port}`;
+      
+      baseUrl = `${protocol}://${publicEndpoint}:${publicPort}`;
     }
 
     try {
