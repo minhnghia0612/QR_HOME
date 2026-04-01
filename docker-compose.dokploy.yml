@@ -20,9 +20,6 @@ services:
       MINIO_ENDPOINT: minio
     ports:
       - "3000:3000"
-    depends_on:
-      postgres:
-        condition: service_healthy
     networks:
       - qr_network
     volumes:
