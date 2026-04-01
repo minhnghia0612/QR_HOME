@@ -12,16 +12,20 @@ export class UploadService implements OnModuleInit {
 
   constructor(private readonly configService: ConfigService) {
     this.bucketName = this.configService.get<string>('MINIO_BUCKET_NAME', 'qrhome');
-    const endPoint = this.configService.get<string>('MINIO_ENDPOINT', 'localhost');
+    const endPoint = this.configService.get<string>('MINIO_ENDPOINT', 'localhost').trim();
     const port = parseInt(this.configService.get<string>('MINIO_PORT', '9002'), 10);
     const useSSL = this.configService.get<string>('MINIO_USE_SSL') === 'true';
+
+    const accessKey = this.configService.get<string>('MINIO_ACCESS_KEY', 'minioadmin').trim();
+    const secretKey = this.configService.get<string>('MINIO_SECRET_KEY', 'minioadmin').trim();
+
 
     this.minioClient = new Minio.Client({
       endPoint,
       port,
       useSSL,
-      accessKey: this.configService.get<string>('MINIO_ACCESS_KEY', 'minioadmin'),
-      secretKey: this.configService.get<string>('MINIO_SECRET_KEY', 'minioadmin'),
+      accessKey,
+      secretKey,
     });
   }
 
