@@ -12,13 +12,17 @@ export class UploadService implements OnModuleInit {
 
   constructor(private readonly configService: ConfigService) {
     this.bucketName = this.configService.get<string>('MINIO_BUCKET_NAME', 'qrhome');
-    const endPoint = this.configService.get<string>('MINIO_ENDPOINT', 'localhost').trim();
-    const port = parseInt(this.configService.get<string>('MINIO_PORT', '9002'), 10);
-    const useSSL = this.configService.get<string>('MINIO_USE_SSL') === 'true';
+    // Robust removal of quotes injected by Docker Compose / .env parsers
+    const cleanStr = (val: string) => val ? val.replace(/['"]/g, '').trim() : '';
 
-    const accessKey = this.configService.get<string>('MINIO_ACCESS_KEY', 'minioadmin').trim();
-    const secretKey = this.configService.get<string>('MINIO_SECRET_KEY', 'minioadmin').trim();
+    const endPoint = cleanStr(this.configService.get<string>('MINIO_ENDPOINT', 'localhost'));
+    const port = parseInt(cleanStr(this.configService.get<string>('MINIO_PORT', '9002')), 10);
+    const useSSL = cleanStr(this.configService.get<string>('MINIO_USE_SSL')) === 'true';
 
+    const accessKey = cleanStr(this.configService.get<string>('MINIO_ACCESS_KEY', 'minioadmin'));
+    const secretKey = cleanStr(this.configService.get<string>('MINIO_SECRET_KEY', 'minioadmin'));
+
+    this.logger.log(`Minio Client auth init v2 - AccessKey: ${accessKey.substring(0, 3)}*** - SecretKey: ${secretKey.substring(0, 3)}*** (Endpoint: ${endPoint}:${port})`);
 
     this.minioClient = new Minio.Client({
       endPoint,
@@ -26,6 +30,7 @@ export class UploadService implements OnModuleInit {
       useSSL,
       accessKey,
       secretKey,
+      region: 'us-east-1', // Force explicit region
     });
   }
 
