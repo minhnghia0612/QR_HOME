@@ -20,8 +20,8 @@ export class UploadService implements OnModuleInit {
       endPoint,
       port,
       useSSL,
-      accessKey: this.configService.get<string>('MINIO_ACCESS_KEY', 'minioadmin'),
-      secretKey: this.configService.get<string>('MINIO_SECRET_KEY', 'minioadmin'),
+      accessKey: this.configService.getString('MINIO_ACCESS_KEY'),
+      secretKey: this.configService.getString('MINIO_SECRET_KEY'),
     });
   }
 
