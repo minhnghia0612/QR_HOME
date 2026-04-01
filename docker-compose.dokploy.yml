@@ -19,7 +19,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       MINIO_ENDPOINT: minio
     ports:
-      - "3000:3000"
+      - "3001:3001"
     networks:
       - qr_network
     volumes:
