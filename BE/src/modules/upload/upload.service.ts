@@ -12,10 +12,14 @@ export class UploadService implements OnModuleInit {
 
   constructor(private readonly configService: ConfigService) {
     this.bucketName = this.configService.get<string>('MINIO_BUCKET_NAME', 'qrhome');
+    const endPoint = this.configService.get<string>('MINIO_ENDPOINT', 'localhost');
+    const port = parseInt(this.configService.get<string>('MINIO_PORT', '9002'), 10);
+    const useSSL = this.configService.get<string>('MINIO_USE_SSL') === 'true';
+
     this.minioClient = new Minio.Client({
-      endPoint: this.configService.get<string>('MINIO_ENDPOINT', 'localhost'),
-      port: parseInt(this.configService.get<string>('MINIO_PORT', '9002'), 10),
-      useSSL: this.configService.get<string>('MINIO_USE_SSL') === 'true',
+      endPoint,
+      port,
+      useSSL,
       accessKey: this.configService.get<string>('MINIO_ACCESS_KEY', 'minioadmin'),
       secretKey: this.configService.get<string>('MINIO_SECRET_KEY', 'minioadmin'),
     });
@@ -24,9 +28,8 @@ export class UploadService implements OnModuleInit {
   async onModuleInit() {
     const endPoint = this.configService.get<string>('MINIO_ENDPOINT', 'localhost');
     const port = this.configService.get<string>('MINIO_PORT', '9002');
-    const useSSL = this.configService.get<string>('MINIO_USE_SSL') === 'true';
     
-    this.logger.log(`Attempting to connect to Minio at ${endPoint}:${port} (SSL: ${useSSL}, Bucket: ${this.bucketName})`);
+    this.logger.log(`Initializing Minio at internal address ${endPoint}:${port}`);
 
     try {
       const exists = await this.minioClient.bucketExists(this.bucketName);
@@ -51,7 +54,7 @@ export class UploadService implements OnModuleInit {
         this.logger.log(`Bucket "${this.bucketName}" already exists`);
       }
     } catch (error) {
-      this.logger.error('Error initializing Minio bucket', error);
+      this.logger.error(`Failed to connect to Minio at ${endPoint}:${port}`, error);
     }
   }
 
@@ -62,13 +65,16 @@ export class UploadService implements OnModuleInit {
 
     const uniqueName = `${uuidv4()}${extname(file.originalname)}`;
     
-    // Determine the public URL format based on environment
-    // In dev: localhost:9000/qrhome/..., In prod, it might be behind a reverse proxy
-    const minioEndPoint = this.configService.get<string>('MINIO_ENDPOINT', 'localhost');
-    const endPoint = minioEndPoint === 'minio' ? 'localhost' : minioEndPoint;
-    const port = this.configService.get<string>('MINIO_PORT', '9000');
-    const protocol = this.configService.get<string>('MINIO_USE_SSL') === 'true' ? 'https' : 'http';
-    const baseUrl = `${protocol}://${endPoint}:${port}`;
+    // Construct public URL
+    let baseUrl = this.configService.get<string>('MINIO_PUBLIC_URL');
+    
+    if (!baseUrl) {
+      const minioEndPoint = this.configService.get<string>('MINIO_ENDPOINT', 'localhost');
+      const endPoint = minioEndPoint === 'minio' ? 'localhost' : minioEndPoint;
+      const port = this.configService.get<string>('MINIO_PORT', '9002');
+      const protocol = this.configService.get<string>('MINIO_USE_SSL') === 'true' ? 'https' : 'http';
+      baseUrl = `${protocol}://${endPoint}:${port}`;
+    }
 
     try {
       await this.minioClient.putObject(
