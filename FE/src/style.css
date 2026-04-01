@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+/* ============================================
+   QR-Home Design System — Figma Sync
+   Colors, fonts, spacing from Figma design
+   ============================================ */
+
+@theme {
+  /* === Primary Palette (from Figma) === */
+  --color-primary-900: #0F172A;
+  --color-primary-700: #1D4ED8;
+  --color-primary-600: #0253CD;
+  --color-primary-500: #0052CC;
+  --color-primary-400: #3B82F6;
+  --color-primary-300: #93C5FD;
+  --color-primary-100: rgba(2, 83, 205, 0.1);
+
+  /* === Neutral / Text === */
+  --color-text-primary: #2C2F32;
+  --color-text-secondary: #595C5E;
+  --color-text-muted: #64748B;
+  --color-text-dim: #475569;
+
+  /* === Surfaces === */
+  --color-surface: #FFFFFF;
+  --color-surface-page: #F5F7FA;
+  --color-surface-sidebar: #F1F5F9;
+  --color-surface-input: #EEF1F4;
+  --color-surface-secondary: #DFE3E7;
+
+  /* === Status === */
+  --color-success: #10B981;
+  --color-danger: #EF4444;
+  --color-warning: #F59E0B;
+
+  /* === Accent / Badge === */
+  --color-badge-bestseller-bg: rgba(243, 149, 238, 0.3);
+  --color-badge-bestseller-text: #5E0B61;
+  --color-badge-bestseller: #F395EE;
+  --color-badge-new-bg: rgba(2, 83, 205, 0.15);
+  --color-badge-new-text: #0253CD;
+
+  /* === Borders === */
+  --color-border: #E5E8EC;
+  --color-border-input: rgba(47, 43, 61, 0.22);
+
+  /* === Shadows === */
+  --shadow-card: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --shadow-elevated: 0px 2px 4px -2px rgba(0, 0, 0, 0.1), 0px 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-button: 0px 8px 10px -6px rgba(2, 83, 205, 0.2), 0px 20px 25px -5px rgba(2, 83, 205, 0.2);
+  --shadow-popup: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+  /* === Radius === */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-4xl: 32px;
+  --radius-full: 9999px;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.025em;
+}
+
+/* ============================================
+   Custom Utilities
+   ============================================ */
+
+@utility glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+@utility text-gradient {
+  background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@utility line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@utility line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ============================================
+   Scrollbar Customization
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-secondary);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ============================================
+   Transition Defaults
+   ============================================ */
+
+*, *::before, *::after {
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 0ms;
+}
+
+a, button, input, select, textarea, [role="button"] {
+  transition-duration: 150ms;
+}
+
+/* ============================================
+   Animations & Skeletons
+   ============================================ */
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@utility skeleton {
+  background-color: var(--color-border);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-radius: var(--radius-md);
+}
