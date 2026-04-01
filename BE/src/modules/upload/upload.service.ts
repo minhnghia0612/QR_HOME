@@ -29,7 +29,7 @@ export class UploadService implements OnModuleInit {
     const endPoint = this.configService.get<string>('MINIO_ENDPOINT', 'localhost');
     const port = this.configService.get<string>('MINIO_PORT', '9002');
     
-    this.logger.log(`Initializing Minio at internal address ${endPoint}:${port}`);
+    this.logger.log(`Initializing Minio at internal address ${endPoint}:${port} (Bucket: "${this.bucketName}")`);
 
     try {
       const exists = await this.minioClient.bucketExists(this.bucketName);
