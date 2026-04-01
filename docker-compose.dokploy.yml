@@ -38,6 +38,8 @@ services:
     container_name: qr_home_web
     ports:
       - "5173:80"
+    depends_on:
+      - backend
     networks:
       - dokploy-network
     restart: unless-stopped
