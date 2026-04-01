@@ -26,7 +26,6 @@ services:
     ports:
       - "3001:3001"
     networks:
-      - qr_network
       - dokploy-network
     volumes:
       - uploads:/app/uploads
@@ -39,20 +38,10 @@ services:
     container_name: qr_home_web
     ports:
       - "5173:80"
-    depends_on:
-      - backend
     networks:
-      - qr_network
       - dokploy-network
     restart: unless-stopped
 
-volumes:
-  pgdata:
-  uploads:
-  minio_data:
-
 networks:
-  qr_network:
-    driver: bridge
   dokploy-network:
     external: true
