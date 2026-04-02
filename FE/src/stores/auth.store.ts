@@ -17,9 +17,9 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = data.data.accessToken
       admin.value = data.data.admin
       localStorage.setItem('qr_home_token', data.data.accessToken)
-      return true
-    } catch {
-      return false
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, message: err.response?.data?.message || 'Invalid credentials' }
     } finally {
       isLoading.value = false
     }
@@ -32,9 +32,9 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = data.data.accessToken
       admin.value = data.data.admin
       localStorage.setItem('qr_home_token', data.data.accessToken)
-      return true
-    } catch {
-      return false
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, message: err.response?.data?.message || 'Registration failed' }
     } finally {
       isLoading.value = false
     }

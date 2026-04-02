@@ -21,7 +21,8 @@ apiClient.interceptors.response.use(
                         error.config?.url?.includes('/public/') ||
                         error.config?.url?.includes('/traffic')
 
-    if (error.response?.status === 401 && !isPublicPath) {
+    // Only redirect/reload if NOT on landing page to avoid infinite loops or confusing reloads
+    if (error.response?.status === 401 && !isPublicPath && window.location.pathname !== '/') {
       localStorage.removeItem('qr_home_token')
       window.location.href = '/'
     }

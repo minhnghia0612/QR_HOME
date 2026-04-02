@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { watch } from 'vue'
 
 const props = defineProps<{
   show: boolean
@@ -9,18 +9,20 @@ const props = defineProps<{
 
 const emit = defineEmits(['close'])
 
-onMounted(() => {
-  setTimeout(() => {
-    emit('close')
-  }, 3000)
-})
+watch(() => props.show, (val) => {
+  if (val) {
+    setTimeout(() => {
+      emit('close')
+    }, 3000)
+  }
+}, { immediate: true })
 </script>
 
 <template>
   <Transition name="toast">
     <div
       v-if="show"
-      class="fixed bottom-10 left-1/2 z-[100] -translate-x-1/2 rounded-2xl px-6 py-4 text-sm font-bold text-white shadow-popup"
+      class="fixed right-10 top-10 z-[100] rounded-2xl px-6 py-4 text-sm font-bold text-white shadow-popup"
       :class="{
         'bg-success': type === 'success',
         'bg-danger': type === 'danger' || !type,
@@ -35,6 +37,6 @@ onMounted(() => {
 <style scoped>
 .toast-enter-active { transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .toast-leave-active { transition: all 0.2s ease-in; }
-.toast-enter-from { transform: translate(-50%, 20px); opacity: 0; }
-.toast-leave-to { transform: translate(-50%, 20px); opacity: 0; }
+.toast-enter-from { transform: translateX(20px); opacity: 0; }
+.toast-leave-to { transform: translateX(20px); opacity: 0; }
 </style>

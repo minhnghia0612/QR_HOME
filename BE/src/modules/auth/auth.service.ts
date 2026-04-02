@@ -30,7 +30,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const admin = this.adminRepo.create({
       username: dto.username,
-      fullName: dto.fullName,
+      fullName: dto.fullName || dto.username,
       email: dto.email,
       passwordHash,
     });
@@ -59,10 +59,11 @@ export class AuthService {
 
   async login(dto: LoginDto): Promise<{
     accessToken: string;
-    admin: { id: string; username: string; fullName: string };
+    admin: { id: string; username: string; fullName: string | null };
   }> {
+    // Allow login with either username OR email
     const admin = await this.adminRepo.findOne({
-      where: { username: dto.username },
+      where: [{ username: dto.username }, { email: dto.username }],
     });
 
     if (!admin) {

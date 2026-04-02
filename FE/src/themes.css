@@ -1,0 +1,599 @@
+/* ============================================
+   QR-Home Theme Engine
+   Hook classes: t-hero-body, t-hero-meta, t-spa-name,
+   t-service-section, t-cat-title, t-card-grid,
+   t-card, t-card-img, t-card-info, t-card-name, t-card-price
+   ============================================ */
+
+
+/* ──────────────────────────────────────────
+   1. CLASSIC — Default (no overrides needed)
+   Layout: centered hero, horizontal list cards
+   ────────────────────────────────────────── */
+.theme-classic {}
+
+
+/* ──────────────────────────────────────────
+   2. DARK ELEGANCE
+   Layout: left-aligned hero (like a luxury magazine),
+           horizontal cards with gold left border accent
+   Colors: Black bg, gold accents
+   ────────────────────────────────────────── */
+.theme-dark-elegance {
+  --color-surface-page: #0f1011;
+  --color-surface: #1c1b1f;
+  --color-surface-input: #28272c;
+  --color-surface-secondary: #2c2e33;
+  --color-text-primary: #ede8d0;
+  --color-text-secondary: #a18e60;
+  --color-text-muted: #71717a;
+  --color-primary-600: #c9a84c;
+  --color-border: #3a3630;
+}
+/* Hero: left-align */
+.theme-dark-elegance .t-hero-body {
+  align-items: flex-start !important;
+  text-align: left !important;
+}
+.theme-dark-elegance .t-hero-meta {
+  text-align: left !important;
+}
+.theme-dark-elegance .t-spa-name {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  letter-spacing: 0.1em;
+  color: var(--color-primary-600) !important;
+}
+/* Cards: gold left border */
+.theme-dark-elegance .t-card {
+  border-left: 3px solid var(--color-primary-600);
+  border-radius: 4px !important;
+  background: var(--color-surface) !important;
+}
+.theme-dark-elegance .t-cat-title {
+  color: var(--color-primary-600);
+  text-transform: uppercase;
+  font-size: 11px !important;
+  letter-spacing: 0.2em;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 8px;
+}
+
+
+/* ──────────────────────────────────────────
+   3. MODERN MINIMAL
+   Layout: 2-column grid cards (image top, text below)
+   Colors: clean whites, indigo
+   ────────────────────────────────────────── */
+.theme-modern-minimal {
+  --color-surface-page: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-input: #f1f5f9;
+  --color-text-primary: #0f172a;
+  --color-primary-600: #6366f1;
+  --color-border: #e2e8f0;
+}
+/* Hero: no overlap, flat */
+.theme-modern-minimal .t-hero-body {
+  margin-top: 0 !important;
+  background: linear-gradient(135deg, #f0f3ff, #fff);
+  padding: 2rem 1.5rem !important;
+}
+/* Grid layout for service cards */
+.theme-modern-minimal .t-card-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 12px !important;
+}
+.theme-modern-minimal .t-card-grid > * + * { margin-top: 0 !important; }
+.theme-modern-minimal .t-card-grid > * { margin: 0 !important; }
+
+/* Cards: image top, stacked */
+.theme-modern-minimal .t-card {
+  flex-direction: column !important;
+  padding: 0 !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+  gap: 0 !important;
+}
+.theme-modern-minimal .t-card-img {
+  width: 100% !important;
+  height: 110px !important;
+  border-radius: 0 !important;
+}
+.theme-modern-minimal .t-card-info {
+  padding: 10px !important;
+}
+.theme-modern-minimal .t-card-name {
+  font-size: 13px !important;
+}
+.theme-modern-minimal .t-card-price {
+  margin-top: 6px !important;
+}
+
+
+/* ──────────────────────────────────────────
+   4. RUSTIC
+   Layout: horizontal list but image is square with decorative border,
+           category titles look handwritten
+   Colors: warm sepia tones
+   ────────────────────────────────────────── */
+.theme-rustic {
+  --color-surface-page: #fdfaf5;
+  --color-surface: #f9f0e0;
+  --color-surface-input: #eddfc5;
+  --color-text-primary: #5c4033;
+  --color-text-secondary: #7f5c49;
+  --color-primary-600: #8b5a2b;
+  --color-border: #c9a87a;
+}
+.theme-rustic .t-spa-name {
+  font-family: 'Georgia', serif;
+}
+.theme-rustic .t-cat-title {
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  border-bottom: 2px dashed var(--color-border) !important;
+  padding-bottom: 6px;
+}
+/* Cards: thick offset box-shadow */
+.theme-rustic .t-card {
+  border: 2px solid var(--color-border) !important;
+  box-shadow: 5px 5px 0px var(--color-border) !important;
+  border-radius: 2px !important;
+  background: var(--color-surface) !important;
+}
+.theme-rustic .t-card-img {
+  border-radius: 2px !important;
+  border-right: 2px solid var(--color-border);
+}
+
+
+/* ──────────────────────────────────────────
+   5. VIBRANT
+   Layout: Masonry-like with alternating card rotation
+           Pill-shaped category pills
+   Colors: Bold pinks
+   ────────────────────────────────────────── */
+.theme-vibrant {
+  --color-surface-page: #fff0f9;
+  --color-surface: #ffffff;
+  --color-surface-input: #fce7f3;
+  --color-text-primary: #831843;
+  --color-text-secondary: #be185d;
+  --color-primary-600: #ec4899;
+  --color-border: #fbcfe8;
+}
+.theme-vibrant .t-card-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 10px !important;
+}
+.theme-vibrant .t-card-grid > * + * { margin-top: 0 !important; }
+.theme-vibrant .t-card-grid > * { margin: 0 !important; }
+
+.theme-vibrant .t-card {
+  flex-direction: column !important;
+  padding: 0 !important;
+  border-radius: 24px !important;
+  overflow: hidden;
+  gap: 0 !important;
+  border: 2px solid var(--color-border);
+  box-shadow: 0 8px 20px -5px rgba(236, 72, 153, 0.25) !important;
+}
+.theme-vibrant .t-card:nth-child(2n) {
+  border-radius: 8px 24px 8px 24px !important;
+}
+.theme-vibrant .t-card-img {
+  width: 100% !important;
+  height: 100px !important;
+  border-radius: 0 !important;
+  border-bottom: 2px solid var(--color-border);
+}
+.theme-vibrant .t-card-info {
+  padding: 8px !important;
+}
+.theme-vibrant .t-cat-title {
+  display: inline-block;
+  background: var(--color-primary-600);
+  color: white !important;
+  padding: 4px 16px;
+  border-radius: 999px;
+  font-size: 12px !important;
+}
+
+
+/* ──────────────────────────────────────────
+   6. STITCH DESIGN
+   Layout: Image RIGHT, text LEFT (reversed row)
+   Colors: Warm orange
+   ────────────────────────────────────────── */
+.theme-stitch {
+  --color-surface-page: #fff9f5;
+  --color-surface: #ffffff;
+  --color-surface-input: #ffedd5;
+  --color-text-primary: #431407;
+  --color-text-secondary: #c2410c;
+  --color-primary-600: #f97316;
+  --color-border: #fed7aa;
+}
+.theme-stitch .t-card {
+  flex-direction: row-reverse !important;
+  border-bottom: 1px dashed var(--color-border) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 12px 0 !important;
+}
+.theme-stitch .t-card-info {
+  text-align: left;
+}
+.theme-stitch .t-card-price {
+  text-align: left;
+}
+.theme-stitch .t-card-img {
+  border-radius: 12px !important;
+  flex-shrink: 0;
+}
+.theme-stitch .t-cat-title {
+  text-transform: uppercase;
+  font-size: 11px !important;
+  letter-spacing: 0.15em;
+  color: var(--color-primary-600) !important;
+  border-top: 2px solid var(--color-primary-600);
+  padding-top: 8px;
+}
+
+
+/* ──────────────────────────────────────────
+   7. NATURE RETREAT
+   Layout: Horizontal cards with circular images (avatar-style)
+   Colors: Earthy greens
+   ────────────────────────────────────────── */
+.theme-nature {
+  --color-surface-page: #f0fdf5;
+  --color-surface: #ffffff;
+  --color-surface-input: #dcfce7;
+  --color-text-primary: #14532d;
+  --color-text-secondary: #166534;
+  --color-primary-600: #16a34a;
+  --color-border: #86efac;
+}
+.theme-nature .t-card {
+  align-items: center !important;
+  gap: 16px !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 999px !important;
+  padding: 8px 16px 8px 8px !important;
+}
+.theme-nature .t-card-img {
+  border-radius: 50% !important;
+  width: 60px !important;
+  height: 60px !important;
+  flex-shrink: 0 !important;
+  border: 2px solid var(--color-primary-600);
+}
+.theme-nature .t-card-info {
+  padding: 0 !important;
+}
+.theme-nature .t-card-name {
+  font-size: 14px !important;
+}
+.theme-nature .t-cat-title::before {
+  content: '🌿 ';
+}
+
+
+/* ──────────────────────────────────────────
+   8. NEON CYBER
+   Layout: Full-width banner cards (no image column)
+           Image is background, text overlaid with glow
+   Colors: Dark/black, cyan neon
+   ────────────────────────────────────────── */
+.theme-neon {
+  --color-surface-page: #030305;
+  --color-surface: #0d1117;
+  --color-surface-input: #161b22;
+  --color-text-primary: #c9d1d9;
+  --color-text-secondary: #7dd3fc;
+  --color-primary-600: #00e5ff;
+  --color-border: #0e71a0;
+}
+.theme-neon .t-card {
+  position: relative;
+  flex-direction: column !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  gap: 0 !important;
+  border: 1px solid var(--color-primary-600) !important;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.2), inset 0 0 12px rgba(0, 229, 255, 0.03) !important;
+  height: 120px !important;
+}
+.theme-neon .t-card-img {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+  opacity: 0.35;
+}
+.theme-neon .t-card-info {
+  position: relative;
+  z-index: 1;
+  padding: 16px !important;
+  justify-content: flex-end !important;
+  height: 100%;
+}
+.theme-neon .t-card-name {
+  color: #00e5ff !important;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.7);
+  font-size: 14px !important;
+}
+.theme-neon .t-card-price span {
+  color: var(--color-primary-600) !important;
+}
+.theme-neon .t-cat-title {
+  color: var(--color-primary-600) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 10px !important;
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+}
+.theme-neon .t-spa-name {
+  color: var(--color-primary-600) !important;
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
+}
+
+
+/* ──────────────────────────────────────────
+   9. ROSE GOLD
+   Layout: Large image cards (3:2), text underneath, 3-column grid
+   Colors: Blush pink, rose gold
+   ────────────────────────────────────────── */
+.theme-rose {
+  --color-surface-page: #fff5f7;
+  --color-surface: #fff;
+  --color-surface-input: #ffe4ea;
+  --color-text-primary: #4a0018;
+  --color-text-secondary: #9f1239;
+  --color-primary-600: #e11d48;
+  --color-border: #fecdd3;
+}
+.theme-rose .t-card-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 8px !important;
+}
+.theme-rose .t-card-grid > * + * { margin-top: 0 !important; }
+.theme-rose .t-card-grid > * { margin: 0 !important; }
+
+.theme-rose .t-card {
+  flex-direction: column !important;
+  padding: 0 !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  gap: 0 !important;
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.1) !important;
+}
+.theme-rose .t-card-img {
+  width: 100% !important;
+  height: 90px !important;
+  border-radius: 0 !important;
+}
+.theme-rose .t-card-info {
+  padding: 8px !important;
+}
+.theme-rose .t-card-name {
+  font-size: 11px !important;
+  font-weight: 700;
+  text-align: center;
+}
+.theme-rose .t-card-price {
+  justify-content: center !important;
+}
+.theme-rose .t-spa-name {
+  font-family: 'Georgia', 'Didot', serif;
+  font-style: italic;
+  font-weight: 400 !important;
+  letter-spacing: 0.05em;
+  text-transform: none !important;
+}
+.theme-rose .t-cat-title {
+  text-align: center;
+  font-style: italic;
+}
+
+
+/* ──────────────────────────────────────────
+   10. OCEAN BREEZE
+   Layout: Image as full-width TOP banner per card,
+            with text floating on gradient overlay
+   Colors: Sky blues
+   ────────────────────────────────────────── */
+.theme-ocean {
+  --color-surface-page: #f0f9ff;
+  --color-surface: #ffffff;
+  --color-surface-input: #e0f2fe;
+  --color-text-primary: #0c4a6e;
+  --color-text-secondary: #0369a1;
+  --color-primary-600: #0284c7;
+  --color-border: #bae6fd;
+}
+.theme-ocean .t-card {
+  position: relative !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+  border-radius: 20px !important;
+  overflow: hidden;
+  gap: 0 !important;
+  height: 140px !important;
+  border: none !important;
+  box-shadow: 0 4px 20px rgba(2, 132, 199, 0.15) !important;
+}
+.theme-ocean .t-card-img {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+}
+.theme-ocean .t-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(12,74,110,0.85) 0%, transparent 60%);
+  pointer-events: none;
+}
+.theme-ocean .t-card-info {
+  position: relative;
+  z-index: 1;
+  padding: 12px 14px !important;
+  margin-top: auto;
+  justify-content: flex-end !important;
+  height: 100%;
+}
+.theme-ocean .t-card-name {
+  color: #ffffff !important;
+  font-size: 14px !important;
+}
+.theme-ocean .t-card-price span {
+  color: #bae6fd !important;
+  font-size: 13px !important;
+}
+.theme-ocean .t-cat-title {
+  border-left: 4px solid var(--color-primary-600);
+  padding-left: 10px;
+  margin-bottom: 12px !important;
+}
+
+/* ──────────────────────────────────────────
+   Header Layout Variants (Theme-specific)
+   ────────────────────────────────────────── */
+
+/* Variant A: Editorial left panel */
+.theme-dark-elegance .t-hero-body,
+.theme-rustic .t-hero-body {
+  align-items: flex-start !important;
+  text-align: left !important;
+  margin-top: -92px !important;
+  padding-left: 1.25rem !important;
+  padding-right: 1.25rem !important;
+}
+
+.theme-dark-elegance .t-hero-logo,
+.theme-rustic .t-hero-logo {
+  width: 84px !important;
+  height: 84px !important;
+  border-radius: 18px !important;
+  margin-left: 0 !important;
+}
+
+.theme-dark-elegance .t-hero-meta,
+.theme-rustic .t-hero-meta {
+  margin-top: 0.9rem !important;
+  width: 100%;
+  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  border: 1px solid var(--color-border);
+}
+
+.theme-dark-elegance .t-hero-address,
+.theme-rustic .t-hero-address {
+  margin-left: 0 !important;
+}
+
+.theme-dark-elegance .t-hero-contact,
+.theme-rustic .t-hero-contact {
+  justify-content: flex-start !important;
+}
+
+/* Variant B: Compact side-by-side identity */
+.theme-modern-minimal .t-hero-body,
+.theme-ocean .t-hero-body {
+  margin-top: -42px !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  text-align: left !important;
+  gap: 0.9rem;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+.theme-modern-minimal .t-hero-logo,
+.theme-ocean .t-hero-logo {
+  width: 76px !important;
+  height: 76px !important;
+  flex-shrink: 0;
+  border-radius: 20px !important;
+}
+
+.theme-modern-minimal .t-hero-meta,
+.theme-ocean .t-hero-meta {
+  margin-top: 0 !important;
+  text-align: left !important;
+}
+
+.theme-modern-minimal .t-hero-address,
+.theme-ocean .t-hero-address {
+  margin-left: 0 !important;
+}
+
+.theme-modern-minimal .t-hero-contact,
+.theme-ocean .t-hero-contact {
+  justify-content: flex-start !important;
+}
+
+/* Variant C: Hero center badge */
+.theme-vibrant .t-hero-body,
+.theme-rose .t-hero-body {
+  margin-top: -74px !important;
+}
+
+.theme-vibrant .t-hero-logo,
+.theme-rose .t-hero-logo {
+  width: 112px !important;
+  height: 112px !important;
+  border-width: 5px !important;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.14) !important;
+}
+
+.theme-vibrant .t-spa-name,
+.theme-rose .t-spa-name {
+  text-transform: none !important;
+  letter-spacing: 0.02em;
+}
+
+.theme-vibrant .t-hero-address,
+.theme-rose .t-hero-address {
+  border-radius: 14px !important;
+}
+
+/* Variant D: Right-aligned modern */
+.theme-stitch .t-hero-body,
+.theme-nature .t-hero-body,
+.theme-neon .t-hero-body {
+  align-items: flex-end !important;
+  text-align: right !important;
+  margin-top: -68px !important;
+}
+
+.theme-stitch .t-hero-logo,
+.theme-nature .t-hero-logo,
+.theme-neon .t-hero-logo {
+  width: 88px !important;
+  height: 88px !important;
+  border-radius: 24px !important;
+}
+
+.theme-stitch .t-hero-address,
+.theme-nature .t-hero-address,
+.theme-neon .t-hero-address {
+  margin-left: auto !important;
+}
+
+.theme-stitch .t-hero-contact,
+.theme-nature .t-hero-contact,
+.theme-neon .t-hero-contact {
+  justify-content: flex-end !important;
+}

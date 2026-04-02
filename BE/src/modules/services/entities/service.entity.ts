@@ -25,11 +25,26 @@ export class Service {
   @Column({ type: 'text', nullable: true })
   description: string;
 
+  @Column({ type: 'varchar', length: 300, nullable: true, name: 'short_description' })
+  shortDescription?: string | null;
+
   @Column({ type: 'int', default: 60, name: 'duration_minutes' })
   durationMinutes: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   price: number;
+
+  @Column({ type: 'boolean', default: false, name: 'has_variants' })
+  hasVariants: boolean;
+
+  @Column({ type: 'simple-json', nullable: true, name: 'variant_options' })
+  variantOptions?: Array<{ name: string; price: number }> | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, name: 'price_from' })
+  priceFrom?: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, name: 'price_to' })
+  priceTo?: number | null;
 
   @Column({ type: 'varchar', length: 10, default: 'USD' })
   currency: string;
@@ -45,6 +60,9 @@ export class Service {
 
   @Column({ type: 'boolean', default: false, name: 'is_combo' })
   isCombo: boolean;
+
+  @Column({ type: 'simple-array', nullable: true, name: 'special_tags' })
+  specialTags?: string[] | null;
 
   @Column({ type: 'boolean', default: true, name: 'is_active' })
   isActive: boolean;

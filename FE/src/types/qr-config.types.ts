@@ -1,4 +1,6 @@
 export type QrStatus = 'active' | 'paused' | 'inactive'
+export type CurrencyUnit = 'VND' | 'USD' | 'EUR'
+export type CustomerUiSize = 'large' | 'normal' | 'compact'
 
 export interface QrConfig {
   id: string
@@ -14,4 +16,10 @@ export interface QrConfig {
   bannerUrl: string | null
   welcomeMessage: string | null
   backgroundColor: string | null
+  themeId?: string
+  currencyUnit: CurrencyUnit
+  primaryColor: string | null
+  secondaryColor: string | null
+  fontFamily: string | null
+  customerUiSize: CustomerUiSize
 }

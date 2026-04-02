@@ -41,8 +41,17 @@ export class TrafficService {
 
   /** Dashboard: 7-day traffic chart (page views only, service_id IS NULL) */
   async getWeeklyTraffic(adminId: string): Promise<{ date: string; count: number }[]> {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    const days: { date: string; count: number }[] = [];
+    const now = new Date();
+    
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - (6 - i));
+      const dateStr = d.toISOString().split('T')[0];
+      days.push({ date: dateStr, count: 0 });
+    }
+
+    const sevenDaysAgo = new Date(days[0].date);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
     const result: RawTrafficRow[] = await this.trafficLogRepo
@@ -56,10 +65,16 @@ export class TrafficService {
       .orderBy('date', 'ASC')
       .getRawMany();
 
-    return result.map((r) => ({
-      date: r.date,
-      count: parseInt(r.count, 10),
-    }));
+    // Merge real data into our 7-day template
+    result.forEach((row) => {
+      const dateOnly = new Date(row.date).toISOString().split('T')[0];
+      const day = days.find((d) => d.date === dateOnly);
+      if (day) {
+        day.count = parseInt(row.count, 10);
+      }
+    });
+
+    return days;
   }
 
   /** Dashboard: Most viewed service (top 1) */

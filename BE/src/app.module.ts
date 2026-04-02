@@ -24,7 +24,8 @@ import { UploadModule } from './modules/upload/upload.module';
         database: configService.get<string>('DB_DATABASE', 'qr_home'),
         entities: [__dirname + '/modules/**/entities/*.entity{.ts,.js}'],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-        synchronize: true, // Auto sync schema for development
+        migrationsRun: true, // Execute migrations automatically on startup
+        synchronize: configService.get<string>('NODE_ENV') !== 'production', // Turn off in production for safety
         logging: true,
       }),
       inject: [ConfigService],

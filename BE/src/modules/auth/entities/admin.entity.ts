@@ -17,8 +17,8 @@ export class Admin {
   @Column({ type: 'varchar', length: 100, unique: true })
   username: string;
 
-  @Column({ type: 'varchar', length: 150, name: 'full_name' })
-  fullName: string;
+  @Column({ type: 'varchar', length: 150, name: 'full_name', nullable: true })
+  fullName: string | null;
 
   @Column({ type: 'varchar', length: 150, unique: true })
   email: string;

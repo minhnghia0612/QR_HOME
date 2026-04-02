@@ -2,6 +2,17 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { categoriesApi } from '@/api/categories.api'
+import { servicesApi } from '@/api/services.api'
+
+const ONBOARDING_CACHE_TTL_MS = 15000
+let onboardingCache:
+  | {
+      checkedAt: number
+      isStep1Complete: boolean
+      isStep2Complete: boolean
+      isStep3Complete: boolean
+    }
+  | null = null
 
 const router = createRouter({
   history: createWebHistory(),
@@ -20,6 +31,14 @@ const router = createRouter({
       meta: { layout: 'customer' },
     },
 
+    {
+      path: '/admin/login',
+      redirect: '/',
+    },
+    {
+      path: '/admin/register',
+      redirect: '/',
+    },
     {
       path: '/admin',
       redirect: '/admin/dashboard',
@@ -48,6 +67,12 @@ const router = createRouter({
       component: () => import('@/views/admin/SettingsPage.vue'),
       meta: { layout: 'admin', requiresAuth: true },
     },
+    {
+      path: '/admin/themes',
+      name: 'admin-themes',
+      component: () => import('@/views/admin/ThemeSettingsPage.vue'),
+      meta: { layout: 'admin', requiresAuth: true },
+    },
 
     // ── Catch-all ──
     {
@@ -73,6 +98,34 @@ router.beforeEach(async (to) => {
     try {
       // 1. Fetch profile to ensure we have admin ID
       if (!authStore.admin) await authStore.fetchProfile()
+
+      const now = Date.now()
+      const hasFreshCache =
+        !!onboardingCache && now - onboardingCache.checkedAt < ONBOARDING_CACHE_TTL_MS
+
+      if (hasFreshCache) {
+        const cache = onboardingCache!
+
+        if (!cache.isStep1Complete && to.name !== 'admin-settings') {
+          return { name: 'admin-settings' }
+        }
+        if (
+          cache.isStep1Complete &&
+          !cache.isStep2Complete &&
+          !['admin-settings', 'admin-categories'].includes(to.name as string)
+        ) {
+          return { name: 'admin-categories' }
+        }
+        if (
+          cache.isStep1Complete &&
+          cache.isStep2Complete &&
+          !cache.isStep3Complete &&
+          !['admin-settings', 'admin-categories', 'admin-services'].includes(to.name as string)
+        ) {
+          return { name: 'admin-services' }
+        }
+        return
+      }
       
       const { data: configRes } = await qrConfigApi.getConfig()
       const config = (configRes as any).data?.data || (configRes as any).data
@@ -85,14 +138,39 @@ router.beforeEach(async (to) => {
       }
 
       // 2. Check Categories (Step 2)
+      let isStep2Complete = false
       if (isStep1Complete) {
         const { data: catsRes } = await categoriesApi.getAll()
-        const categories = (catsRes as any).data?.data || (catsRes as any).data
-        const isStep2Complete = categories && categories.length > 0
+        const categories = (catsRes as any).data?.data || (catsRes as any).data || []
+        isStep2Complete = categories.length > 0
 
-        // If Step 1 is done but Step 2 is not, only allow Settings or Categories
         if (!isStep2Complete && !['admin-settings', 'admin-categories'].includes(to.name as string)) {
           return { name: 'admin-categories' }
+        }
+      }
+
+      // 3. Check Services (Step 3)
+      if (isStep1Complete && isStep2Complete) {
+        const { data: svcRes } = await servicesApi.getAll({ limit: 1 })
+        const services = (svcRes as any).data?.items || (svcRes as any).data || []
+        const isStep3Complete = (Array.isArray(services) ? services.length : (services?.items?.length || 0)) > 0
+
+        onboardingCache = {
+          checkedAt: now,
+          isStep1Complete,
+          isStep2Complete,
+          isStep3Complete,
+        }
+
+        if (!isStep3Complete && !['admin-settings', 'admin-categories', 'admin-services'].includes(to.name as string)) {
+          return { name: 'admin-services' }
+        }
+      } else {
+        onboardingCache = {
+          checkedAt: now,
+          isStep1Complete,
+          isStep2Complete,
+          isStep3Complete: false,
         }
       }
     } catch (err) {

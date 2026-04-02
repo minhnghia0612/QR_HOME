@@ -6,7 +6,7 @@ import { servicesApi } from '@/api/services.api'
 import { categoriesApi } from '@/api/categories.api'
 import type { ServiceQuery } from '@/types/service.types'
 import { formatPrice } from '@/lib/utils'
-import { Plus, Search, Pencil, Trash2, Image } from 'lucide-vue-next'
+import { Plus, Search, Pencil, Trash2, Image, ArrowRight } from 'lucide-vue-next'
 
 const router = useRouter()
 const queryClient = useQueryClient()
@@ -60,7 +60,7 @@ function confirmDelete(id: string) {
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h2 class="text-2xl font-bold text-navy-900">Services</h2>
-        <p class="text-sm text-text-muted">Manage your spa service offerings</p>
+        <p class="text-sm text-text-muted">Manage your service offerings</p>
       </div>
       <button
         class="flex items-center gap-2 rounded-xl bg-navy-900 px-4 py-2.5 text-sm font-medium text-white shadow-card transition-all hover:bg-navy-800"
@@ -233,6 +233,16 @@ function confirmDelete(id: string) {
           Next
         </button>
       </div>
+    </div>
+    <!-- Next Step Button (Onboarding) -->
+    <div v-if="servicesData?.items?.length" class="mt-12 flex justify-end">
+      <button
+        @click="router.push('/admin/dashboard')"
+        class="flex items-center gap-3 rounded-2xl bg-[#0048B5] px-10 py-5 text-base font-black text-white shadow-button transition-all hover:brightness-110 active:scale-95"
+      >
+        Finish Setup & View Dashboard
+        <ArrowRight class="h-5 w-5" />
+      </button>
     </div>
   </div>
 </template>

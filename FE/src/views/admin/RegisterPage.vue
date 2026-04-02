@@ -45,6 +45,7 @@ async function handleRegister() {
     }
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Registration failed.'
+    setTimeout(() => { error.value = '' }, 4000)
   } finally {
     loading.value = false
   }
@@ -68,10 +69,27 @@ async function handleRegister() {
         </div>
 
         <form @submit.prevent="handleRegister" class="space-y-6">
-          <!-- Error -->
-          <div v-if="error" class="rounded-2xl bg-danger/5 p-4 text-center text-sm font-bold text-danger">
-            {{ error }}
-          </div>
+          <!-- Toast Error (Floating) -->
+          <Transition
+            enter-active-class="transition duration-300 ease-out"
+            enter-from-class="transform -translate-y-4 opacity-0"
+            enter-to-class="transform translate-y-0 opacity-100"
+            leave-active-class="transition duration-200 ease-in"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+          >
+            <div 
+              v-if="error" 
+              class="fixed top-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4"
+            >
+              <div class="rounded-2xl bg-[#0F172A] px-6 py-4 text-center text-sm font-bold text-white shadow-2xl ring-1 ring-white/10">
+                <div class="flex items-center justify-center gap-3">
+                  <span class="flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[10px] text-white">✕</span>
+                  {{ error }}
+                </div>
+              </div>
+            </div>
+          </Transition>
 
           <!-- Full Name -->
           <div>
@@ -188,11 +206,16 @@ async function handleRegister() {
           <button
             type="submit"
             :disabled="loading"
-            class="flex w-full items-center justify-center gap-3 rounded-[20px] bg-primary-600 py-4 text-sm font-black text-white shadow-[0_10px_20px_rgba(37,99,235,0.2)] transition-all hover:bg-primary-700 active:scale-[0.98] disabled:opacity-50"
+            class="flex w-full items-center justify-center gap-3 rounded-[20px] bg-primary-600 py-4 text-sm font-black text-white shadow-[0_10px_20px_rgba(37,99,235,0.2)] transition-all hover:bg-primary-700 active:scale-[0.98] disabled:opacity-70 disabled:cursor-wait"
           >
-            <span v-if="loading" class="animate-spin">⏳</span>
-            {{ loading ? 'Creating Account...' : 'Create Account' }}
-            <ArrowRight class="h-4 w-4" />
+            <template v-if="!loading">
+              {{ 'Create Account' }}
+              <ArrowRight class="h-4 w-4" />
+            </template>
+            <template v-else>
+              <div class="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
+              Creating Account...
+            </template>
           </button>
         </form>
 

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Service } from './entities/service.entity';
@@ -110,14 +110,122 @@ export class ServicesService {
     return service;
   }
 
+  private normalizeVariantOptions(
+    raw: unknown,
+  ): Array<{ name: string; price: number }> {
+    if (!Array.isArray(raw)) return [];
+
+    return raw
+      .map((item: any) => ({
+        name: String(item?.name || '').trim(),
+        price: Number(item?.price),
+      }))
+      .filter((item) => item.name && Number.isFinite(item.price));
+  }
+
+  private validateAndNormalizePayload(
+    dto: CreateServiceDto | UpdateServiceDto,
+    current?: Service,
+  ): Partial<Service> {
+    const hasVariants = dto.hasVariants ?? current?.hasVariants ?? false;
+    const normalizedVariants = this.normalizeVariantOptions(
+      dto.variantOptions ?? current?.variantOptions,
+    );
+
+    if (hasVariants) {
+      if (!normalizedVariants.length) {
+        throw new BadRequestException(
+          'At least one variant option is required when product variants are enabled',
+        );
+      }
+
+      normalizedVariants.forEach((option) => {
+        if (!option.name) {
+          throw new BadRequestException('Variant option name is required');
+        }
+        if (!Number.isFinite(option.price) || option.price <= 0) {
+          throw new BadRequestException('Variant option price must be greater than 0');
+        }
+      });
+    }
+
+    const nextPrice = hasVariants
+      ? Math.min(...normalizedVariants.map((v) => v.price))
+      : Number(dto.price ?? current?.price);
+
+    if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
+      throw new BadRequestException('Price must be greater than 0');
+    }
+
+    const payload: Partial<Service> = {
+      ...dto,
+      hasVariants,
+      variantOptions: hasVariants ? normalizedVariants : null,
+      price: nextPrice,
+      shortDescription:
+        dto.shortDescription !== undefined
+          ? String(dto.shortDescription || '').trim() || null
+          : current?.shortDescription ?? null,
+    };
+
+    if (hasVariants) {
+      payload.priceFrom = null;
+      payload.priceTo = null;
+    } else {
+      payload.priceFrom = dto.priceFrom ?? null;
+      payload.priceTo = dto.priceTo ?? null;
+    }
+
+    return payload;
+  }
+
   async create(dto: CreateServiceDto, adminId: string): Promise<Service> {
-    const service = this.serviceRepo.create({ ...dto, adminId });
+    const payload = this.validateAndNormalizePayload(dto);
+
+    if (
+      payload.priceFrom !== undefined &&
+      payload.priceFrom !== null &&
+      payload.priceTo !== undefined &&
+      payload.priceTo !== null &&
+      Number(payload.priceFrom) >= Number(payload.priceTo)
+    ) {
+      throw new BadRequestException('Price from must be less than price to');
+    }
+
+    const service = this.serviceRepo.create({
+      ...(payload as Partial<Service>),
+      adminId,
+    } as Partial<Service>);
     return this.serviceRepo.save(service);
   }
 
   async update(id: string, dto: UpdateServiceDto, adminId: string): Promise<Service> {
     const service = await this.findOne(id, adminId);
-    Object.assign(service, dto);
+
+    const payload = this.validateAndNormalizePayload(dto, service);
+
+    // When categoryId changes, clear loaded relation to avoid old relation overriding FK on save.
+    if (
+      payload.categoryId &&
+      payload.categoryId !== service.categoryId
+    ) {
+      service.categoryId = payload.categoryId;
+      delete (service as any).category;
+    }
+
+    const nextPriceFrom = payload.priceFrom ?? service.priceFrom;
+    const nextPriceTo = payload.priceTo ?? service.priceTo;
+    if (
+      nextPriceFrom !== undefined &&
+      nextPriceFrom !== null &&
+      nextPriceTo !== undefined &&
+      nextPriceTo !== null &&
+      Number(nextPriceFrom) >= Number(nextPriceTo)
+    ) {
+      throw new BadRequestException('Price from must be less than price to');
+    }
+
+    Object.assign(service, payload);
     return this.serviceRepo.save(service);
   }
 

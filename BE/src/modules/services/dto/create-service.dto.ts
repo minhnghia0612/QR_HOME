@@ -7,6 +7,7 @@ import {
   IsUUID,
   Min,
   IsInt,
+  IsArray,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -24,6 +25,10 @@ export class CreateServiceDto {
   description: string;
 
   @IsOptional()
+  @IsString()
+  shortDescription?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
@@ -31,8 +36,28 @@ export class CreateServiceDto {
 
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
+  @Min(0.01)
   price: number;
+
+  @IsOptional()
+  @IsBoolean()
+  hasVariants?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  variantOptions?: Array<{ name: string; price: number }>;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  priceFrom?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  priceTo?: number;
 
   @IsOptional()
   @IsString()
@@ -53,6 +78,11 @@ export class CreateServiceDto {
   @IsOptional()
   @IsBoolean()
   isCombo?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  specialTags?: string[];
 
   @IsOptional()
   @IsBoolean()

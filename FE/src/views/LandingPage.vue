@@ -18,6 +18,7 @@ import {
 import { qrConfigApi } from '@/api/qr-config.api'
 import { categoriesApi } from '@/api/categories.api'
 import { servicesApi } from '@/api/services.api'
+import Toast from '@/components/Toast.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -33,8 +34,6 @@ const error = ref('')
 const loginForm = ref({ username: '', password: '' })
 const registerForm = ref({
   username: '',
-  fullName: '',
-  spaName: '',
   email: '',
   password: '',
 })
@@ -52,23 +51,27 @@ function closeAuth() {
 async function handleLogin() {
   loading.value = true
   error.value = ''
-  const success = await authStore.login(loginForm.value.username, loginForm.value.password)
-  if (success) {
+  const result = await authStore.login(loginForm.value.username, loginForm.value.password)
+  if (result.success) {
     handlePostAuthRedirect()
   } else {
-    error.value = 'Invalid credentials'
+    error.value = result.message || 'Invalid credentials'
     loading.value = false
   }
 }
 
 async function handleRegister() {
+  if (!registerForm.value.username || !registerForm.value.email || !registerForm.value.password) {
+    error.value = 'Please fill in all fields'
+    return
+  }
   loading.value = true
   error.value = ''
-  const success = await authStore.register(registerForm.value)
-  if (success) {
+  const result = await authStore.register(registerForm.value)
+  if (result.success) {
     handlePostAuthRedirect()
   } else {
-    error.value = 'Registration failed'
+    error.value = result.message || 'Registration failed'
     loading.value = false
   }
 }
@@ -78,34 +81,42 @@ async function handlePostAuthRedirect() {
     await authStore.fetchProfile()
     
     // Get all necessary data to determine onboarding state
-    const [configRes, catsRes, servicesRes] = await Promise.all([
-      qrConfigApi.getConfig(),
-      categoriesApi.getAll(),
-      servicesApi.getAll({ limit: 1 })
-    ])
+    const configRes = await qrConfigApi.getConfig()
+    const config = configRes.data?.data || configRes.data
     
-    const config = (configRes.data as any).data
-    const catsData = (catsRes.data as any).data
-    const servicesData = (servicesRes.data as any).data
-    
-    const isConfigDone = config?.spaName && config?.spaPhone
-    const isCategoryDone = catsData && catsData.length > 0
-    const isServiceDone = (servicesData?.items?.length || servicesData?.length || 0) > 0
-    
-    if (isConfigDone && isCategoryDone && isServiceDone) {
-      router.push('/admin/dashboard')
-    } else if (!isConfigDone) {
+    // Step 1: Spa Name AND Spa Phone are required
+    const isConfigDone = !!config?.spaName && !!config?.spaPhone
+    if (!isConfigDone) {
       router.push('/admin/qr')
-    } else if (!isCategoryDone) {
-      router.push('/admin/categories')
-    } else {
-      router.push('/admin/services')
+      return
     }
+
+    // Step 2: Categories
+    const catsRes = await categoriesApi.getAll()
+    const catsData = catsRes.data?.data || catsRes.data || []
+    const isCategoryDone = catsData.length > 0
+    if (!isCategoryDone) {
+      router.push('/admin/categories')
+      return
+    }
+
+    // Step 3: Services
+    const servicesRes = await servicesApi.getAll({ limit: 1 })
+    const raw: any = servicesRes.data
+    const servicesData = raw?.data?.items || raw?.items || raw?.data || []
+    const isServiceDone = (Array.isArray(servicesData) ? servicesData.length : 0) > 0
+    if (!isServiceDone) {
+      router.push('/admin/services')
+      return
+    }
+
+    // If all steps done, go to dashboard
+    window.location.href = '/admin/dashboard'
     
     closeAuth()
   } catch (err) {
     console.error('Redirect error:', err)
-    router.push('/admin/dashboard')
+    window.location.href = '/admin/dashboard'
     closeAuth()
   }
 }
@@ -147,7 +158,7 @@ onMounted(() => {
       <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <div class="flex items-center gap-2">
           <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white font-black">Q</div>
-          <span class="text-xl font-black tracking-tight">Elixir Spa</span>
+          <span class="text-xl font-black tracking-tight">QR-Home</span>
         </div>
         
         <div class="flex items-center gap-6">
@@ -166,13 +177,13 @@ onMounted(() => {
           <!-- Left Content -->
           <div class="flex-1 text-center lg:text-left">
             <div class="inline-flex items-center rounded-full bg-primary-50 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary-600 mb-6">
-              The Digital Concierge
+              NEXT-GEN DIGITAL MENUS
             </div>
             <h1 class="text-5xl lg:text-7xl font-black leading-[1.1] tracking-tight mb-8">
-              Elevate Your Spa Experience with <span class="text-primary-600">Invisible Tech.</span>
+              Power Your Business with <span class="text-primary-600">Dynamic QR Menus.</span>
             </h1>
             <p class="text-lg lg:text-xl text-text-secondary leading-relaxed mb-10 max-w-2xl mx-auto lg:mx-0">
-              Replace outdated paper menus with sophisticated digital interfaces. From effortless QR generation to sensory-first menu design—curate a bespoke journey for every guest.
+              Ditch the printing costs and go fully digital. Create, manage, and scale beautiful contactless menus for any service in minutes. Engage your customers instantly.
             </p>
             
             <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
@@ -180,25 +191,25 @@ onMounted(() => {
                 Get Started for Free
                 <ArrowRight class="h-5 w-5 transition-transform group-hover:translate-x-1" />
               </button>
-              <button class="flex items-center gap-3 rounded-2xl border border-border px-8 py-4 text-base font-bold text-text-primary hover:bg-surface-input transition-all">
+              <!-- <button class="flex items-center gap-3 rounded-2xl border border-border px-8 py-4 text-base font-bold text-text-primary hover:bg-surface-input transition-all">
                 <Play class="h-4 w-4 fill-primary-600 text-primary-600" />
                 See how it works
-              </button>
+              </button> -->
             </div>
           </div>
 
           <!-- Right Image Decor -->
-          <div class="flex-1 relative">
-            <div class="relative z-10 rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white">
+          <!-- <div class="flex-1 relative"> -->
+            <!-- <div class="relative z-10 rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white">
               <img src="https://images.unsplash.com/photo-1544161515-436cead54573?q=80&w=2070&auto=format&fit=crop" alt="Spa Experience" class="w-full h-auto" />
-            </div>
+            </div> -->
             <!-- Floating Tablet Preview -->
-            <div class="absolute -bottom-10 -left-10 z-20 w-3/4 rounded-3xl overflow-hidden shadow-2xl border-4 border-white hidden sm:block">
+            <!-- <div class="absolute -bottom-10 -left-10 z-20 w-3/4 rounded-3xl overflow-hidden shadow-2xl border-4 border-white hidden sm:block">
               <img src="https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?q=80&w=2070&auto=format&fit=crop" alt="Digital Menu Preview" />
-            </div>
+            </div> -->
             <!-- Decor -->
-            <div class="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] bg-primary-600/5 blur-[120px] rounded-full"></div>
-          </div>
+            <!-- <div class="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] bg-primary-600/5 blur-[120px] rounded-full"></div> -->
+          <!-- </div> -->
         </div>
       </div>
     </section>
@@ -263,10 +274,6 @@ onMounted(() => {
           </div>
           
           <div class="flex-1">
-             <div class="rounded-[3rem] overflow-hidden shadow-2xl relative group">
-                <img src="https://images.unsplash.com/photo-1544161515-436cead54573?q=80&w=2070&auto=format&fit=crop" class="w-full h-auto grayscale transition-all duration-700 group-hover:grayscale-0" />
-                <div class="absolute inset-0 bg-primary-600/10 mix-blend-multiply transition-opacity group-hover:opacity-0"></div>
-             </div>
           </div>
         </div>
       </div>
@@ -278,7 +285,7 @@ onMounted(() => {
         <div>
           <div class="flex items-center justify-center md:justify-start gap-2 mb-4">
             <div class="flex h-6 w-6 items-center justify-center rounded-md bg-primary-600 text-white text-[10px] font-black">Q</div>
-            <span class="text-lg font-black tracking-tight">Elixir Spa</span>
+            <span class="text-lg font-black tracking-tight">QR-Home</span>
           </div>
           <p class="text-sm text-text-muted">© 2026 QRHome · Premium Wellness Platform</p>
         </div>
@@ -311,14 +318,31 @@ onMounted(() => {
                 </div>
                 <h2 class="text-2xl font-black text-text-primary">{{ authMode === 'login' ? 'Welcome Back' : 'Create Account' }}</h2>
                 <p class="mt-2 text-sm font-medium text-text-muted">
-                  {{ authMode === 'login' ? 'Sign in to manage your spa experience' : 'Join the network of premium wellness providers' }}
+                  {{ authMode === 'login' ? 'Sign in to manage all your services' : 'Join the network of premium wellness providers' }}
                 </p>
               </div>
 
-              <!-- Form Error -->
-              <div v-if="error" class="mb-6 rounded-2xl bg-danger/5 p-4 text-center text-sm font-bold text-danger">
-                {{ error }}
-              </div>
+              <!-- Toast Error (Floating) -->
+              <Transition
+                enter-active-class="transition duration-300 ease-out"
+                enter-from-class="transform -translate-y-4 opacity-0"
+                enter-to-class="transform translate-y-0 opacity-100"
+                leave-active-class="transition duration-200 ease-in"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+              >
+                <div 
+                  v-if="error" 
+                  class="fixed top-8 left-1/2 -translate-x-1/2 z-[60] w-full max-w-sm px-4"
+                >
+                  <div class="rounded-2xl bg-[#0F172A] px-6 py-4 text-center text-sm font-bold text-white shadow-2xl ring-1 ring-white/10">
+                    <div class="flex items-center justify-center gap-3">
+                      <span class="flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[10px] text-white">✕</span>
+                      {{ error }}
+                    </div>
+                  </div>
+                </div>
+              </Transition>
 
               <!-- LOGIN FORM -->
               <form v-if="authMode === 'login'" @submit.prevent="handleLogin" class="space-y-4">
@@ -336,10 +360,15 @@ onMounted(() => {
                     </button>
                   </div>
                 </div>
-                <button type="submit" :disabled="loading" class="w-full flex items-center justify-center gap-3 rounded-2xl bg-primary-600 py-4 text-sm font-black text-white shadow-button hover:brightness-110 active:scale-95 disabled:opacity-50 transition-all">
-                  <LogIn v-if="!loading" class="h-4 w-4" />
-                  <span v-if="loading" class="animate-spin">⏳</span>
-                  {{ loading ? 'Signing in...' : 'Sign In' }}
+                <button type="submit" :disabled="loading" class="w-full flex items-center justify-center gap-3 rounded-2xl bg-primary-600 py-4 text-sm font-black text-white shadow-button hover:brightness-110 active:scale-95 disabled:opacity-70 disabled:cursor-wait transition-all">
+                  <template v-if="!loading">
+                    <LogIn class="h-4 w-4" />
+                    Sign In
+                  </template>
+                  <template v-else>
+                    <div class="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
+                    Signing in...
+                  </template>
                 </button>
               </form>
 
@@ -351,16 +380,21 @@ onMounted(() => {
                 </div>
                 <div>
                   <label class="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-text-muted">Email</label>
-                  <input v-model="registerForm.email" type="email" placeholder="alex@spa.com" class="w-full rounded-2xl border-0 bg-[#F1F5F9] py-3.5 px-5 text-sm font-bold outline-none focus:bg-white focus:ring-2 focus:ring-primary-600 transition-all" />
+                  <input v-model="registerForm.email" type="email" placeholder="alex@gmail.com" class="w-full rounded-2xl border-0 bg-[#F1F5F9] py-3.5 px-5 text-sm font-bold outline-none focus:bg-white focus:ring-2 focus:ring-primary-600 transition-all" />
                 </div>
                 <div>
                   <label class="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-text-muted">Password</label>
                   <input v-model="registerForm.password" :type="showPassword ? 'text' : 'password'" placeholder="••••••••" class="w-full rounded-2xl border-0 bg-[#F1F5F9] py-3.5 px-5 text-sm font-bold outline-none focus:bg-white focus:ring-2 focus:ring-primary-600 transition-all" />
                 </div>
-                <button type="submit" :disabled="loading" class="w-full flex items-center justify-center gap-3 rounded-2xl bg-primary-600 py-4 text-sm font-black text-white shadow-button hover:brightness-110 active:scale-95 disabled:opacity-50 transition-all">
-                  <UserPlus v-if="!loading" class="h-4 w-4" />
-                  <span v-if="loading" class="animate-spin">⏳</span>
-                  {{ loading ? 'Creating...' : 'Create Account' }}
+                <button type="submit" :disabled="loading" class="w-full flex items-center justify-center gap-3 rounded-2xl bg-primary-600 py-4 text-sm font-black text-white shadow-button hover:brightness-110 active:scale-95 disabled:opacity-70 disabled:cursor-wait transition-all">
+                  <template v-if="!loading">
+                    <UserPlus class="h-4 w-4" />
+                    Create Account
+                  </template>
+                  <template v-else>
+                    <div class="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
+                    Creating Account...
+                  </template>
                 </button>
               </form>
 
@@ -375,6 +409,14 @@ onMounted(() => {
         </div>
        </Transition>
     </Teleport>
+
+    <!-- Global Toast for Alerts -->
+    <Toast 
+      :show="!!error" 
+      :message="error" 
+      type="danger" 
+      @close="error = ''" 
+    />
   </div>
 </template>
 

@@ -13,6 +13,18 @@ export enum QrStatus {
   INACTIVE = 'inactive',
 }
 
+export enum CurrencyUnit {
+  VND = 'VND',
+  USD = 'USD',
+  EUR = 'EUR',
+}
+
+export enum CustomerUiSize {
+  LARGE = 'large',
+  NORMAL = 'normal',
+  COMPACT = 'compact',
+}
+
 @Entity('qr_config')
 export class QrConfig {
   @PrimaryGeneratedColumn('uuid')
@@ -62,6 +74,34 @@ export class QrConfig {
 
   @Column({ type: 'timestamptz', nullable: true, name: 'updated_at' })
   updatedAt: Date | null;
+
+  @Column({ type: 'varchar', length: 50, default: 'classic', name: 'theme_id' })
+  themeId: string;
+
+  @Column({
+    type: 'enum',
+    enum: CurrencyUnit,
+    default: CurrencyUnit.VND,
+    name: 'currency_unit',
+  })
+  currencyUnit: CurrencyUnit;
+
+  @Column({ type: 'varchar', length: 20, default: '#0253CD', name: 'primary_color' })
+  primaryColor: string;
+
+  @Column({ type: 'varchar', length: 20, default: '#5E0B61', name: 'secondary_color' })
+  secondaryColor: string;
+
+  @Column({ type: 'varchar', length: 100, default: 'Inter', name: 'font_family' })
+  fontFamily: string;
+
+  @Column({
+    type: 'enum',
+    enum: CustomerUiSize,
+    default: CustomerUiSize.NORMAL,
+    name: 'customer_ui_size',
+  })
+  customerUiSize: CustomerUiSize;
 
   @Column({ type: 'uuid', name: 'admin_id', nullable: true })
   adminId: string;

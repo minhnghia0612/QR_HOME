@@ -20,6 +20,7 @@ export interface DashboardData {
   mostViewed: MostViewedService | null
   growth: GrowthData
   totalViews: number
+  top5?: TopViewedItem[]
 }
 
 export interface TopViewedItem {

@@ -41,6 +41,7 @@ async function handleLogin() {
     }
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Login failed. Please check your credentials.'
+    setTimeout(() => { error.value = '' }, 4000)
   } finally {
     loading.value = false
   }
@@ -62,10 +63,27 @@ async function handleLogin() {
       <!-- Card -->
       <div class="rounded-3xl bg-white p-8 shadow-card">
         <form @submit.prevent="handleLogin" class="space-y-5">
-          <!-- Error -->
-          <div v-if="error" class="rounded-xl bg-danger/10 p-3 text-center text-sm font-medium text-danger">
-            {{ error }}
-          </div>
+          <!-- Toast Error (Floating) -->
+          <Transition
+            enter-active-class="transition duration-300 ease-out"
+            enter-from-class="transform -translate-y-4 opacity-0"
+            enter-to-class="transform translate-y-0 opacity-100"
+            leave-active-class="transition duration-200 ease-in"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+          >
+            <div 
+              v-if="error" 
+              class="fixed top-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4"
+            >
+              <div class="rounded-2xl bg-[#0F172A] px-6 py-4 text-center text-sm font-bold text-white shadow-2xl ring-1 ring-white/10">
+                <div class="flex items-center justify-center gap-3">
+                  <span class="flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[10px] text-white">✕</span>
+                  {{ error }}
+                </div>
+              </div>
+            </div>
+          </Transition>
 
           <!-- Username -->
           <div>
@@ -105,11 +123,16 @@ async function handleLogin() {
           <button
             type="submit"
             :disabled="loading"
-            class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-primary-600 to-[#0048B5] py-3.5 text-sm font-extrabold text-white shadow-button transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+            class="relative flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-primary-600 to-[#0048B5] py-3.5 text-sm font-extrabold text-white shadow-button transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-70 disabled:cursor-wait"
           >
-            <LogIn v-if="!loading" class="h-4 w-4" />
-            <span v-if="loading" class="animate-spin">⏳</span>
-            {{ loading ? 'Signing in...' : 'Sign In' }}
+            <template v-if="!loading">
+              <LogIn class="h-4 w-4" />
+              Sign In
+            </template>
+            <template v-else>
+              <div class="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
+              Signing in...
+            </template>
           </button>
         </form>
 

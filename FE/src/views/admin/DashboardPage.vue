@@ -1,18 +1,15 @@
 <script setup lang="ts">
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { trafficApi } from '@/api/traffic.api'
-import { useAuthStore } from '@/stores/auth.store'
 import { Download } from 'lucide-vue-next'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { categoriesApi } from '@/api/categories.api'
 import { servicesApi } from '@/api/services.api'
 import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
 
-const authStore = useAuthStore()
 const queryClient = useQueryClient()
 
-const { data: dashboard } = useQuery({
+const { data: dashboard, isLoading: loadingDashboard } = useQuery({
   queryKey: ['dashboard'],
   queryFn: async () => {
     const { data } = await trafficApi.getDashboard()
@@ -21,15 +18,7 @@ const { data: dashboard } = useQuery({
   refetchInterval: 30000,
 })
 
-const { data: topViewed } = useQuery({
-  queryKey: ['top-viewed'],
-  queryFn: async () => {
-    const { data } = await trafficApi.getTopViewed()
-    return data.data
-  },
-})
-
-const { data: qrConfig } = useQuery({
+const { data: qrConfig, isLoading: loadingQrConfig } = useQuery({
   queryKey: ['qr-config'],
   queryFn: async () => {
     const { data } = await qrConfigApi.getConfig()
@@ -72,6 +61,8 @@ const setupProgress = computed(() => {
   return { steps, completed, allDone: completed === steps.length }
 })
 
+const pageLoading = computed(() => loadingDashboard.value || loadingQrConfig.value)
+
 const { mutate: updateQrStatus, isPending: updatingStatus } = useMutation({
   mutationFn: async (status: 'active' | 'paused' | 'inactive') => {
     await qrConfigApi.updateStatus(status)
@@ -81,14 +72,37 @@ const { mutate: updateQrStatus, isPending: updatingStatus } = useMutation({
   },
 })
 
+const weeklyWithData = computed(() => {
+  const weekly = dashboard.value?.weekly ?? []
+  const since = new Date()
+  since.setHours(0, 0, 0, 0)
+  since.setDate(since.getDate() - 6)
+
+  return weekly.filter((day: any) => {
+    const date = new Date(day.date)
+    date.setHours(0, 0, 0, 0)
+    return date >= since && Number(day.count) > 0
+  })
+})
+
 const maxBarValue = computed(() => {
-  if (!dashboard.value?.weekly) return 1
-  return Math.max(...dashboard.value.weekly.map((d: any) => d.count), 1)
+  if (!weeklyWithData.value.length) return 1
+  return Math.max(...weeklyWithData.value.map((d: any) => d.count), 1)
 })
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr)
   return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
+}
+
+function formatLastUpdated(dateStr: string) {
+  const d = new Date(dateStr)
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mth = String(d.getMonth() + 1).padStart(2, '0')
+  const yyyy = d.getFullYear()
+  return `${hh}:${mm} ${dd}/${mth}/${yyyy}`
 }
 
 async function downloadQr() {
@@ -106,16 +120,19 @@ async function downloadQr() {
 </script>
 
 <template>
-  <div class="space-y-12">
+  <div class="space-y-12 pb-20">
     <!-- Welcome Section -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div v-if="pageLoading" class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <div class="h-10 w-72 rounded-lg bg-surface-input animate-pulse"></div>
+      </div>
+      <div class="h-12 w-40 rounded-xl bg-surface-input animate-pulse"></div>
+    </div>
+    <div v-else class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h2 class="text-4xl font-bold tracking-tight text-text-primary">
-          Welcome, Spa Manager
+          Welcome, {{ qrConfig?.spaName }}
         </h2>
-        <p class="mt-2 text-base font-medium text-text-secondary">
-          Your Spa management system is running smoothly today.
-        </p>
       </div>
       <button
         class="flex items-center gap-2 rounded-xl bg-surface-secondary px-6 py-3 text-sm font-bold text-text-dim transition-all hover:bg-surface-input disabled:opacity-50"
@@ -126,79 +143,52 @@ async function downloadQr() {
         Download QR
       </button>
     </div>
-    
-    <!-- Setup Checklist (Only show if not complete) -->
-    <div v-if="!setupProgress.allDone" class="grid grid-cols-1 gap-6 md:grid-cols-3">
-      <div v-for="step in setupProgress.steps" :key="step.id" 
-        class="relative overflow-hidden rounded-3xl border border-border bg-white p-6 shadow-sm transition-all hover:shadow-card"
-        :class="{ 'opacity-70': step.done }"
-      >
-        <div class="flex items-center gap-4">
-          <div class="flex h-12 w-12 items-center justify-center rounded-2xl" 
-            :class="step.done ? 'bg-success-50 text-success-600' : 'bg-primary-50 text-primary-600'"
-          >
-            <component :is="step.done ? 'CheckCircle2' : 'ArrowRight'" class="h-6 w-6" />
-          </div>
-          <div class="flex-1">
-            <h4 class="text-sm font-black text-text-primary">{{ step.label }}</h4>
-            <p class="text-[11px] font-bold text-text-secondary">
-              {{ step.done ? 'Completed' : 'Requires Setup' }}
-            </p>
-          </div>
-          <RouterLink v-if="!step.done" :to="step.link" 
-            class="rounded-xl bg-primary-600 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-button hover:brightness-110 active:scale-95"
-          >
-            Setup
-          </RouterLink>
-        </div>
-      </div>
-    </div>
 
     <!-- Bento Grid: Chart + QR Status -->
     <div class="flex flex-col gap-6 lg:flex-row">
-      <!-- Traffic View Card -->
+      <!-- Traffic View Card (Always visible) -->
       <div class="flex-1 rounded-4xl bg-white p-8 shadow-card">
-        <div class="mb-6">
+        <div class="mb-6 flex items-center justify-between">
           <h3 class="text-2xl font-bold tracking-tight text-text-primary">Traffic View</h3>
+          <span v-if="weeklyWithData.length" class="text-[10px] font-black uppercase tracking-widest text-primary-600">Last 7 Days</span>
         </div>
 
-        <!-- SKELETON: Bar Chart -->
-        <div v-if="!dashboard" class="flex items-end gap-3 sm:gap-5" style="height: 200px;">
-          <div v-for="i in 7" :key="i" class="flex flex-1 flex-col items-center gap-2">
-            <div class="skeleton w-full rounded-t-xl" :style="{ height: [40, 70, 30, 90, 50, 80, 45][i-1] + '%' }"></div>
-            <div class="skeleton h-3 w-8"></div>
+        <div v-if="loadingDashboard" class="grid h-[220px] grid-cols-7 items-end gap-4 px-2 sm:px-4">
+          <div v-for="i in 7" :key="`chart-skeleton-${i}`" class="flex flex-col items-center gap-3">
+            <div class="w-10 rounded-t-lg bg-surface-input animate-pulse" :style="{ height: `${30 + (i % 4) * 20}px` }"></div>
+            <div class="h-3 w-10 rounded bg-surface-input animate-pulse"></div>
           </div>
         </div>
-
-        <!-- Bar Chart -->
-        <div v-else class="flex items-end gap-3 sm:gap-5" style="height: 200px;">
+        <div v-else-if="weeklyWithData.length" class="flex items-end justify-start h-[220px] w-full px-2 sm:px-4 gap-6 overflow-x-auto overflow-y-visible no-scrollbar pt-14 pb-2">
           <div
-            v-for="(day, i) in dashboard?.weekly"
+            v-for="(day, i) in weeklyWithData"
             :key="i"
-            class="flex flex-1 flex-col items-center gap-2"
+            class="flex h-full flex-col items-center justify-end group gap-3 min-w-[70px]"
           >
-            <!-- Tooltip -->
-            <span class="text-[10px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
-              {{ day.count }}
-            </span>
             <!-- Bar -->
             <div
-              class="group relative w-full cursor-pointer rounded-t-xl transition-all hover:opacity-80"
-              :class="i === (dashboard?.weekly?.length ?? 1) - 1 ? 'bg-primary-600' : 'bg-primary-100'"
-              :style="{ height: (day.count / maxBarValue) * 100 + '%', minHeight: '16px' }"
+              class="relative w-12 cursor-pointer rounded-t-lg transition-all duration-300 bg-primary-600 shadow-[0_4px_12px_rgba(37,99,235,0.3)] hover:brightness-110"
+              :style="{ height: Math.max((day.count / maxBarValue) * 100, 18) + '%' }"
             >
-              <span class="absolute -top-7 left-1/2 -translate-x-1/2 rounded-md bg-text-primary px-2 py-0.5 text-[10px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
+              <!-- Tooltip (Force visible on hover/group-hover) -->
+              <div class="absolute -top-12 left-1/2 -translate-x-1/2 rounded-lg bg-text-primary px-3 py-2 text-[11px] font-black text-white opacity-0 transition-all group-hover:opacity-100 group-hover:-translate-y-2 pointer-events-none shadow-xl z-30 flex flex-col items-center min-w-[50px]">
                 {{ day.count }}
-              </span>
+                <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-text-primary rotate-45"></div>
+              </div>
             </div>
-            <!-- Label -->
-            <span
-              class="text-[10px] font-bold uppercase tracking-wide"
-              :class="i === (dashboard?.weekly?.length ?? 1) - 1 ? 'text-primary-600' : 'text-text-secondary'"
-            >
+            
+            <span class="text-[11px] font-black text-primary-600 uppercase tracking-widest whitespace-nowrap">
               {{ formatDate(day.date) }}
             </span>
           </div>
+        </div>
+        
+        <!-- Empty State for Chart -->
+        <div v-else class="flex h-[200px] flex-col items-center justify-center text-text-muted gap-4">
+          <div class="rounded-full bg-surface-input p-6">
+            <BarChart3 class="h-10 w-10 opacity-20" />
+          </div>
+          <p class="text-sm font-bold uppercase tracking-widest opacity-60">No traffic data in the last 7 days</p>
         </div>
       </div>
 
@@ -208,8 +198,7 @@ async function downloadQr() {
           QR Code Status
         </p>
         
-        <!-- SKELETON: QR Status -->
-        <div v-if="!qrConfig" class="mt-4 flex items-center gap-3">
+        <div v-if="loadingQrConfig || !qrConfig" class="mt-4 flex items-center gap-3">
           <div class="skeleton h-4 w-4 rounded-full"></div>
           <div class="skeleton h-8 w-24"></div>
         </div>
@@ -220,36 +209,22 @@ async function downloadQr() {
           </span>
         </div>
 
-        <!-- QR Preview Area -->
         <div class="mt-6 flex justify-center">
           <div class="flex h-48 w-48 items-center justify-center rounded-3xl bg-surface-input overflow-hidden ring-1 ring-border shadow-inner p-4">
-            <!-- SKELETON: Image -->
-            <div v-if="!qrConfig" class="skeleton h-full w-full rounded-2xl"></div>
-            
+            <template v-if="loadingQrConfig">
+              <div class="h-full w-full rounded-2xl bg-white/80 animate-pulse"></div>
+            </template>
             <template v-else-if="qrConfig?.status === 'active' && qrImageRes">
                <img :src="qrImageRes" alt="QR Code" class="h-full w-full object-contain mix-blend-multiply" />
             </template>
-            <div v-else-if="qrConfig?.status === 'paused'" class="text-center p-4">
-              <div class="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-warning-50 text-warning-600">
-                <span class="text-2xl">⏳</span>
-              </div>
-              <p class="text-[10px] font-bold text-warning-700 uppercase tracking-wider">Paused</p>
-              <p class="text-[9px] text-text-muted mt-1 px-4 leading-tight">Resume to view QR code</p>
-            </div>
             <div v-else class="text-center p-4">
-              <div class="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-surface-secondary text-text-muted">
-                <span class="text-2xl">📴</span>
-              </div>
-              <p class="text-[10px] font-bold text-text-muted uppercase tracking-wider">Offline</p>
-              <p class="text-[9px] text-text-muted mt-1 px-4 leading-tight">Complete setup to activate</p>
+              <span class="text-4xl opacity-20">📵</span>
             </div>
           </div>
         </div>
 
-        <!-- SKELETON: Toggle Button -->
-        <div v-if="!qrConfig" class="skeleton mt-6 h-12 w-full rounded-xl"></div>
         <button
-          v-else-if="qrConfig?.status !== 'inactive'"
+          v-if="!loadingQrConfig && qrConfig?.status !== 'inactive'"
           @click="updateQrStatus(qrConfig?.status === 'active' ? 'paused' : 'active')"
           :disabled="updatingStatus"
           class="mt-6 w-full rounded-xl py-3 text-sm font-bold transition-all"
@@ -257,10 +232,12 @@ async function downloadQr() {
         >
           {{ qrConfig?.status === 'active' ? 'Pause Service' : 'Resume Service' }}
         </button>
+        <div v-else-if="loadingQrConfig" class="mt-6 h-11 w-full rounded-xl bg-surface-input animate-pulse"></div>
 
-        <p class="mt-4 text-center text-[10px] text-text-muted">
-          Last updated: {{ qrConfig?.updatedAt ? new Date(qrConfig.updatedAt).toLocaleTimeString() : '—' }}
+        <p v-if="!loadingQrConfig" class="mt-4 text-center text-[10px] text-text-muted">
+          Last updated: {{ qrConfig?.updatedAt ? formatLastUpdated(qrConfig.updatedAt) : '—' }}
         </p>
+        <div v-else class="mx-auto mt-4 h-3 w-36 rounded bg-surface-input animate-pulse"></div>
       </div>
     </div>
 
@@ -269,44 +246,35 @@ async function downloadQr() {
       <h3 class="mb-6 text-xl font-bold tracking-tight text-text-primary">
         Top 5 Most Viewed Services
       </h3>
-      
-      <!-- SKELETON: Cards -->
-      <div v-if="!topViewed" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <div v-for="i in 5" :key="i" class="overflow-hidden rounded-3xl bg-white p-3 shadow-card">
-          <div class="skeleton h-28 w-full rounded-2xl mb-3"></div>
-          <div class="skeleton h-4 w-3/4 mb-2"></div>
-          <div class="skeleton h-3 w-1/2"></div>
+
+      <div v-if="loadingDashboard" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div v-for="i in 5" :key="`top5-skeleton-${i}`" class="overflow-hidden rounded-3xl bg-white p-3 shadow-card">
+          <div class="h-28 w-full rounded-2xl bg-surface-input animate-pulse"></div>
+          <div class="mt-3 h-4 w-3/4 rounded bg-surface-input animate-pulse"></div>
+          <div class="mt-2 h-3 w-1/2 rounded bg-surface-input animate-pulse"></div>
         </div>
       </div>
-
-      <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      
+      <div v-else-if="dashboard?.top5?.length" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div
-          v-for="(svc, i) in topViewed?.slice(0, 5)"
+          v-for="(svc, i) in (dashboard?.top5 as any[])?.slice(0, 5)"
           :key="svc.serviceId"
           class="overflow-hidden rounded-3xl bg-white shadow-card transition-shadow hover:shadow-elevated"
         >
-          <!-- Image -->
           <div class="relative h-28 w-full overflow-hidden rounded-2xl bg-surface-input">
-            <img
-              v-if="svc.imageUrl"
-              :src="svc.imageUrl"
-              :alt="svc.serviceName"
-              class="h-full w-full object-cover"
-            />
-            <!-- Rank Badge -->
+            <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.serviceName" class="h-full w-full object-cover" />
             <div class="absolute left-2 top-2 rounded-lg bg-white/60 px-2 py-0.5 text-xs font-bold text-text-primary backdrop-blur-sm">
               #{{ i + 1 }}
             </div>
           </div>
-          <!-- Info -->
           <div class="p-3">
             <h4 class="truncate text-sm font-bold text-text-primary">{{ svc.serviceName }}</h4>
             <p class="mt-1 text-xs text-text-secondary">{{ svc.viewCount?.toLocaleString() }} views</p>
           </div>
         </div>
-        <div v-if="!topViewed?.length" class="col-span-full rounded-3xl bg-white p-12 text-center text-text-muted shadow-card">
-          No traffic data yet. Views will appear here once customers visit.
-        </div>
+      </div>
+      <div v-else class="col-span-full rounded-3xl bg-white p-12 text-center text-text-muted shadow-card">
+        No traffic data yet. Views will appear here once customers visit.
       </div>
     </div>
   </div>

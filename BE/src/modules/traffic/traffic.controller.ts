@@ -49,12 +49,20 @@ export class TrafficController {
   @UseGuards(JwtAuthGuard)
   @Get('dashboard')
   async getDashboard(@GetAdmin() admin: { id: string }) {
-    const [weekly, mostViewed, growth, totalViews] = await Promise.all([
+    const [weekly, mostViewed, growth, totalViews, top5] = await Promise.all([
       this.trafficService.getWeeklyTraffic(admin.id),
       this.trafficService.getMostViewedService(admin.id),
       this.trafficService.getGrowth(admin.id),
       this.trafficService.getTotalServiceViews(admin.id),
+      this.trafficService.getTopViewedServices(admin.id, 5),
     ]);
-    return { weekly, mostViewed, growth, totalViews };
+    return {
+      weekly,
+      mostViewed,
+      growth,
+      totalViews,
+      todayServiceViews: growth.todayViews,
+      top5,
+    };
   }
 }

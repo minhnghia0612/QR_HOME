@@ -3,10 +3,8 @@ import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { qrConfigApi } from '@/api/qr-config.api'
-import { categoriesApi } from '@/api/categories.api'
-import { servicesApi } from '@/api/services.api'
 import { uploadApi } from '@/api/upload.api'
-import { Save, Settings as SettingsIcon, Image as ImageIcon, Upload, Plus } from 'lucide-vue-next'
+import { Save, Settings as SettingsIcon, Image as ImageIcon, Upload } from 'lucide-vue-next'
 import Toast from '@/components/Toast.vue'
 
 const router = useRouter()
@@ -21,11 +19,10 @@ const form = ref({
   spaLogo: '',
   bannerUrl: '',
   welcomeMessage: '',
-  backgroundColor: '#0048B5',
   status: 'active',
 })
 
-const { data: config } = useQuery({
+const { data: config, isLoading: loadingConfig } = useQuery({
   queryKey: ['qr-config'],
   queryFn: async () => {
     const { data } = await qrConfigApi.getConfig()
@@ -43,7 +40,6 @@ watch(config, (val) => {
       spaLogo: val.spaLogo || '',
       bannerUrl: val.bannerUrl || '',
       welcomeMessage: val.welcomeMessage || '',
-      backgroundColor: val.backgroundColor || '#0048B5',
       status: val.status || 'active',
     }
   }
@@ -69,23 +65,10 @@ const { mutate: saveConfig, isPending: saving } = useMutation({
     showToast('Settings saved successfully', 'success')
     queryClient.invalidateQueries({ queryKey: ['qr-config'] })
     
-    // Step forward: determine where to go next
-    const [catsRes, servicesRes] = await Promise.all([
-      categoriesApi.getAll(),
-      servicesApi.getAll({ limit: 1 })
-    ])
-    const catsData = (catsRes.data as any).data
-    const servicesData = (servicesRes.data as any).data
-    const isCategoryDone = catsData && catsData.length > 0
-    const isServiceDone = (servicesData?.items?.length || servicesData?.length || 0) > 0
-
-    if (isCategoryDone && isServiceDone) {
-      router.push('/admin/dashboard')
-    } else if (!isCategoryDone) {
+    // Auto-redirect to next step in onboarding: Categories
+    setTimeout(() => {
       router.push('/admin/categories')
-    } else {
-      router.push('/admin/services')
-    }
+    }, 1500)
   },
   onError: (err: any) => {
     showToast(err.message || 'Failed to save settings', 'danger')
@@ -103,8 +86,6 @@ async function handleUpload(e: Event, field: 'spaLogo' | 'bannerUrl') {
   }
 }
 
-const colorPresets = ['#0048B5', '#F1F5F9', '#FFF4F4', '#FFFBEB', '#F0FDF4']
-
 // No need for separate onMounted if we have watch(config)
 
 </script>
@@ -115,9 +96,25 @@ const colorPresets = ['#0048B5', '#F1F5F9', '#FFF4F4', '#FFFBEB', '#F0FDF4']
       <h2 class="text-4xl font-bold tracking-tight text-text-primary">Settings</h2>
     </div>
 
-    <div class="grid grid-cols-1 gap-8 lg:grid-cols-5">
+    <div v-if="loadingConfig" class="grid grid-cols-1 gap-8">
+      <div class="space-y-6">
+        <div class="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-border space-y-5">
+          <div class="h-8 w-48 rounded bg-surface-input animate-pulse"></div>
+          <div class="h-20 w-20 rounded-2xl bg-surface-input animate-pulse"></div>
+          <div class="h-12 w-full rounded-xl bg-surface-input animate-pulse"></div>
+          <div class="h-12 w-full rounded-xl bg-surface-input animate-pulse"></div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="h-12 rounded-xl bg-surface-input animate-pulse"></div>
+            <div class="h-12 rounded-xl bg-surface-input animate-pulse"></div>
+          </div>
+          <div class="h-40 w-full rounded-2xl bg-surface-input animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="grid grid-cols-1 gap-8">
       <!-- Left Column: Basic Information -->
-      <div class="lg:col-span-3 space-y-6">
+      <div class="space-y-6">
         <div class="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-border">
           <div class="mb-8 flex items-center gap-3">
             <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
@@ -201,71 +198,21 @@ const colorPresets = ['#0048B5', '#F1F5F9', '#FFF4F4', '#FFFBEB', '#F0FDF4']
                 <input type="file" class="hidden" @change="e => handleUpload(e, 'bannerUrl')" />
               </label>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Column: Customer Interface -->
-      <div class="lg:col-span-2 space-y-6">
-        <div class="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-border">
-          <div class="mb-8 flex items-center gap-3">
-            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-50 text-pink-600">
-              <ImageIcon class="h-5 w-5" />
-            </div>
-            <h3 class="text-lg font-bold text-text-primary">Customer Interface</h3>
-          </div>
-
-          <div class="space-y-8">
-            <!-- Background Color -->
-            <div>
-              <p class="mb-4 text-xs font-bold text-text-muted">Service Page Background Color</p>
-              <div class="flex flex-wrap gap-3">
-                <button
-                  v-for="color in colorPresets"
-                  :key="color"
-                  @click="form.backgroundColor = color"
-                  :style="{ backgroundColor: color }"
-                  class="h-8 w-8 rounded-full ring-2 ring-offset-2 transition-transform active:scale-90"
-                  :class="form.backgroundColor === color ? 'ring-primary-600 scale-110' : 'ring-transparent'"
-                />
-                <button class="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface-input text-text-muted hover:bg-surface-input">
-                  <Plus class="h-4 w-4" />
-                </button>
-              </div>
-            </div>
 
             <!-- Welcome Message -->
             <div>
-              <p class="mb-4 text-xs font-bold text-text-muted">Welcome Message</p>
+              <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Welcome Message</label>
               <div class="rounded-2xl bg-surface-input p-4">
                 <textarea
                   v-model="form.welcomeMessage"
                   rows="4"
-                  placeholder="Welcome to Azure Spa..."
-                  class="w-full resize-none border-0 bg-transparent p-0 text-sm italic text-text-secondary outline-none placeholder:text-text-muted"
+                  placeholder="Welcome to your store..."
+                  class="w-full resize-none border-0 bg-transparent p-0 text-sm text-text-secondary outline-none placeholder:text-text-muted"
                 />
               </div>
             </div>
           </div>
         </div>
-
-        <!-- Status -->
-        <!-- <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-border flex items-center justify-between">
-          <div>
-            <p class="font-bold text-text-primary">QR System Status</p>
-            <p class="text-xs text-text-muted">Toggle digital menu availability</p>
-          </div>
-          <button
-            @click="form.status = (form.status === 'active' ? 'inactive' : 'active')"
-            class="relative h-6 w-11 rounded-full transition-colors"
-            :class="form.status === 'active' ? 'bg-success' : 'bg-surface-input'"
-          >
-            <span
-              class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
-              :class="form.status === 'active' ? 'translate-x-5' : 'translate-x-0'"
-            />
-          </button>
-        </div> -->
       </div>
     </div>
 
@@ -281,7 +228,6 @@ const colorPresets = ['#0048B5', '#F1F5F9', '#FFF4F4', '#FFFBEB', '#F0FDF4']
           spaLogo: config.spaLogo || '',
           bannerUrl: config.bannerUrl || '',
           welcomeMessage: config.welcomeMessage || '',
-          backgroundColor: config.backgroundColor || '#0048B5',
           status: config.status || 'active'
         })"
       >

@@ -1,17 +1,28 @@
 import type { Category } from './category.types'
 
+export interface ServiceVariantOption {
+  name: string
+  price: number
+}
+
 export interface Service {
   id: string
   categoryId: string
   name: string
+  shortDescription?: string
   description: string
   durationMinutes: number
   price: number
+  priceFrom?: number
+  priceTo?: number
+  hasVariants?: boolean
+  variantOptions?: ServiceVariantOption[]
   currency: string
   imageUrl: string
   isBestSeller: boolean
   isNewService: boolean
   isCombo: boolean
+  specialTags?: string[]
   isActive: boolean
   sortOrder: number
   createdAt: string
@@ -21,14 +32,20 @@ export interface Service {
 export interface CreateServicePayload {
   categoryId: string
   name: string
+  shortDescription?: string
   description: string
   durationMinutes?: number
   price: number
+  priceFrom?: number
+  priceTo?: number
+  hasVariants?: boolean
+  variantOptions?: ServiceVariantOption[]
   currency?: string
   imageUrl: string
   isBestSeller?: boolean
   isNewService?: boolean
   isCombo?: boolean
+  specialTags?: string[]
   isActive?: boolean
   sortOrder?: number
 }

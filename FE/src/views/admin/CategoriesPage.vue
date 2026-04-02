@@ -3,14 +3,20 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { categoriesApi } from '@/api/categories.api'
-import { servicesApi } from '@/api/services.api'
-import { Plus, Pencil, Trash2, X, FolderOpen } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, X, FolderOpen, ArrowRight } from 'lucide-vue-next'
+import Toast from '@/components/Toast.vue'
 
 const router = useRouter()
 const queryClient = useQueryClient()
 const showForm = ref(false)
 const editingCategory = ref<any>(null)
 const form = ref({ name: '', isActive: true })
+
+const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'danger' | 'warning' })
+
+function showToast(message: string, type: 'success' | 'danger' | 'warning' = 'success') {
+  toast.value = { show: true, message, type }
+}
 
 const { data: categories, isLoading } = useQuery({
   queryKey: ['categories'],
@@ -34,19 +40,22 @@ const { mutate: saveCategory, isPending: saving } = useMutation({
     }
   },
   onSuccess: async () => {
-    queryClient.invalidateQueries({ queryKey: ['categories'] })
-    
-    // Step forward: determine where to go next
-    const { data: servicesRes } = await servicesApi.getAll({ limit: 1 })
-    const servicesData = (servicesRes as any).data
-    const isServiceDone = (servicesData?.items?.length || servicesData?.length || 0) > 0
+    const isCreating = !editingCategory.value
+    const hadNoCategoryBefore = (categories.value?.length || 0) === 0
 
-    if (isServiceDone) {
-      router.push('/admin/dashboard')
-    } else {
-      router.push('/admin/services')
-    }
+    await queryClient.invalidateQueries({ queryKey: ['categories'] })
+    showToast('Category saved successfully', 'success')
     resetForm()
+
+    // Onboarding flow: after creating the first category, continue to service setup.
+    if (isCreating && hadNoCategoryBefore) {
+      setTimeout(() => {
+        router.push('/admin/services')
+      }, 1200)
+    }
+  },
+  onError: (err: any) => {
+    showToast(err.message || 'Failed to save category', 'danger')
   },
 })
 
@@ -183,6 +192,13 @@ function resetForm() {
         </div>
       </Transition>
     </Teleport>
+
+    <Toast 
+      :show="toast.show" 
+      :message="toast.message" 
+      :type="toast.type" 
+      @close="toast.show = false" 
+    />
   </div>
 </template>
 

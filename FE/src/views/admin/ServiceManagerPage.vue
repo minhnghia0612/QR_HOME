@@ -11,7 +11,57 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useRouter } from 'vue-router'
 import { qrConfigApi } from '@/api/qr-config.api'
 
+type SpecialTag = 'must_try' | 'limited_edition' | 'summer_special' | 'happy_hour'
+type LabelValue = 'best_seller' | 'new_service' | SpecialTag
+
+const SPECIAL_TAG_OPTIONS: Array<{ value: SpecialTag; label: string }> = [
+  { value: 'must_try', label: 'Must Try' },
+  { value: 'limited_edition', label: 'Limited Edition' },
+  { value: 'summer_special', label: 'Summer Special' },
+  { value: 'happy_hour', label: 'Happy Hour' },
+]
+
+const LABEL_OPTIONS: Array<{ value: LabelValue; label: string }> = [
+  { value: 'best_seller', label: 'Best Seller' },
+  { value: 'new_service', label: 'New Service' },
+  ...SPECIAL_TAG_OPTIONS,
+]
+
+const LABEL_STYLE_MAP: Record<string, { chipActive: string; chipInactive: string; badge: string }> = {
+  best_seller: {
+    chipActive: 'bg-violet-100 text-violet-700 ring-2 ring-violet-300',
+    chipInactive: 'bg-violet-50 text-violet-700/70 hover:bg-violet-100',
+    badge: 'bg-violet-100 text-violet-700',
+  },
+  new_service: {
+    chipActive: 'bg-sky-100 text-sky-700 ring-2 ring-sky-300',
+    chipInactive: 'bg-sky-50 text-sky-700/70 hover:bg-sky-100',
+    badge: 'bg-sky-100 text-sky-700',
+  },
+  must_try: {
+    chipActive: 'bg-emerald-100 text-emerald-700 ring-2 ring-emerald-300',
+    chipInactive: 'bg-emerald-50 text-emerald-700/70 hover:bg-emerald-100',
+    badge: 'bg-emerald-100 text-emerald-700',
+  },
+  limited_edition: {
+    chipActive: 'bg-amber-100 text-amber-700 ring-2 ring-amber-300',
+    chipInactive: 'bg-amber-50 text-amber-700/70 hover:bg-amber-100',
+    badge: 'bg-amber-100 text-amber-700',
+  },
+  summer_special: {
+    chipActive: 'bg-orange-100 text-orange-700 ring-2 ring-orange-300',
+    chipInactive: 'bg-orange-50 text-orange-700/70 hover:bg-orange-100',
+    badge: 'bg-orange-100 text-orange-700',
+  },
+  happy_hour: {
+    chipActive: 'bg-pink-100 text-pink-700 ring-2 ring-pink-300',
+    chipInactive: 'bg-pink-50 text-pink-700/70 hover:bg-pink-100',
+    badge: 'bg-pink-100 text-pink-700',
+  },
+}
+
 const router = useRouter()
+import Toast from '@/components/Toast.vue'
 const authStore = useAuthStore()
 
 const queryClient = useQueryClient()
@@ -20,9 +70,25 @@ const showForm = ref(false)
 const editingService = ref<any>(null)
 const searchInput = ref('')
 const searchQuery = ref('')
-const selectedStatus = ref('true')
+const selectedStatus = ref('')
 const selectedCategory = ref('')
 const page = ref(1)
+const formError = ref('')
+const priceFromInput = ref('')
+const priceToInput = ref('')
+const formLoading = ref(false)
+const fieldErrors = ref({
+  name: '',
+  categoryId: '',
+  price: '',
+  variantOptions: '',
+})
+
+const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'danger' | 'warning' })
+
+function showToast(message: string, type: 'success' | 'danger' | 'warning' = 'success') {
+  toast.value = { show: true, message, type }
+}
 
 // Debounce search
 let searchTimeout: any
@@ -42,18 +108,24 @@ watch([selectedStatus, selectedCategory], () => {
 // Form state
 const form = ref({
   name: '',
+  shortDescription: '',
   categoryId: '',
   price: 0,
+  priceFrom: undefined as number | undefined,
+  priceTo: undefined as number | undefined,
   description: '',
-  durationMinutes: 60,
+  durationMinutes: 0,
   imageUrl: '',
+  hasVariants: false,
+  variantOptions: [] as Array<{ name: string; price: number }>,
   isBestSeller: false,
   isNewService: false,
   isCombo: false,
+  specialTags: [] as string[],
   isActive: true,
 })
 
-const { data: services, isLoading } = useQuery({
+const { data: services, isLoading: loadingServices } = useQuery({
   queryKey: ['services', searchQuery.value, selectedStatus.value, selectedCategory.value, page.value],
   queryFn: async () => {
     const params: any = { 
@@ -71,7 +143,7 @@ const { data: services, isLoading } = useQuery({
   },
 })
 
-const { data: categories } = useQuery({
+const { data: categories, isLoading: loadingCategories } = useQuery({
   queryKey: ['categories'],
   queryFn: async () => {
     const { data } = await categoriesApi.getAll()
@@ -79,12 +151,27 @@ const { data: categories } = useQuery({
   },
 })
 
-const { data: trafficData } = useQuery({
+const { data: trafficData, isLoading: loadingTraffic } = useQuery({
   queryKey: ['traffic-dashboard'],
   queryFn: async () => {
     const { data } = await trafficApi.getDashboard()
     return data.data
   },
+})
+
+const { data: qrConfig } = useQuery({
+  queryKey: ['qr-config'],
+  queryFn: async () => {
+    const { data } = await qrConfigApi.getConfig()
+    return (data as any).data || data
+  },
+})
+
+const currencyUnit = computed<'VND' | 'USD' | 'EUR'>(() => {
+  const raw = String((qrConfig.value as any)?.currencyUnit || (qrConfig.value as any)?.currency || 'VND').toUpperCase()
+  if (raw === 'USD' || raw === 'DOLLAR') return 'USD'
+  if (raw === 'EUR' || raw === 'EURO') return 'EUR'
+  return 'VND'
 })
 
 const formattedGrowth = computed(() => {
@@ -97,18 +184,96 @@ const formattedGrowth = computed(() => {
 
 const { mutate: saveService, isPending: saving } = useMutation({
   mutationFn: async () => {
+    formError.value = ''
+    fieldErrors.value = { name: '', categoryId: '', price: '', variantOptions: '' }
+
+    if (!String(form.value.name || '').trim()) {
+      fieldErrors.value.name = 'Service name is required'
+      throw new Error('Service name is required')
+    }
+
+    if (!form.value.categoryId) {
+      fieldErrors.value.categoryId = 'Please select category'
+      throw new Error('Please select category')
+    }
+
+    const hasVariants = !!form.value.hasVariants
+    const priceFrom = hasVariants ? undefined : parseOptionalNumber(priceFromInput.value)
+    const priceTo = hasVariants ? undefined : parseOptionalNumber(priceToInput.value)
+
+    let normalizedPrice = Number(form.value.price)
+
+    if (hasVariants) {
+      const options = (form.value.variantOptions || []).map((opt: any) => ({
+        name: String(opt?.name || '').trim(),
+        price: Number(opt?.price),
+      }))
+
+      if (!options.length) {
+        fieldErrors.value.variantOptions = 'Please add at least one variant option'
+        throw new Error('Please add at least one variant option')
+      }
+
+      options.forEach((opt) => {
+        if (!opt.name) {
+          fieldErrors.value.variantOptions = 'Variant option name is required'
+          throw new Error('Variant option name is required')
+        }
+        if (!Number.isFinite(opt.price) || opt.price <= 0) {
+          fieldErrors.value.variantOptions = 'Variant option price must be greater than 0'
+          throw new Error('Variant option price must be greater than 0')
+        }
+      })
+
+      normalizedPrice = Math.min(...options.map((opt) => opt.price))
+      form.value.variantOptions = options
+    } else {
+      if (priceFrom === undefined) {
+        fieldErrors.value.price = 'Price from is required'
+        throw new Error('Price from is required')
+      }
+
+      if (Number(priceFrom) <= 0) {
+        fieldErrors.value.price = 'Price must be greater than 0'
+        throw new Error('Price must be greater than 0')
+      }
+
+      if (priceTo !== undefined && Number(priceTo) <= 0) {
+        fieldErrors.value.price = 'Price must be greater than 0'
+        throw new Error('Price must be greater than 0')
+      }
+
+      if (priceTo !== undefined && Number(priceFrom) >= Number(priceTo)) {
+        fieldErrors.value.price = 'Price from must be less than price to'
+        throw new Error('Price from must be less than price to')
+      }
+
+      normalizedPrice = Number(priceFrom)
+    }
+
+    const payload = {
+      ...form.value,
+      isCombo: false,
+      price: normalizedPrice,
+      priceFrom,
+      priceTo,
+      variantOptions: hasVariants ? form.value.variantOptions : undefined,
+    }
+
     if (editingService.value) {
-      const { data } = await servicesApi.update(editingService.value.id, form.value)
+      const { data } = await servicesApi.update(editingService.value.id, payload)
       return data
     } else {
-      const { data } = await servicesApi.create(form.value)
+      const { data } = await servicesApi.create(payload)
       return data
     }
   },
   onSuccess: async () => {
     await queryClient.invalidateQueries({ queryKey: ['services'] })
+    showToast('Service saved successfully', 'success')
+    resetForm()
     
-    // Step forward: if first service, generate QR and go to Dashboard
+    // Auto QR generation if needed
     const { data: servicesData } = await servicesApi.getAll({ limit: 1 })
     const items = (servicesData as any).data?.items || servicesData.data
     const total = (servicesData as any).data?.total || items?.length || 0
@@ -116,18 +281,14 @@ const { mutate: saveService, isPending: saving } = useMutation({
     if (total >= 1) { 
       try {
         await qrConfigApi.generate()
-        // Force a page reload after redirect to ensure sidebar/onboarding state is updated everywhere
-        router.push('/admin/dashboard').then(() => {
-          setTimeout(() => {
-            window.location.reload()
-          }, 500)
-        })
       } catch (err) {
         console.error('Auto QR failed:', err)
       }
     }
-    
-    resetForm()
+  },
+  onError: (err: any) => {
+    formError.value = err.message || 'Failed to save service'
+    showToast(err.message || 'Failed to save service', 'danger')
   },
 })
 
@@ -144,41 +305,138 @@ const { mutate: toggleStatus } = useMutation({
 
 function openCreate() {
   editingService.value = null
+  formLoading.value = false
   form.value = {
     name: '',
+    shortDescription: '',
     categoryId: '',
     price: 0,
+    priceFrom: undefined,
+    priceTo: undefined,
     description: '',
     durationMinutes: 60,
     imageUrl: '',
+    hasVariants: false,
+    variantOptions: [],
     isBestSeller: false,
     isNewService: false,
     isCombo: false,
+    specialTags: [],
     isActive: true,
   }
+  priceFromInput.value = ''
+  priceToInput.value = ''
+  formError.value = ''
+  fieldErrors.value = { name: '', categoryId: '', price: '', variantOptions: '' }
   showForm.value = true
 }
 
-function openEdit(svc: any) {
+async function openEdit(svc: any) {
   editingService.value = svc
-  form.value = {
-    name: svc.name || '',
-    categoryId: svc.categoryId || '',
-    price: svc.price ? Number(svc.price) : 0,
-    description: svc.description || '',
-    durationMinutes: svc.durationMinutes || 60,
-    imageUrl: svc.imageUrl || '',
-    isBestSeller: !!svc.isBestSeller,
-    isNewService: !!svc.isNewService,
-    isCombo: !!svc.isCombo,
-    isActive: svc.isActive !== undefined ? svc.isActive : true,
-  }
+  formError.value = ''
+  fieldErrors.value = { name: '', categoryId: '', price: '', variantOptions: '' }
+  formLoading.value = true
   showForm.value = true
+
+  try {
+    const { data } = await servicesApi.getOne(svc.id)
+    const detail = (data as any).data || data
+
+    form.value = {
+      name: detail.name || '',
+      shortDescription: detail.shortDescription || '',
+      categoryId: detail.categoryId || '',
+      price: detail.price ? Number(detail.price) : 0,
+      priceFrom: detail.priceFrom != null ? Number(detail.priceFrom) : undefined,
+      priceTo: detail.priceTo != null ? Number(detail.priceTo) : undefined,
+      description: detail.description || '',
+      durationMinutes: detail.durationMinutes || 60,
+      imageUrl: detail.imageUrl || '',
+      hasVariants: !!detail.hasVariants,
+      variantOptions: Array.isArray(detail.variantOptions)
+        ? detail.variantOptions.map((opt: any) => ({
+            name: opt?.name || '',
+            price: Number(opt?.price) || 0,
+          }))
+        : [],
+      isBestSeller: !!detail.isBestSeller,
+      isNewService: !!detail.isNewService,
+      isCombo: false,
+      specialTags: Array.isArray(detail.specialTags) ? detail.specialTags : [],
+      isActive: detail.isActive !== undefined ? detail.isActive : true,
+    }
+    priceFromInput.value = form.value.priceFrom != null ? String(form.value.priceFrom) : ''
+    priceToInput.value = form.value.priceTo != null ? String(form.value.priceTo) : ''
+  } catch (err: any) {
+    formError.value = err?.message || 'Failed to load service detail'
+    showToast(formError.value, 'danger')
+  } finally {
+    formLoading.value = false
+  }
 }
 
 function resetForm() {
   showForm.value = false
   editingService.value = null
+  formError.value = ''
+  fieldErrors.value = { name: '', categoryId: '', price: '', variantOptions: '' }
+  formLoading.value = false
+}
+
+function parseOptionalNumber(value: string | number | null | undefined): number | undefined {
+  const trimmed = String(value ?? '').trim()
+  if (!trimmed) return undefined
+  const parsed = Number(trimmed)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+function toggleTag(value: SpecialTag) {
+  const tags = new Set(form.value.specialTags || [])
+  if (tags.has(value)) tags.delete(value)
+  else tags.add(value)
+  form.value.specialTags = Array.from(tags)
+}
+
+function hasTag(value: SpecialTag) {
+  return (form.value.specialTags || []).includes(value)
+}
+
+function toggleLabel(value: LabelValue) {
+  if (value === 'best_seller') {
+    form.value.isBestSeller = !form.value.isBestSeller
+    return
+  }
+  if (value === 'new_service') {
+    form.value.isNewService = !form.value.isNewService
+    return
+  }
+  toggleTag(value)
+}
+
+function isLabelActive(value: LabelValue) {
+  if (value === 'best_seller') return !!form.value.isBestSeller
+  if (value === 'new_service') return !!form.value.isNewService
+  return hasTag(value)
+}
+
+function getLabelChipClass(value: LabelValue) {
+  const style = LABEL_STYLE_MAP[value]
+  if (!style) return isLabelActive(value) ? 'bg-success/10 text-success ring-2 ring-success' : 'bg-surface-input text-text-muted hover:bg-surface-page'
+  return isLabelActive(value) ? style.chipActive : style.chipInactive
+}
+
+function getLabelBadgeClass(value: string) {
+  return LABEL_STYLE_MAP[value]?.badge || 'bg-success/10 text-success'
+}
+
+function addVariantOption() {
+  form.value.variantOptions = [...(form.value.variantOptions || []), { name: '', price: 0 }]
+}
+
+function removeVariantOption(index: number) {
+  const list = [...(form.value.variantOptions || [])]
+  list.splice(index, 1)
+  form.value.variantOptions = list
 }
 
 async function handleUpload(e: Event) {
@@ -191,12 +449,75 @@ async function handleUpload(e: Event) {
 }
 
 function formatPrice(p: number) {
-  return new Intl.NumberFormat('vi-VN').format(p) + ' VND'
+  const value = Number(p || 0)
+  const locale = currencyUnit.value === 'VND' ? 'vi-VN' : 'en-US'
+  const formatted = new Intl.NumberFormat(locale).format(value)
+  if (currencyUnit.value === 'USD') return `$${formatted}`
+  if (currencyUnit.value === 'EUR') return `€${formatted}`
+  return `${formatted} VND`
+}
+
+function formatPriceRange(from: number, to: number) {
+  if (currencyUnit.value === 'USD') return `$${new Intl.NumberFormat('en-US').format(from)} - $${new Intl.NumberFormat('en-US').format(to)}`
+  if (currencyUnit.value === 'EUR') return `€${new Intl.NumberFormat('en-US').format(from)} - €${new Intl.NumberFormat('en-US').format(to)}`
+  return `${new Intl.NumberFormat('vi-VN').format(from)} - ${new Intl.NumberFormat('vi-VN').format(to)} VND`
+}
+
+function getServiceDisplayPrice(svc: any) {
+  if (svc?.hasVariants && Array.isArray(svc?.variantOptions) && svc.variantOptions.length) {
+    const prices = svc.variantOptions
+      .map((opt: any) => Number(opt?.price))
+      .filter((p: number) => Number.isFinite(p) && p > 0)
+
+    if (prices.length) {
+      const min = Math.min(...prices)
+      const max = Math.max(...prices)
+      if (min !== max) return formatPriceRange(min, max)
+      return formatPrice(min)
+    }
+  }
+
+  const from = parseOptionalNumber(svc?.priceFrom)
+  const to = parseOptionalNumber(svc?.priceTo)
+
+  if (from !== undefined && to !== undefined) return formatPriceRange(from, to)
+
+  if (from !== undefined) return formatPrice(from)
+  if (to !== undefined) return formatPrice(to)
+
+  return formatPrice(Number(svc?.price || 0))
 }
 
 function getCategoryName(catId: string) {
   return categories.value?.find((c: any) => c.id === catId)?.name || '—'
 }
+
+function formatTagLabel(tag: string) {
+  return tag
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+function getServiceLabelItems(svc: any) {
+  const labels: Array<{ key: string; label: string }> = []
+  if (svc?.isBestSeller) labels.push({ key: 'best_seller', label: 'Best Seller' })
+  if (svc?.isNewService) labels.push({ key: 'new_service', label: 'New Service' })
+  if (Array.isArray(svc?.specialTags)) {
+    svc.specialTags.forEach((tag: string) => {
+      const normalizedTag = String(tag || '').trim()
+      if (normalizedTag) labels.push({ key: normalizedTag, label: formatTagLabel(normalizedTag) })
+    })
+  }
+  const seen = new Set<string>()
+  return labels.filter((item) => {
+    if (seen.has(item.key)) return false
+    seen.add(item.key)
+    return true
+  })
+}
+
+const pageLoading = computed(() => loadingServices.value || loadingTraffic.value)
 </script>
 
 <template>
@@ -204,12 +525,12 @@ function getCategoryName(catId: string) {
     <!-- Header -->
     <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h2 class="text-4xl font-bold tracking-tight text-text-primary">Spa Service Management</h2>
+        <h2 class="text-4xl font-bold tracking-tight text-text-primary">Service Management</h2>
         <p class="mt-1 text-sm text-text-secondary">Organize, edit, and optimize customer experience through your digital service catalog.</p>
       </div>
       <div class="flex items-center gap-3">
         <RouterLink
-          :to="'/menu/' + authStore.admin?.id"
+          :to="'/menu/' + authStore.admin?.id + '?isAdmin=true'"
           target="_blank"
           class="flex items-center gap-2 rounded-xl border border-border bg-white px-5 py-3 text-sm font-extrabold text-text-primary shadow-sm transition-all hover:bg-surface-input active:scale-95"
         >
@@ -227,7 +548,13 @@ function getCategoryName(catId: string) {
     </div>
 
     <!-- Statistics Bento -->
-    <div class="mb-10 grid gap-6 grid-cols-1 sm:grid-cols-3">
+    <div v-if="pageLoading" class="mb-10 grid gap-6 grid-cols-1 sm:grid-cols-3">
+      <div v-for="i in 3" :key="`stats-skeleton-${i}`" class="rounded-2xl border border-border bg-white p-6 shadow-sm">
+        <div class="h-4 w-24 rounded bg-surface-input animate-pulse"></div>
+        <div class="mt-4 h-8 w-16 rounded bg-surface-input animate-pulse"></div>
+      </div>
+    </div>
+    <div v-else class="mb-10 grid gap-6 grid-cols-1 sm:grid-cols-3">
       <!-- Total Services -->
       <div class="flex items-center gap-4 rounded-2xl border border-border bg-white p-6 shadow-sm transition-shadow hover:shadow-card">
         <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E8F0FF]">
@@ -252,8 +579,8 @@ function getCategoryName(catId: string) {
           </svg>
         </div>
         <div>
-          <p class="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Service Views</p>
-          <p class="text-3xl font-black text-text-primary">{{ trafficData?.totalViews?.toLocaleString() || '0' }}</p>
+          <p class="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Today Service Views</p>
+          <p class="text-3xl font-black text-text-primary">{{ (trafficData as any)?.todayServiceViews?.toLocaleString() || '0' }}</p>
         </div>
       </div>
 
@@ -298,8 +625,21 @@ function getCategoryName(catId: string) {
     </div>
 
     <!-- Services Grid -->
-    <div v-if="isLoading" class="flex items-center justify-center py-20 text-text-muted">
-      <span class="animate-spin text-3xl">⏳</span>
+    <div v-if="loadingServices" class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <div
+        v-for="i in 4"
+        :key="`svc-skeleton-${i}`"
+        class="relative flex items-center overflow-hidden rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-border"
+      >
+        <div class="h-32 w-32 flex-shrink-0 rounded-[20px] bg-surface-input animate-pulse"></div>
+        <div class="ml-5 flex flex-1 flex-col gap-3">
+          <div class="h-5 w-2/3 rounded bg-surface-input animate-pulse"></div>
+          <div class="h-3 w-1/3 rounded bg-surface-input animate-pulse"></div>
+          <div class="h-3 w-full rounded bg-surface-input animate-pulse"></div>
+          <div class="h-3 w-5/6 rounded bg-surface-input animate-pulse"></div>
+          <div class="mt-3 h-6 w-28 rounded bg-surface-input animate-pulse"></div>
+        </div>
+      </div>
     </div>
     <div v-else-if="!services?.items?.length" class="flex flex-col items-center justify-center rounded-3xl bg-white py-20 text-center shadow-card">
       <div class="mb-4 text-5xl opacity-50">💇‍♀️</div>
@@ -335,18 +675,24 @@ function getCategoryName(catId: string) {
             
             <!-- Badges -->
             <div class="mt-1.5 flex flex-wrap gap-1.5">
-              <span v-if="svc.isBestSeller" class="rounded-full bg-[#F3E8FF] px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#9333EA]">Bestseller</span>
-              <span v-if="svc.isNewService" class="rounded-full bg-[#E0F2FE] px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#0284C7]">New service</span>
-              <span v-if="svc.isCombo" class="rounded-full bg-[#FEF3C7] px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#D97706]">Combo</span>
+              <span
+                v-for="label in getServiceLabelItems(svc)"
+                :key="label.key"
+                :class="['rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider', getLabelBadgeClass(label.key)]"
+              >
+                {{ label.label }}
+              </span>
             </div>
 
             <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-text-secondary">
-              {{ svc.description || 'No description provided.' }}
+              {{ svc.shortDescription || svc.description || 'No description provided.' }}
             </p>
           </div>
           
           <div class="mt-3 flex items-center justify-between">
-            <span class="text-xl font-black text-[#0048B5]">{{ formatPrice(svc.price || 0) }}</span>
+            <div>
+              <span class="text-xl font-black text-[#0048B5]">{{ getServiceDisplayPrice(svc) }}</span>
+            </div>
             <button
               @click="toggleStatus(svc)"
               :class="[
@@ -416,7 +762,15 @@ function getCategoryName(catId: string) {
             </button>
           </div>
 
-          <div class="space-y-6 p-6">
+          <div v-if="formLoading" class="space-y-4 p-6">
+            <div class="h-10 w-full rounded-lg bg-surface-input animate-pulse"></div>
+            <div class="h-10 w-full rounded-lg bg-surface-input animate-pulse"></div>
+            <div class="h-20 w-full rounded-lg bg-surface-input animate-pulse"></div>
+            <div class="h-10 w-full rounded-lg bg-surface-input animate-pulse"></div>
+            <div class="h-24 w-full rounded-2xl bg-surface-input animate-pulse"></div>
+          </div>
+
+          <div v-else class="space-y-6 p-6">
             <!-- Service Name -->
             <div>
               <label class="mb-1.5 block text-sm font-medium text-text-secondary">Service Name</label>
@@ -426,10 +780,11 @@ function getCategoryName(catId: string) {
                 placeholder="e.g., Hot Stone Massage 60 mins"
                 class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent placeholder:text-text-muted focus:ring-2 focus:ring-primary-600"
               />
+              <p v-if="fieldErrors.name" class="mt-1 text-xs font-medium text-danger">{{ fieldErrors.name }}</p>
             </div>
 
-            <!-- Category & Price -->
-            <div class="grid grid-cols-2 gap-4">
+            <!-- Category -->
+            <div>
               <div>
                 <label class="mb-1.5 block text-sm font-medium text-text-secondary">Category</label>
                 <select
@@ -439,34 +794,119 @@ function getCategoryName(catId: string) {
                   <option value="" disabled>Select</option>
                   <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                 </select>
+                <p v-if="fieldErrors.categoryId" class="mt-1 text-xs font-medium text-danger">{{ fieldErrors.categoryId }}</p>
               </div>
-              <div>
-                <label class="mb-1.5 block text-sm font-medium text-text-secondary">Price (VND)</label>
+            </div>
+
+            <!-- Product Variants Toggle -->
+            <div class="rounded-xl border border-border p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-semibold text-text-primary">Product Variants</p>
+                  <p class="text-xs text-text-muted">Enable if this service has different options</p>
+                </div>
+                <button
+                  type="button"
+                  class="relative h-7 w-12 rounded-full transition-colors"
+                  :class="form.hasVariants ? 'bg-orange-500' : 'bg-surface-input'"
+                  @click="form.hasVariants = !form.hasVariants"
+                >
+                  <span
+                    class="absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform"
+                    :class="form.hasVariants ? 'translate-x-5' : 'translate-x-0.5'"
+                  />
+                </button>
+              </div>
+            </div>
+
+            <div v-if="!form.hasVariants">
+              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Price (VND)</label>
+              <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                 <input
-                  v-model.number="form.price"
+                  v-model="priceFromInput"
                   type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Price from"
+                  class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent focus:ring-2 focus:ring-primary-600"
+                />
+                <span class="text-base font-bold text-text-secondary">-</span>
+                <input
+                  v-model="priceToInput"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Price to (optional)"
                   class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent focus:ring-2 focus:ring-primary-600"
                 />
               </div>
+              <p v-if="fieldErrors.price" class="mt-1 text-xs font-medium text-danger">{{ fieldErrors.price }}</p>
+            </div>
+
+            <div v-else class="space-y-3">
+              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Variant Options</label>
+              <div
+                v-for="(opt, idx) in form.variantOptions"
+                :key="idx"
+                class="grid grid-cols-[1fr_120px_32px] gap-3"
+              >
+                <input
+                  v-model="opt.name"
+                  type="text"
+                  placeholder="Option Name (e.g., 60 mins)"
+                  class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent focus:ring-2 focus:ring-primary-600"
+                />
+                <input
+                  v-model.number="opt.price"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent focus:ring-2 focus:ring-primary-600"
+                />
+                <button
+                  type="button"
+                  class="flex items-center justify-center rounded-lg text-danger hover:bg-danger/10"
+                  @click="removeVariantOption(idx)"
+                >
+                  <Trash2 class="h-4 w-4" />
+                </button>
+              </div>
+              <button
+                type="button"
+                class="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface-input py-2.5 text-sm font-semibold text-text-primary hover:bg-surface-page"
+                @click="addVariantOption"
+              >
+                <Plus class="h-4 w-4" /> Add Option
+              </button>
+              <p v-if="fieldErrors.variantOptions" class="text-xs font-medium text-danger">{{ fieldErrors.variantOptions }}</p>
             </div>
 
             <!-- Special Label -->
             <div>
               <label class="mb-1.5 block text-sm font-medium text-text-secondary">Special Label</label>
-              <div class="flex flex-row gap-6 mt-2">
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" v-model="form.isBestSeller" class="rounded border-border text-primary-600 focus:ring-primary-600" />
-                  <span class="text-sm text-text-primary">Bestseller</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" v-model="form.isNewService" class="rounded border-border text-primary-600 focus:ring-primary-600" />
-                  <span class="text-sm text-text-primary">New Service</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" v-model="form.isCombo" class="rounded border-border text-primary-600 focus:ring-primary-600" />
-                  <span class="text-sm text-text-primary">Combo</span>
-                </label>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button
+                  v-for="item in LABEL_OPTIONS"
+                  :key="item.value"
+                  type="button"
+                  class="rounded-lg px-4 py-2 text-sm font-bold transition-all"
+                  :class="getLabelChipClass(item.value)"
+                  @click="toggleLabel(item.value)"
+                >
+                  {{ item.label }}
+                </button>
               </div>
+            </div>
+
+            <!-- Short Description -->
+            <div>
+              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Short Description</label>
+              <textarea
+                v-model="form.shortDescription"
+                rows="2"
+                placeholder="Short summary shown on service card..."
+                class="w-full resize-none rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent placeholder:text-text-muted focus:ring-2 focus:ring-primary-600"
+              />
             </div>
 
             <!-- Description -->
@@ -490,7 +930,7 @@ function getCategoryName(catId: string) {
                   placeholder="60"
                   class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent placeholder:text-text-muted focus:ring-2 focus:ring-primary-600"
                 />
-                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-text-muted">MINS</span>
+                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-text-muted"></span>
               </div>
             </div>
 
@@ -531,7 +971,7 @@ function getCategoryName(catId: string) {
           <div class="sticky bottom-0 flex gap-3 border-t border-border bg-white p-6">
             <button
               class="flex-1 rounded-xl bg-gradient-to-b from-primary-600 to-[#0048B5] py-3 text-sm font-extrabold text-white shadow-button transition-all hover:brightness-110 disabled:opacity-50"
-              :disabled="saving || !form.name"
+              :disabled="saving || formLoading || !form.name"
               @click="saveService()"
             >
               {{ saving ? 'Saving...' : 'Save Service' }}
@@ -543,9 +983,17 @@ function getCategoryName(catId: string) {
               Cancel
             </button>
           </div>
+          <p v-if="formError" class="px-6 pb-5 text-sm font-medium text-danger">{{ formError }}</p>
         </div>
       </Transition>
     </Teleport>
+
+    <Toast 
+      :show="toast.show" 
+      :message="toast.message" 
+      :type="toast.type" 
+      @close="toast.show = false" 
+    />
   </div>
 </template>
 

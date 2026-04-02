@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { categoriesApi } from '@/api/categories.api'
 import { servicesApi } from '@/api/services.api'
-import { LayoutDashboard, BookOpen, Settings, LogOut, Menu, X } from 'lucide-vue-next'
+import { LayoutDashboard, BookOpen, Settings, LogOut, Menu, X, Palette } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,30 +14,33 @@ const authStore = useAuthStore()
 const sidebarOpen = ref(false)
 
 // Config Status
-const { data: configRes } = useQuery({
-  queryKey: ['admin-config'],
+const { data: configRes, isLoading: loadingConfig } = useQuery({
+  queryKey: ['nav-qr-config'],
   queryFn: async () => {
     const { data } = await qrConfigApi.getConfig()
     return (data as any).data || data
   },
+  staleTime: 60000,
 })
 
 // Categories Status
-const { data: catsRes } = useQuery({
-  queryKey: ['admin-categories'],
+const { data: catsRes, isLoading: loadingCats } = useQuery({
+  queryKey: ['nav-categories'],
   queryFn: async () => {
     const { data } = await categoriesApi.getAll()
     return (data as any).data || data
   },
+  staleTime: 60000,
 })
 
 // Services Status
-const { data: servicesRes } = useQuery({
-  queryKey: ['admin-services'],
+const { data: servicesRes, isLoading: loadingServices } = useQuery({
+  queryKey: ['nav-services-count'],
   queryFn: async () => {
-    const { data } = await servicesApi.getAll()
+    const { data } = await servicesApi.getAll({ limit: 1 })
     return (data as any).data || data
   },
+  staleTime: 60000,
 })
 
 // Step Completion Logic
@@ -49,6 +52,7 @@ const isStep3Complete = computed(() => {
 })
 
 const isSetupComplete = computed(() => isStep1Complete.value && isStep2Complete.value && isStep3Complete.value)
+const navLoading = computed(() => loadingConfig.value || loadingCats.value || loadingServices.value)
 
 // Dynamic Navigation (Simplified Order: Dashboard -> Categories -> Services -> Settings)
 const availableNavLinks = computed(() => {
@@ -57,6 +61,7 @@ const availableNavLinks = computed(() => {
     { to: '/admin/categories', label: 'Categories', icon: BookOpen, visible: isStep1Complete.value },
     { to: '/admin/services', label: 'Service Manager', icon: BookOpen, visible: isStep2Complete.value },
     { to: '/admin/qr', label: 'Settings', icon: Settings, visible: true },
+    { to: '/admin/themes', label: 'Theme Settings', icon: Palette, visible: isStep3Complete.value },
   ]
   
   return allLinks.filter(link => link.visible)
@@ -94,7 +99,15 @@ function logout() {
 
       <!-- Nav -->
       <nav class="flex flex-1 flex-col gap-1 pt-2">
+        <template v-if="navLoading">
+          <div
+            v-for="i in 4"
+            :key="`nav-skeleton-${i}`"
+            class="h-10 rounded-lg bg-white/60 animate-pulse"
+          ></div>
+        </template>
         <router-link
+          v-else
           v-for="link in availableNavLinks"
           :key="link.to"
           :to="link.to"
@@ -111,7 +124,7 @@ function logout() {
         </router-link>
 
         <!-- Onboarding Hint (Subtle) -->
-        <div v-if="!isSetupComplete" class="mt-6 px-4 py-4 rounded-xl bg-primary-50/30 border border-primary-100/30">
+        <div v-if="!navLoading && !isSetupComplete" class="mt-6 px-4 py-4 rounded-xl bg-primary-50/30 border border-primary-100/30">
           <p class="text-[10px] font-bold text-primary-800 uppercase tracking-widest mb-1.5 flex items-center gap-2">
             <span class="flex h-1.5 w-1.5 rounded-full bg-primary-500 animate-pulse"></span>
             Setup Progress
@@ -173,9 +186,10 @@ function logout() {
         </div>
         <div class="flex items-center gap-3">
           <div class="flex items-center gap-2 text-sm text-text-secondary">
-            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-surface-input text-xs font-bold text-primary-600">
+            <div v-if="authStore.admin" class="flex h-8 w-8 items-center justify-center rounded-full bg-surface-input text-xs font-bold text-primary-600">
               {{ authStore.admin?.username?.charAt(0)?.toUpperCase() || 'A' }}
             </div>
+            <div v-else class="h-8 w-8 rounded-full bg-surface-input animate-pulse"></div>
           </div>
         </div>
       </header>
