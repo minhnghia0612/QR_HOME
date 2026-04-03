@@ -5,9 +5,13 @@ import { Download } from 'lucide-vue-next'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { categoriesApi } from '@/api/categories.api'
 import { servicesApi } from '@/api/services.api'
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, watch } from 'vue'
+import { io, type Socket } from 'socket.io-client'
+import { useAuthStore } from '@/stores/auth.store'
 
 const queryClient = useQueryClient()
+const authStore = useAuthStore()
+let dashboardSocket: Socket | null = null
 
 const { data: dashboard, isLoading: loadingDashboard } = useQuery({
   queryKey: ['dashboard'],
@@ -15,7 +19,9 @@ const { data: dashboard, isLoading: loadingDashboard } = useQuery({
     const { data } = await trafficApi.getDashboard()
     return data.data
   },
-  refetchInterval: 30000,
+  staleTime: 0,
+  refetchOnMount: 'always',
+  refetchOnWindowFocus: false,
 })
 
 const { data: qrConfig, isLoading: loadingQrConfig } = useQuery({
@@ -70,6 +76,47 @@ const { mutate: updateQrStatus, isPending: updatingStatus } = useMutation({
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['qr-config'] })
   },
+})
+
+function connectDashboardSocket(adminId: string) {
+  if (dashboardSocket?.connected) {
+    dashboardSocket.emit('dashboard:subscribe', { adminId })
+    return
+  }
+
+  const token = localStorage.getItem('qr_home_token') || ''
+
+  dashboardSocket = io('/traffic', {
+    path: '/socket.io',
+    transports: ['websocket', 'polling'],
+    auth: { token },
+    withCredentials: true,
+  })
+
+  dashboardSocket.on('connect', () => {
+    dashboardSocket?.emit('dashboard:subscribe', { adminId })
+  })
+
+  dashboardSocket.on('traffic:dashboard-updated', (payload: any) => {
+    if (!payload?.dashboard) return
+    if (String(payload?.adminId || '') !== adminId) return
+    queryClient.setQueryData(['dashboard'], payload.dashboard)
+  })
+}
+
+watch(
+  () => authStore.admin?.id,
+  (adminId) => {
+    const normalized = String(adminId || '').trim()
+    if (!normalized) return
+    connectDashboardSocket(normalized)
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(() => {
+  dashboardSocket?.disconnect()
+  dashboardSocket = null
 })
 
 const weeklyWithData = computed(() => {

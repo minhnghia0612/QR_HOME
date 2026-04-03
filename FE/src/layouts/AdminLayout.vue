@@ -15,22 +15,24 @@ const sidebarOpen = ref(false)
 
 // Config Status
 const { data: configRes, isLoading: loadingConfig } = useQuery({
-  queryKey: ['nav-qr-config'],
+  queryKey: ['qr-config'],
   queryFn: async () => {
     const { data } = await qrConfigApi.getConfig()
     return (data as any).data || data
   },
   staleTime: 60000,
+  refetchOnWindowFocus: false,
 })
 
 // Categories Status
 const { data: catsRes, isLoading: loadingCats } = useQuery({
-  queryKey: ['nav-categories'],
+  queryKey: ['categories'],
   queryFn: async () => {
     const { data } = await categoriesApi.getAll()
     return (data as any).data || data
   },
   staleTime: 60000,
+  refetchOnWindowFocus: false,
 })
 
 // Services Status
@@ -41,6 +43,7 @@ const { data: servicesRes, isLoading: loadingServices } = useQuery({
     return (data as any).data || data
   },
   staleTime: 60000,
+  refetchOnWindowFocus: false,
 })
 
 // Step Completion Logic

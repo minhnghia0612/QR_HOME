@@ -116,6 +116,12 @@ function hasTag(value: SpecialTag) {
   return (form.value.specialTags || []).includes(value)
 }
 
+function getPrimaryLabelClass(active: boolean) {
+  return active
+    ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-300'
+    : 'bg-surface-input text-primary-600/80 ring-1 ring-primary-100 hover:bg-primary-100'
+}
+
 function addVariantOption() {
   const list = form.value.variantOptions || []
   form.value.variantOptions = [...list, { name: '', price: 0 }]
@@ -325,7 +331,7 @@ async function handleImageUpload(e: Event) {
           <button
             type="button"
             class="relative h-7 w-12 rounded-full transition-colors"
-            :class="form.hasVariants ? 'bg-orange-500' : 'bg-surface-input'"
+            :class="form.hasVariants ? 'bg-primary-600' : 'bg-surface-input'"
             @click="form.hasVariants = !form.hasVariants"
           >
             <span
@@ -430,20 +436,28 @@ async function handleImageUpload(e: Event) {
       <div>
         <label class="mb-2 block text-sm font-medium text-navy-700">Special Label</label>
         <div class="flex flex-wrap gap-3">
-          <label class="flex items-center gap-2 text-sm">
-            <input type="checkbox" v-model="form.isBestSeller" class="rounded" />
+          <button
+            type="button"
+            class="rounded-lg px-4 py-2 text-sm font-bold transition-all"
+            :class="getPrimaryLabelClass(!!form.isBestSeller)"
+            @click="form.isBestSeller = !form.isBestSeller"
+          >
             Best Seller
-          </label>
-          <label class="flex items-center gap-2 text-sm">
-            <input type="checkbox" v-model="form.isNewService" class="rounded" />
+          </button>
+          <button
+            type="button"
+            class="rounded-lg px-4 py-2 text-sm font-bold transition-all"
+            :class="getPrimaryLabelClass(!!form.isNewService)"
+            @click="form.isNewService = !form.isNewService"
+          >
             New
-          </label>
+          </button>
           <button
             v-for="tag in SPECIAL_TAG_OPTIONS"
             :key="tag.value"
             type="button"
             class="rounded-lg px-4 py-2 text-sm font-bold transition-all"
-            :class="hasTag(tag.value) ? 'bg-success/10 text-success ring-2 ring-success' : 'bg-surface-input text-text-muted hover:bg-surface-dim'"
+            :class="getPrimaryLabelClass(hasTag(tag.value))"
             @click="toggleTag(tag.value)"
           >
             {{ tag.label }}
@@ -458,7 +472,7 @@ async function handleImageUpload(e: Event) {
           <button
             type="button"
             class="rounded-lg px-4 py-2 text-sm font-bold transition-all"
-            :class="form.isActive ? 'bg-success/10 text-success ring-2 ring-success' : 'bg-surface-input text-text-muted'"
+            :class="form.isActive ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-300' : 'bg-surface-input text-text-muted'"
             @click="form.isActive = true"
           >
             Active
@@ -466,7 +480,7 @@ async function handleImageUpload(e: Event) {
           <button
             type="button"
             class="rounded-lg px-4 py-2 text-sm font-bold transition-all"
-            :class="!form.isActive ? 'bg-danger/10 text-danger ring-2 ring-danger' : 'bg-surface-input text-text-muted'"
+            :class="!form.isActive ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-300' : 'bg-surface-input text-text-muted'"
             @click="form.isActive = false"
           >
             Inactive

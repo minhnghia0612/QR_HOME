@@ -20,6 +20,8 @@ export interface DashboardData {
   mostViewed: MostViewedService | null
   growth: GrowthData
   totalViews: number
+  todayServiceViews?: number
+  todayTotalViews?: number
   top5?: TopViewedItem[]
 }
 

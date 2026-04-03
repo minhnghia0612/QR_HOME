@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsBoolean, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsBoolean, IsUUID, IsIn } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 
@@ -27,4 +27,14 @@ export class QueryServiceDto extends PaginationDto {
   @IsOptional()
   @IsUUID()
   adminId?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['createdAt', 'sortOrder'])
+  sortBy?: 'createdAt' | 'sortOrder';
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['ASC', 'DESC'])
+  sortDirection?: 'ASC' | 'DESC';
 }

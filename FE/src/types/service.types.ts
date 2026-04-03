@@ -59,4 +59,6 @@ export interface ServiceQuery {
   categoryId?: string
   isActive?: boolean
   label?: 'best_seller' | 'new_service' | 'combo'
+  sortBy?: 'createdAt' | 'sortOrder'
+  sortDirection?: 'ASC' | 'DESC'
 }

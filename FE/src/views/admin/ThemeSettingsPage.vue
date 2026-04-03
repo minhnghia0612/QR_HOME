@@ -80,6 +80,7 @@ const { mutate: saveTheme, isPending: saving } = useMutation({
   onSuccess: () => {
     showToast('Theme and customer interface applied successfully', 'success')
     queryClient.invalidateQueries({ queryKey: ['qr-config'] })
+    queryClient.invalidateQueries({ queryKey: ['public-config'] })
   },
   onError: (err: any) => {
     showToast(err.message || 'Failed to save theme', 'danger')

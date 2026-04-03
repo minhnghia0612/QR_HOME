@@ -187,4 +187,39 @@ export class TrafficService {
       where: { serviceId: Not(IsNull()), adminId },
     });
   }
+
+  async getTodayTotalViews(adminId: string): Promise<number> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    return this.trafficLogRepo
+      .createQueryBuilder('log')
+      .where('log.adminId = :adminId', { adminId })
+      .andWhere('log.visitedAt >= :today', { today })
+      .andWhere('log.visitedAt < :tomorrow', { tomorrow })
+      .getCount();
+  }
+
+  async getDashboardSummary(adminId: string) {
+    const [weekly, mostViewed, growth, totalViews, top5, todayTotalViews] = await Promise.all([
+      this.getWeeklyTraffic(adminId),
+      this.getMostViewedService(adminId),
+      this.getGrowth(adminId),
+      this.getTotalServiceViews(adminId),
+      this.getTopViewedServices(adminId, 5),
+      this.getTodayTotalViews(adminId),
+    ]);
+
+    return {
+      weekly,
+      mostViewed,
+      growth,
+      totalViews,
+      todayServiceViews: growth.todayViews,
+      todayTotalViews,
+      top5,
+    };
+  }
 }

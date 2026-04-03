@@ -70,7 +70,11 @@ export class ServicesService {
       }
     }
 
-    qb.orderBy('service.sortOrder', 'ASC')
+    const sortBy = query.sortBy === 'sortOrder' ? 'service.sortOrder' : 'service.createdAt';
+    const sortDirection = query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
+
+    qb.orderBy(sortBy, sortDirection)
+      .addOrderBy('service.sortOrder', 'ASC')
       .addOrderBy('service.createdAt', 'DESC')
       .skip(skip)
       .take(limit);

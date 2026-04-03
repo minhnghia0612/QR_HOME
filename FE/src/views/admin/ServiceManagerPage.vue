@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { servicesApi } from '@/api/services.api'
 import { categoriesApi } from '@/api/categories.api'
 import { uploadApi } from '@/api/upload.api'
 import { trafficApi } from '@/api/traffic.api'
-import { Plus, Search, Image, X, Upload, Pencil, Trash2, ToggleLeft, ToggleRight, Eye, MoreVertical } from 'lucide-vue-next'
+import { Plus, Search, Image, X, Upload, Pencil, Trash2, Eye, ChevronDown } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth.store'
 import { useRouter } from 'vue-router'
 import { qrConfigApi } from '@/api/qr-config.api'
+import { io, type Socket } from 'socket.io-client'
 
 type SpecialTag = 'must_try' | 'limited_edition' | 'summer_special' | 'happy_hour'
 type LabelValue = 'best_seller' | 'new_service' | SpecialTag
@@ -29,34 +30,34 @@ const LABEL_OPTIONS: Array<{ value: LabelValue; label: string }> = [
 
 const LABEL_STYLE_MAP: Record<string, { chipActive: string; chipInactive: string; badge: string }> = {
   best_seller: {
-    chipActive: 'bg-violet-100 text-violet-700 ring-2 ring-violet-300',
-    chipInactive: 'bg-violet-50 text-violet-700/70 hover:bg-violet-100',
-    badge: 'bg-violet-100 text-violet-700',
+    chipActive: 'bg-primary-100 text-primary-700 ring-2 ring-primary-300',
+    chipInactive: 'bg-surface-input text-primary-600/80 ring-1 ring-primary-100 hover:bg-primary-100',
+    badge: 'bg-primary-100 text-primary-700',
   },
   new_service: {
-    chipActive: 'bg-sky-100 text-sky-700 ring-2 ring-sky-300',
-    chipInactive: 'bg-sky-50 text-sky-700/70 hover:bg-sky-100',
-    badge: 'bg-sky-100 text-sky-700',
+    chipActive: 'bg-primary-100 text-primary-700 ring-2 ring-primary-300',
+    chipInactive: 'bg-surface-input text-primary-600/80  hover:bg-primary-100',
+    badge: 'bg-primary-100 text-primary-700',
   },
   must_try: {
-    chipActive: 'bg-emerald-100 text-emerald-700 ring-2 ring-emerald-300',
-    chipInactive: 'bg-emerald-50 text-emerald-700/70 hover:bg-emerald-100',
-    badge: 'bg-emerald-100 text-emerald-700',
+    chipActive: 'bg-primary-100 text-primary-700 ring-2 ring-primary-300',
+    chipInactive: 'bg-surface-input text-primary-600/80  hover:bg-primary-100',
+    badge: 'bg-primary-100 text-primary-700',
   },
   limited_edition: {
-    chipActive: 'bg-amber-100 text-amber-700 ring-2 ring-amber-300',
-    chipInactive: 'bg-amber-50 text-amber-700/70 hover:bg-amber-100',
-    badge: 'bg-amber-100 text-amber-700',
+    chipActive: 'bg-primary-100 text-primary-700 ring-2 ring-primary-300',
+    chipInactive: 'bg-surface-input text-primary-600/80  hover:bg-primary-100',
+    badge: 'bg-primary-100 text-primary-700',
   },
   summer_special: {
-    chipActive: 'bg-orange-100 text-orange-700 ring-2 ring-orange-300',
-    chipInactive: 'bg-orange-50 text-orange-700/70 hover:bg-orange-100',
-    badge: 'bg-orange-100 text-orange-700',
+    chipActive: 'bg-primary-100 text-primary-700 ring-2 ring-primary-300',
+    chipInactive: 'bg-surface-input text-primary-600/80  hover:bg-primary-100',
+    badge: 'bg-primary-100 text-primary-700',
   },
   happy_hour: {
-    chipActive: 'bg-pink-100 text-pink-700 ring-2 ring-pink-300',
-    chipInactive: 'bg-pink-50 text-pink-700/70 hover:bg-pink-100',
-    badge: 'bg-pink-100 text-pink-700',
+    chipActive: 'bg-primary-100 text-primary-700 ring-2 ring-primary-300',
+    chipInactive: 'bg-surface-input text-primary-600/80  hover:bg-primary-100',
+    badge: 'bg-primary-100 text-primary-700',
   },
 }
 
@@ -65,6 +66,7 @@ import Toast from '@/components/Toast.vue'
 const authStore = useAuthStore()
 
 const queryClient = useQueryClient()
+let trafficSocket: Socket | null = null
 
 const showForm = ref(false)
 const editingService = ref<any>(null)
@@ -72,7 +74,9 @@ const searchInput = ref('')
 const searchQuery = ref('')
 const selectedStatus = ref('')
 const selectedCategory = ref('')
+const selectedSort = ref<'newest' | 'oldest'>('newest')
 const page = ref(1)
+const PAGE_SIZE = 20
 const formError = ref('')
 const priceFromInput = ref('')
 const priceToInput = ref('')
@@ -105,6 +109,10 @@ watch([selectedStatus, selectedCategory], () => {
   page.value = 1
 })
 
+watch(selectedSort, () => {
+  page.value = 1
+})
+
 // Form state
 const form = ref({
   name: '',
@@ -125,22 +133,97 @@ const form = ref({
   isActive: true,
 })
 
+const servicesQueryKey = computed(() => [
+  'services',
+  searchQuery.value,
+  selectedStatus.value,
+  selectedCategory.value,
+  selectedSort.value,
+])
+
 const { data: services, isLoading: loadingServices } = useQuery({
-  queryKey: ['services', searchQuery.value, selectedStatus.value, selectedCategory.value, page.value],
+  queryKey: servicesQueryKey,
   queryFn: async () => {
-    const params: any = { 
-      page: page.value, 
-      limit: 20,
+    const baseParams: any = {
       search: searchQuery.value.trim() || undefined,
-      categoryId: selectedCategory.value || undefined
+      categoryId: selectedCategory.value || undefined,
     }
-    
-    if (selectedStatus.value === 'true') params.isActive = true
-    if (selectedStatus.value === 'false') params.isActive = false
-    
-    const { data } = await servicesApi.getAll(params)
-    return data.data
+
+    const pageSize = 100
+    let currentPage = 1
+    let totalPages = 1
+    const allItems: any[] = []
+
+    while (currentPage <= totalPages) {
+      const { data } = await servicesApi.getAll({
+        ...baseParams,
+        page: currentPage,
+        limit: pageSize,
+      })
+
+      const payload = (data as any)?.data || data
+      const items = Array.isArray(payload?.items)
+        ? payload.items
+        : Array.isArray(payload)
+          ? payload
+          : []
+
+      allItems.push(...items)
+
+      const nextTotalPages = Number(payload?.totalPages || 1)
+      totalPages = Number.isFinite(nextTotalPages) && nextTotalPages > 0 ? nextTotalPages : 1
+      currentPage += 1
+    }
+
+    return {
+      items: allItems,
+      total: allItems.length,
+      totalPages: Math.ceil(allItems.length / PAGE_SIZE),
+    }
   },
+  refetchOnWindowFocus: false,
+})
+
+const processedServices = computed(() => {
+  const source = Array.isArray((services.value as any)?.items)
+    ? [...(services.value as any).items]
+    : []
+
+  const byStatus = source.filter((svc: any) => {
+    if (selectedStatus.value === 'true') return !!svc?.isActive
+    if (selectedStatus.value === 'false') return !svc?.isActive
+    return true
+  })
+
+  byStatus.sort((a: any, b: any) => {
+    const aTime = new Date(a?.createdAt || 0).getTime()
+    const bTime = new Date(b?.createdAt || 0).getTime()
+    return selectedSort.value === 'oldest' ? aTime - bTime : bTime - aTime
+  })
+
+  return byStatus
+})
+
+const servicesView = computed(() => {
+  const total = processedServices.value.length
+  const totalPages = total > 0 ? Math.ceil(total / PAGE_SIZE) : 0
+  const start = (page.value - 1) * PAGE_SIZE
+  const end = start + PAGE_SIZE
+
+  return {
+    items: processedServices.value.slice(start, end),
+    total,
+    totalPages,
+  }
+})
+
+watch(servicesView, (next) => {
+  if (next.totalPages > 0 && page.value > next.totalPages) {
+    page.value = next.totalPages
+  }
+  if (next.totalPages === 0 && page.value !== 1) {
+    page.value = 1
+  }
 })
 
 const { data: categories, isLoading: loadingCategories } = useQuery({
@@ -149,6 +232,8 @@ const { data: categories, isLoading: loadingCategories } = useQuery({
     const { data } = await categoriesApi.getAll()
     return data.data
   },
+  staleTime: 60000,
+  refetchOnWindowFocus: false,
 })
 
 const { data: trafficData, isLoading: loadingTraffic } = useQuery({
@@ -157,6 +242,47 @@ const { data: trafficData, isLoading: loadingTraffic } = useQuery({
     const { data } = await trafficApi.getDashboard()
     return data.data
   },
+  refetchOnWindowFocus: false,
+})
+
+function connectTrafficSocket(adminId: string) {
+  if (trafficSocket?.connected) {
+    trafficSocket.emit('dashboard:subscribe', { adminId })
+    return
+  }
+
+  const token = localStorage.getItem('qr_home_token') || ''
+  trafficSocket = io('/traffic', {
+    path: '/socket.io',
+    transports: ['websocket', 'polling'],
+    auth: { token },
+    withCredentials: true,
+  })
+
+  trafficSocket.on('connect', () => {
+    trafficSocket?.emit('dashboard:subscribe', { adminId })
+  })
+
+  trafficSocket.on('traffic:dashboard-updated', (payload: any) => {
+    if (!payload?.dashboard) return
+    if (String(payload?.adminId || '') !== adminId) return
+    queryClient.setQueryData(['traffic-dashboard'], payload.dashboard)
+  })
+}
+
+watch(
+  () => authStore.admin?.id,
+  (adminId) => {
+    const normalized = String(adminId || '').trim()
+    if (!normalized) return
+    connectTrafficSocket(normalized)
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(() => {
+  trafficSocket?.disconnect()
+  trafficSocket = null
 })
 
 const { data: qrConfig } = useQuery({
@@ -165,6 +291,8 @@ const { data: qrConfig } = useQuery({
     const { data } = await qrConfigApi.getConfig()
     return (data as any).data || data
   },
+  staleTime: 60000,
+  refetchOnWindowFocus: false,
 })
 
 const currencyUnit = computed<'VND' | 'USD' | 'EUR'>(() => {
@@ -180,6 +308,26 @@ const formattedGrowth = computed(() => {
   if (percent > 0) return { text: `+${percent.toFixed(1)}%`, class: 'text-success' }
   if (percent < 0) return { text: `${percent.toFixed(1)}%`, class: 'text-danger' }
   return { text: '0%', class: 'text-text-secondary' }
+})
+
+const growthTone = computed(() => {
+  const percent = trafficData.value?.growth?.growthPercent
+  if (percent == null || percent === 0) {
+    return {
+      bg: 'bg-[#E8F0FF]',
+      icon: 'text-[#0048B5]',
+    }
+  }
+  if (percent > 0) {
+    return {
+      bg: 'bg-emerald-100',
+      icon: 'text-emerald-600',
+    }
+  }
+  return {
+    bg: 'bg-red-100',
+    icon: 'text-red-600',
+  }
 })
 
 const { mutate: saveService, isPending: saving } = useMutation({
@@ -421,12 +569,12 @@ function isLabelActive(value: LabelValue) {
 
 function getLabelChipClass(value: LabelValue) {
   const style = LABEL_STYLE_MAP[value]
-  if (!style) return isLabelActive(value) ? 'bg-success/10 text-success ring-2 ring-success' : 'bg-surface-input text-text-muted hover:bg-surface-page'
+  if (!style) return isLabelActive(value) ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-300' : 'bg-surface-input text-text-muted hover:bg-surface-page'
   return isLabelActive(value) ? style.chipActive : style.chipInactive
 }
 
 function getLabelBadgeClass(value: string) {
-  return LABEL_STYLE_MAP[value]?.badge || 'bg-success/10 text-success'
+  return LABEL_STYLE_MAP[value]?.badge || 'bg-primary-100 text-primary-700'
 }
 
 function addVariantOption() {
@@ -566,28 +714,28 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
         </div>
         <div>
           <p class="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Total Services</p>
-          <p class="text-3xl font-black text-text-primary">{{ services?.total || 0 }}</p>
+          <p class="text-3xl font-black text-text-primary">{{ servicesView.total || 0 }}</p>
         </div>
       </div>
 
       <!-- Service Views -->
       <div class="flex items-center gap-4 rounded-2xl border border-border bg-white p-6 shadow-sm transition-shadow hover:shadow-card">
-        <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FCE8F3]">
-          <svg class="h-8 w-8 text-[#B5007D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100">
+          <svg class="h-8 w-8 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-linecap="round" stroke-linejoin="round"/>
             <circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <div>
           <p class="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Today Service Views</p>
-          <p class="text-3xl font-black text-text-primary">{{ (trafficData as any)?.todayServiceViews?.toLocaleString() || '0' }}</p>
+          <p class="text-3xl font-black text-text-primary">{{ ((trafficData as any)?.todayServiceViews ?? 0).toLocaleString() }}</p>
         </div>
       </div>
 
       <!-- Growth -->
       <div class="flex items-center gap-4 rounded-2xl border border-border bg-white p-6 shadow-sm transition-shadow hover:shadow-card">
-        <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E8F0FF]">
-          <svg class="h-8 w-8 text-[#0048B5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <div :class="['flex h-16 w-16 items-center justify-center rounded-2xl', growthTone.bg]">
+          <svg :class="['h-8 w-8', growthTone.icon]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M23 6l-9.5 9.5-5-5L1 18" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M17 6h6v6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -612,15 +760,37 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
             class="w-full rounded-full border border-border bg-white py-2.5 pl-11 pr-4 text-sm font-medium text-text-primary shadow-sm outline-none placeholder:text-text-muted focus:border-primary-500 focus:ring-1 focus:ring-primary-500 sm:w-64"
           />
         </div>
-        <select v-model="selectedStatus" class="rounded-xl appearance-none border border-border bg-white px-4 py-2.5 text-sm font-bold text-text-secondary shadow-sm outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-          <option value="">Status</option>
-          <option value="true">Active</option>
-          <option value="false">Inactive</option>
-        </select>
-        <select v-model="selectedCategory" class="rounded-xl appearance-none border border-border bg-white px-4 py-2.5 text-sm font-bold text-text-secondary shadow-sm outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 max-w-[200px] truncate">
-          <option value="">All Categories</option>
-          <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-        </select>
+        <div class="relative min-w-[150px]">
+          <select
+            v-model="selectedStatus"
+            class="w-full appearance-none rounded-full border border-border bg-white px-4 py-2.5 pr-10 text-sm font-extrabold text-text-primary shadow-sm outline-none transition-colors focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+          >
+            <option value="">All Status</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+          <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+        </div>
+        <div class="relative min-w-[190px]">
+          <select
+            v-model="selectedCategory"
+            class="w-full appearance-none rounded-full border border-border bg-white px-4 py-2.5 pr-10 text-sm font-extrabold text-text-primary shadow-sm outline-none transition-colors focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+          >
+            <option value="">All Categories</option>
+            <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+          </select>
+          <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+        </div>
+        <div class="relative min-w-[190px]">
+          <select
+            v-model="selectedSort"
+            class="w-full appearance-none rounded-full border border-border bg-white px-4 py-2.5 pr-10 text-sm font-extrabold text-text-primary shadow-sm outline-none transition-colors focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
+          <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+        </div>
       </div>
     </div>
 
@@ -641,14 +811,14 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
         </div>
       </div>
     </div>
-    <div v-else-if="!services?.items?.length" class="flex flex-col items-center justify-center rounded-3xl bg-white py-20 text-center shadow-card">
+    <div v-else-if="!servicesView.items.length" class="flex flex-col items-center justify-center rounded-3xl bg-white py-20 text-center shadow-card">
       <div class="mb-4 text-5xl opacity-50">💇‍♀️</div>
       <p class="text-lg font-bold text-text-primary">No services found</p>
       <p class="mt-1 text-sm text-text-muted">Adjust your filters or add a new service.</p>
     </div>
     <div v-else class="grid grid-cols-1 gap-6 xl:grid-cols-2">
       <div
-        v-for="svc in services.items"
+        v-for="svc in servicesView.items"
         :key="svc.id"
         class="group relative flex items-center overflow-hidden rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-border transition-all hover:shadow-card"
       >
@@ -697,7 +867,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
               @click="toggleStatus(svc)"
               :class="[
                 'relative h-6 w-10 rounded-full transition-colors duration-300',
-                svc.isActive ? 'bg-success' : 'bg-surface-input ring-1 ring-inset ring-border'
+                svc.isActive ? 'bg-primary-600' : 'bg-surface-input ring-1 ring-inset ring-border'
               ]"
             >
               <span
@@ -731,15 +901,15 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
     </div>
 
     <!-- Pagination -->
-    <div v-if="services?.totalPages && services.totalPages > 1" class="mt-8 flex items-center justify-center gap-4">
+    <div v-if="servicesView.totalPages > 1" class="mt-8 flex items-center justify-center gap-4">
       <button 
         :disabled="page === 1" 
         @click="page--" 
         class="rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-bold text-text-secondary shadow-sm transition-colors hover:bg-surface-input disabled:opacity-50"
       >Previous</button>
-      <span class="text-sm font-semibold text-text-secondary">Page {{ page }} of {{ services.totalPages }}</span>
+      <span class="text-sm font-semibold text-text-secondary">Page {{ page }} of {{ servicesView.totalPages }}</span>
       <button 
-        :disabled="page === services.totalPages" 
+        :disabled="page === servicesView.totalPages" 
         @click="page++" 
         class="rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-bold text-text-secondary shadow-sm transition-colors hover:bg-surface-input disabled:opacity-50"
       >Next</button>
@@ -808,7 +978,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
                 <button
                   type="button"
                   class="relative h-7 w-12 rounded-full transition-colors"
-                  :class="form.hasVariants ? 'bg-orange-500' : 'bg-surface-input'"
+                  :class="form.hasVariants ? 'bg-primary-600' : 'bg-surface-input'"
                   @click="form.hasVariants = !form.hasVariants"
                 >
                   <span
@@ -943,7 +1113,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
                   @click="form.isActive = true"
                 >Active</button>
                 <button
-                  :class="['rounded-lg px-4 py-2 text-sm font-bold transition-all', !form.isActive ? 'bg-danger/10 text-danger ring-2 ring-danger' : 'bg-surface-input text-text-muted']"
+                  :class="['rounded-lg px-4 py-2 text-sm font-bold transition-all', !form.isActive ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-300' : 'bg-surface-input text-text-muted']"
                   @click="form.isActive = false"
                 >Inactive</button>
               </div>
