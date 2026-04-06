@@ -417,8 +417,31 @@ const { mutate: saveService, isPending: saving } = useMutation({
     }
   },
   onSuccess: async () => {
-    await queryClient.invalidateQueries({ queryKey: ['services'] })
+    const justCreated = !editingService.value
+
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['services'] }),
+      queryClient.invalidateQueries({ queryKey: ['public-services'] }),
+      queryClient.invalidateQueries({ queryKey: ['public-categories'] }),
+    ])
+
+    if (justCreated) {
+      // Keep newly-created items visible in the current list view.
+      if (selectedSort.value === 'oldest') {
+        selectedSort.value = 'newest'
+      }
+      page.value = 1
+    }
+
+    const hasActiveFilters =
+      selectedStatus.value === 'false' ||
+      !!selectedCategory.value ||
+      !!searchQuery.value.trim()
+
     showToast('Service saved successfully', 'success')
+    if (justCreated && hasActiveFilters) {
+      showToast('Service was created, but current filters may hide it from the list.', 'warning')
+    }
     resetForm()
     
     // Auto QR generation if needed
@@ -442,13 +465,21 @@ const { mutate: saveService, isPending: saving } = useMutation({
 
 const { mutate: deleteService } = useMutation({
   mutationFn: (id: string) => servicesApi.delete(id),
-  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['services'] }),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['services'] })
+    queryClient.invalidateQueries({ queryKey: ['public-services'] })
+    queryClient.invalidateQueries({ queryKey: ['public-categories'] })
+  },
 })
 
 const { mutate: toggleStatus } = useMutation({
   mutationFn: (svc: any) =>
     servicesApi.update(svc.id, { isActive: !svc.isActive }),
-  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['services'] }),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['services'] })
+    queryClient.invalidateQueries({ queryKey: ['public-services'] })
+    queryClient.invalidateQueries({ queryKey: ['public-categories'] })
+  },
 })
 
 function openCreate() {
@@ -678,7 +709,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
       </div>
       <div class="flex items-center gap-3">
         <RouterLink
-          :to="'/menu/' + authStore.admin?.id + '?isAdmin=true'"
+          :to="'/menu/' + authStore.admin?.id"
           target="_blank"
           class="flex items-center gap-2 rounded-xl border border-border bg-white px-5 py-3 text-sm font-extrabold text-text-primary shadow-sm transition-all hover:bg-surface-input active:scale-95"
         >

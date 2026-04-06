@@ -39,7 +39,7 @@
   text-align: left !important;
 }
 .theme-dark-elegance .t-spa-name {
-  font-family: 'Georgia', 'Times New Roman', serif;
+  font-family: var(--menu-font-family), 'Inter', system-ui, sans-serif;
   letter-spacing: 0.1em;
   color: var(--color-primary-600) !important;
 }
@@ -127,10 +127,10 @@
   --color-border: #c9a87a;
 }
 .theme-rustic .t-spa-name {
-  font-family: 'Georgia', serif;
+  font-family: var(--menu-font-family), 'Inter', system-ui, sans-serif;
 }
 .theme-rustic .t-cat-title {
-  font-family: 'Georgia', serif;
+  font-family: var(--menu-font-family), 'Inter', system-ui, sans-serif;
   font-style: italic;
   border-bottom: 2px dashed var(--color-border) !important;
   padding-bottom: 6px;
@@ -433,7 +433,7 @@
   text-transform: none !important;
   letter-spacing: 0.015em !important;
   line-height: 1.2;
-  font-family: 'Georgia', 'Times New Roman', serif;
+  font-family: var(--menu-font-family), 'Inter', system-ui, sans-serif;
   font-weight: 700 !important;
   font-size: 2.95rem !important;
 }
@@ -501,7 +501,7 @@
 }
 
 .theme-stitch .t-featured-section h2 {
-  font-family: 'Georgia', 'Times New Roman', serif;
+  font-family: var(--menu-font-family), 'Inter', system-ui, sans-serif;
   color: var(--color-text-primary) !important;
 }
 
@@ -520,7 +520,7 @@
   font-size: 2rem !important;
   letter-spacing: 0.07em;
   color: var(--color-text-primary) !important;
-  font-family: 'Georgia', 'Times New Roman', serif;
+  font-family: var(--menu-font-family), 'Inter', system-ui, sans-serif;
   font-weight: 700 !important;
   display: flex;
   align-items: center;
@@ -1075,7 +1075,7 @@
 }
 
 .theme-rose .nl-hero-card h1 {
-  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  font-family: var(--menu-font-family), 'Inter', system-ui, sans-serif;
   font-size: 2.35rem !important;
   line-height: 1.05;
   letter-spacing: 0.01em;
@@ -1096,7 +1096,7 @@
 }
 
 .theme-rose .nl-group-title {
-  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  font-family: var(--menu-font-family), 'Inter', system-ui, sans-serif;
   font-size: 1.15rem !important;
   text-transform: none !important;
   letter-spacing: 0.04em !important;
@@ -1142,12 +1142,12 @@
 }
 
 .theme-rose .rose-slide-info p:first-child {
-  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  font-family: var(--menu-font-family), 'Inter', system-ui, sans-serif;
   text-transform: none !important;
 }
 
 .theme-rose .rose-slide-price {
-  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  font-family: var(--menu-font-family), 'Inter', system-ui, sans-serif;
   color: var(--color-primary-600) !important;
   font-size: 28px !important;
   line-height: 1;
@@ -1344,7 +1344,7 @@
   justify-content: flex-start !important;
 }
 .theme-rose .t-spa-name {
-  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  font-family: var(--menu-font-family), 'Inter', system-ui, sans-serif;
   font-style: italic;
   font-weight: 600 !important;
   letter-spacing: 0.04em;

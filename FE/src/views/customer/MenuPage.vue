@@ -6,13 +6,18 @@ import { categoriesApi } from '@/api/categories.api'
 import { servicesApi } from '@/api/services.api'
 import { trafficApi } from '@/api/traffic.api'
 import apiClient from '@/api/client'
+import { useAuthStore } from '@/stores/auth.store'
+import { getAdminPreviewSession, type AdminPreviewPayload } from '@/lib/admin-preview-session'
 import { Search, Clock, X, ChevronDown, ChevronLeft, ChevronRight, Phone, Mail, MapPin, ArrowLeft, Share2, DollarSign, Heart } from 'lucide-vue-next'
 import heroImg from '@/assets/hero_customer.png'
 
 const route = useRoute()
+const authStore = useAuthStore()
 const adminId = computed(() => route.params.id as string)
+const publicCategoriesQueryKey = computed(() => ['public-categories', adminId.value])
 const publicConfigQueryKey = computed(() => ['public-config', adminId.value])
 const publicServicesQueryKey = computed(() => ['public-services', adminId.value])
+const PUBLIC_MENU_REFETCH_INTERVAL_MS = 15000
 
 const searchQuery = ref('')
 const selectedCategoryId = ref<string | null>(null)
@@ -27,11 +32,16 @@ const touchStartX = ref<number | null>(null)
 const SWIPE_THRESHOLD_PX = 40
 
 const { data: categoriesRes, isLoading: loadingCats } = useQuery({
-  queryKey: ['public-categories', adminId],
+  queryKey: publicCategoriesQueryKey,
   queryFn: async () => {
     const { data } = await categoriesApi.getActive({ adminId: adminId.value })
     return (data as any).data || data
   },
+  enabled: computed(() => !!adminId.value),
+  staleTime: 0,
+  refetchOnMount: 'always',
+  refetchOnWindowFocus: true,
+  refetchInterval: PUBLIC_MENU_REFETCH_INTERVAL_MS,
 })
 
 const { data: configRes, isLoading: loadingConfig } = useQuery({
@@ -52,29 +62,28 @@ const spaConfig = computed(() => {
   return (raw as any)?.status ? raw : (raw as any)?.data || raw || {}
 })
 
-function getQueryValue(key: string): string {
-  const raw = route.query[key]
-  if (typeof raw === 'string') return raw
-  if (Array.isArray(raw) && raw.length) return String(raw[0] || '')
-  return ''
-}
+const isSessionAdmin = computed(() => {
+  return !!authStore.token && authStore.admin?.id === adminId.value
+})
+const hasPendingAdminSession = computed(() => !!authStore.token && !authStore.admin)
 
-const isAdminPreview = computed(() => getQueryValue('isAdmin').toLowerCase() === 'true')
+const previewSession = computed(() => getAdminPreviewSession(adminId.value))
+const isAdminPreview = computed(() => isSessionAdmin.value)
 
 const themeId = computed(() => {
-  return String(getPreviewValue('previewTheme', spaConfig.value?.themeId || 'classic'))
+  return String(getPreviewValue('themeId', spaConfig.value?.themeId || 'classic'))
 })
 
-function getPreviewValue<T extends string>(key: string, fallback: T): string | T {
+function getPreviewValue<T extends string>(key: keyof AdminPreviewPayload, fallback: T): string | T {
   if (!isAdminPreview.value) return fallback
-  const value = getQueryValue(key)
+  const value = previewSession.value?.[key]
   if (typeof value === 'string' && value.trim()) return value
   return fallback
 }
 
 const currencyUnit = computed<'VND' | 'USD' | 'EUR'>(() => {
   const unit = String(
-    getPreviewValue('previewCurrencyUnit', spaConfig.value?.currencyUnit || spaConfig.value?.currency || 'VND'),
+    getPreviewValue('currencyUnit', spaConfig.value?.currencyUnit || spaConfig.value?.currency || 'VND'),
   ).toUpperCase()
   if (unit === 'USD' || unit === 'DOLLAR') return 'USD'
   if (unit === 'EUR' || unit === 'EURO') return 'EUR'
@@ -83,15 +92,27 @@ const currencyUnit = computed<'VND' | 'USD' | 'EUR'>(() => {
 
 const menuSize = computed<'large' | 'normal' | 'compact'>(() => {
   const size = String(
-    getPreviewValue('previewSize', spaConfig.value?.customerUiSize || 'normal'),
+    getPreviewValue('customerUiSize', spaConfig.value?.customerUiSize || 'normal'),
   ).toLowerCase()
   if (size === 'large' || size === 'compact') return size
   return 'normal'
 })
 
 const menuFontFamily = computed(() =>
-  String(getPreviewValue('previewFontFamily', spaConfig.value?.fontFamily || 'Inter')),
+  String(getPreviewValue('fontFamily', spaConfig.value?.fontFamily || 'Inter')),
 )
+
+const MENU_FONT_STACK_MAP: Record<string, string> = {
+  Inter: "'Inter', sans-serif",
+  Montserrat: "'Montserrat', sans-serif",
+  'Dancing Script': "'Dancing Script', cursive",
+  Pacifico: "'Pacifico', cursive",
+}
+
+const resolvedMenuFontFamily = computed(() => {
+  const selected = menuFontFamily.value
+  return MENU_FONT_STACK_MAP[selected] || MENU_FONT_STACK_MAP.Inter
+})
 
 const LEGACY_THEME_IDS = new Set(['classic', 'rustic', 'stitch'])
 const isLegacyTheme = computed(() => LEGACY_THEME_IDS.has(String(themeId.value)))
@@ -117,11 +138,13 @@ function hexToRgba(hexColor: string, alpha: number) {
 }
 
 const customerInterfaceStyle = computed<Record<string, string>>(() => {
-  const primary = String(getPreviewValue('previewPrimaryColor', spaConfig.value?.primaryColor || '#0253CD'))
-  const secondary = String(getPreviewValue('previewSecondaryColor', spaConfig.value?.secondaryColor || '#5E0B61'))
+  const primary = String(getPreviewValue('primaryColor', spaConfig.value?.primaryColor || '#0253CD'))
+  const secondary = String(getPreviewValue('secondaryColor', spaConfig.value?.secondaryColor || '#5E0B61'))
   const secondarySoft = hexToRgba(secondary, 0.12)
   const secondaryMuted = hexToRgba(secondary, 0.75)
-  return {
+  const family = resolvedMenuFontFamily.value
+
+  const style: Record<string, string> = {
     '--color-primary-600': primary,
     '--color-primary-500': primary,
     '--color-primary-400': primary,
@@ -133,11 +156,21 @@ const customerInterfaceStyle = computed<Record<string, string>>(() => {
     '--color-badge-new-text': primary,
     '--color-badge-bestseller-bg': hexToRgba(secondary, 0.2),
     '--color-badge-bestseller-text': secondary,
-    '--menu-font-family': menuFontFamily.value,
+    '--menu-font-family': family,
   }
+  
+  // Pacifico only has 400 weight. The browser can drop it or fail synthetic bolding if a heading requests 700/800.
+  if (menuFontFamily.value === 'Pacifico') {
+    style['--menu-title-weight'] = '400';
+  } else {
+    style['--menu-title-weight'] = 'inherit';
+  }
+
+  return style
 })
 
 watch([spaConfig, loadingConfig], ([config, loading]) => {
+  if (hasPendingAdminSession.value) return
   const isAdmin = isAdminPreview.value
   if (!loading && config && config.status && config.status !== 'active' && !isAdmin) {
     router.replace('/404')
@@ -161,13 +194,45 @@ const allServices = computed(() => {
 const { data: servicesRes, isLoading: loadingServices } = useQuery({
   queryKey: publicServicesQueryKey,
   queryFn: async () => {
-    const { data } = await servicesApi.getPublic({ adminId: adminId.value } as any)
-    return (data as any).data?.items || (data as any).data || []
+    // Fetch all pages so newly added services/categories are not hidden by default pagination.
+    const firstResponse = await servicesApi.getPublic({
+      adminId: adminId.value,
+      page: 1,
+      limit: 100,
+    } as any)
+
+    const firstData = (firstResponse.data as any)?.data || firstResponse.data
+    const firstItems = Array.isArray(firstData?.items) ? firstData.items : []
+    const totalPages = Number(firstData?.totalPages) || 1
+
+    if (totalPages <= 1) {
+      return firstItems
+    }
+
+    const requests: Promise<any>[] = []
+    for (let page = 2; page <= totalPages; page += 1) {
+      requests.push(
+        servicesApi.getPublic({
+          adminId: adminId.value,
+          page,
+          limit: 100,
+        } as any),
+      )
+    }
+
+    const nextResponses = await Promise.all(requests)
+    const extraItems = nextResponses.flatMap((response) => {
+      const payload = (response.data as any)?.data || response.data
+      return Array.isArray(payload?.items) ? payload.items : []
+    })
+
+    return [...firstItems, ...extraItems]
   },
   enabled: computed(() => !!adminId.value),
   staleTime: 0,
   refetchOnMount: 'always',
   refetchOnWindowFocus: true,
+  refetchInterval: PUBLIC_MENU_REFETCH_INTERVAL_MS,
 })
 
 const newServices = computed(() => {
@@ -236,6 +301,9 @@ watch(articleSlides, (val) => {
 }, { immediate: true })
 
 onMounted(() => {
+  if (authStore.token && !authStore.admin) {
+    authStore.fetchProfile()
+  }
   if (articleSlides.value.length > 0) startSlideTimer()
 })
 
@@ -245,6 +313,7 @@ const { mutate: logTraffic } = useMutation({
 
 // Log overall page visit when adminId becomes available
 watch(adminId, (newId) => {
+  if (hasPendingAdminSession.value) return
   const isAdmin = isAdminPreview.value
   if (newId && !isAdmin) {
     logTraffic({ adminId: newId })
@@ -527,6 +596,7 @@ function getServiceDisplayPrice(service: any) {
 function openDetail(service: any) {
   selectedService.value = service
   showDetail.value = true
+  if (hasPendingAdminSession.value) return
   const isAdmin = isAdminPreview.value
   if (!isAdmin && adminId.value) {
     logTraffic({ serviceId: service.id, adminId: adminId.value })
@@ -1007,9 +1077,6 @@ function getDetailVariantOptions(service: any) {
                 <p class="line-clamp-1 text-sm font-semibold text-white/80">{{ spaConfig.welcomeMessage || 'Freshly curated menu' }}</p>
               </div>
 
-              <button type="button" class="ocean-share-btn" aria-label="Share menu">
-                <Share2 class="h-4 w-4" />
-              </button>
             </div>
           </div>
         </template>
@@ -1514,10 +1581,6 @@ function getDetailVariantOptions(service: any) {
                       <div v-else class="flex h-full w-full items-center justify-center text-2xl text-text-muted">🥤</div>
                     </div>
 
-                    <div class="vibrant-fav-chip" aria-hidden="true">
-                      <Heart class="h-3.5 w-3.5" />
-                    </div>
-
                     <div class="vibrant-card-body">
                       <p class="line-clamp-1 text-[20px] font-black leading-tight text-text-primary">{{ svc.name }}</p>
                       <p class="mt-1 text-lg font-black text-text-secondary">{{ getServiceDisplayPrice(svc) }}</p>
@@ -1695,7 +1758,15 @@ function getDetailVariantOptions(service: any) {
     <!-- Full Screen Detail Detail (Figma Accurate) -->
     <Teleport to="body">
       <Transition name="slide-up">
-        <div v-if="showDetail && selectedService" :class="['fixed inset-0 z-50 overflow-y-auto bg-surface-page', `theme-${themeId}`]">
+        <div
+          v-if="showDetail && selectedService"
+          :class="[
+            'menu-detail-root fixed inset-0 z-50 overflow-y-auto bg-surface-page',
+            `theme-${themeId}`,
+            `menu-size-${menuSize}`,
+          ]"
+          :style="customerInterfaceStyle"
+        >
           <button
             @click="closeDetail"
             class="fixed right-5 top-5 z-[60] flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all active:scale-90"
@@ -1811,7 +1882,20 @@ function getDetailVariantOptions(service: any) {
 .menu-root button,
 .menu-root input,
 .menu-root textarea,
-.menu-root select {
+.menu-root select,
+.menu-detail-root,
+.menu-detail-root h1,
+.menu-detail-root h2,
+.menu-detail-root h3,
+.menu-detail-root h4,
+.menu-detail-root h5,
+.menu-detail-root h6,
+.menu-detail-root p,
+.menu-detail-root span,
+.menu-detail-root button,
+.menu-detail-root input,
+.menu-detail-root textarea,
+.menu-detail-root select {
   font-family: var(--menu-font-family), 'Inter', system-ui, sans-serif;
 }
 

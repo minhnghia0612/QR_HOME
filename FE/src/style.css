@@ -78,7 +78,7 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family:  var(--menu-font-family, 'Manrope'), 'Inter', system-ui, sans-serif;
   letter-spacing: -0.025em;
 }
 

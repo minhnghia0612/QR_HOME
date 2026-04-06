@@ -54,12 +54,32 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout() {
+  async function completeGoogleLoginFromCookie() {
+    isLoading.value = true
+    try {
+      const { data } = await authApi.getSession()
+      token.value = data.data.accessToken
+      admin.value = data.data.admin
+      localStorage.setItem('qr_home_token', data.data.accessToken)
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, message: err.response?.data?.message || 'Google login failed' }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function logout() {
+    try {
+      await authApi.logout()
+    } catch {
+      // Ignore logout transport errors and clear local auth state anyway.
+    }
     token.value = null
     admin.value = null
     localStorage.removeItem('qr_home_token')
     router.push('/')
   }
 
-  return { token, admin, isLoading, isAuthenticated, login, register, fetchProfile, logout }
+  return { token, admin, isLoading, isAuthenticated, login, register, fetchProfile, completeGoogleLoginFromCookie, logout }
 })

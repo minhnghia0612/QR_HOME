@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { useAuthStore } from '@/stores/auth.store'
+import { setAdminPreviewSession } from '@/lib/admin-preview-session'
 import { CheckCircle2, Save } from 'lucide-vue-next'
 import Toast from '@/components/Toast.vue'
 
@@ -50,16 +51,21 @@ const customerInterface = ref({
 
 const primaryColorPresets = ['#0253CD', '#0EA5E9', '#16A34A', '#EA580C', '#7C3AED']
 const secondaryColorPresets = ['#5E0B61', '#0F766E', '#374151', '#BE185D', '#92400E']
-const fontOptions = ['Inter', 'Manrope', 'Poppins', 'Montserrat', 'Nunito']
+const fontOptions = ['Inter', 'Montserrat', 'Dancing Script', 'Pacifico']
 
 watch(config, (val) => {
   if (val) {
+    const savedFontFamily = String(val.fontFamily || 'Inter')
+    const normalizedFontFamily = fontOptions.includes(savedFontFamily)
+      ? savedFontFamily
+      : 'Inter'
+
     selectedTheme.value = val.themeId || 'classic'
     customerInterface.value = {
       currencyUnit: (val.currencyUnit || 'VND') as CurrencyUnit,
       primaryColor: val.primaryColor || '#0253CD',
       secondaryColor: val.secondaryColor || '#5E0B61',
-      fontFamily: val.fontFamily || 'Inter',
+      fontFamily: normalizedFontFamily,
       customerUiSize: (val.customerUiSize || 'normal') as CustomerUiSize,
     }
   }
@@ -91,17 +97,7 @@ const previewUrl = computed(() => {
   const adminId = authStore.admin?.id
   if (!adminId) return ''
 
-  const params = new URLSearchParams({
-    previewTheme: selectedTheme.value,
-    previewCurrencyUnit: customerInterface.value.currencyUnit,
-    previewPrimaryColor: customerInterface.value.primaryColor,
-    previewSecondaryColor: customerInterface.value.secondaryColor,
-    previewFontFamily: customerInterface.value.fontFamily,
-    previewSize: customerInterface.value.customerUiSize,
-    isAdmin: 'true',
-  })
-
-  return `/menu/${adminId}?${params.toString()}`
+  return `/menu/${adminId}`
 })
 
 const previewFrameKey = computed(() => {
@@ -114,6 +110,31 @@ const previewFrameKey = computed(() => {
     customerInterface.value.customerUiSize,
   ].join('|')
 })
+
+watch(
+  [
+    () => authStore.admin?.id,
+    selectedTheme,
+    () => customerInterface.value.currencyUnit,
+    () => customerInterface.value.primaryColor,
+    () => customerInterface.value.secondaryColor,
+    () => customerInterface.value.fontFamily,
+    () => customerInterface.value.customerUiSize,
+  ],
+  ([adminId]) => {
+    if (!adminId) return
+
+    setAdminPreviewSession(adminId, {
+      themeId: selectedTheme.value,
+      currencyUnit: customerInterface.value.currencyUnit,
+      primaryColor: customerInterface.value.primaryColor,
+      secondaryColor: customerInterface.value.secondaryColor,
+      fontFamily: customerInterface.value.fontFamily,
+      customerUiSize: customerInterface.value.customerUiSize,
+    })
+  },
+  { immediate: true },
+)
 </script>
 
 <template>

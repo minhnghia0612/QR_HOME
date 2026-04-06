@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import { 
   ArrowRight, 
@@ -19,8 +19,11 @@ import { qrConfigApi } from '@/api/qr-config.api'
 import { categoriesApi } from '@/api/categories.api'
 import { servicesApi } from '@/api/services.api'
 import Toast from '@/components/Toast.vue'
+import heroImg from '@/assets/screen.png'
+import stepsShowcaseImg from '@/assets/landing-product-showcase.svg'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 // --- Modal Logic ---
@@ -29,6 +32,7 @@ const authMode = ref<'login' | 'register'>('login')
 const showPassword = ref(false)
 const loading = ref(false)
 const error = ref('')
+const googleAuthUrl = String(import.meta.env.VITE_GOOGLE_AUTH_URL || '').trim()
 
 // Form State
 const loginForm = ref({ username: '', password: '' })
@@ -46,6 +50,14 @@ function openAuth(mode: 'login' | 'register') {
 
 function closeAuth() {
   showAuthModal.value = false
+}
+
+function handleGoogleAuth() {
+  if (googleAuthUrl) {
+    window.location.href = googleAuthUrl
+    return
+  }
+  error.value = 'Google login is not configured yet. Please use username/password for now.'
 }
 
 async function handleLogin() {
@@ -144,6 +156,19 @@ const features = [
 ]
 
 onMounted(() => {
+  const oauth = String(route.query.oauth || '').toLowerCase()
+  if (oauth === 'google') {
+    authStore.completeGoogleLoginFromCookie().then((result) => {
+      if (result.success) {
+        window.history.replaceState({}, document.title, '/')
+        handlePostAuthRedirect()
+      } else {
+        error.value = result.message || 'Google login failed'
+      }
+    })
+    return
+  }
+
   if (authStore.isAuthenticated) {
      // Optional: Redirect if already logged in? 
      // router.push('/admin/dashboard')
@@ -172,44 +197,48 @@ onMounted(() => {
 
     <!-- Hero Section -->
     <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-      <div class="mx-auto max-w-7xl px-6">
+      <!-- Background Mesh Glows -->
+      <div class="absolute -top-24 -left-20 h-[500px] w-[500px] rounded-full bg-primary-100/30 blur-[120px] animate-pulse-slow"></div>
+      <div class="absolute top-1/2 -right-40 h-[600px] w-[600px] rounded-full bg-purple-100/20 blur-[140px] animate-pulse-slow banner-delay"></div>
+
+      <div class="mx-auto max-w-7xl px-6 relative z-10">
         <div class="flex flex-col lg:flex-row items-center gap-16">
           <!-- Left Content -->
-          <div class="flex-1 text-center lg:text-left">
+          <div class="flex-1 text-center lg:text-left reveal-fade-up">
             <div class="inline-flex items-center rounded-full bg-primary-50 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary-600 mb-6">
               NEXT-GEN DIGITAL MENUS
             </div>
-            <h1 class="text-5xl lg:text-7xl font-black leading-[1.1] tracking-tight mb-8">
-              Power Your Business with <span class="text-primary-600">Dynamic QR Menus.</span>
+            <h1 class="text-5xl lg:text-7xl font-black leading-[1.1] tracking-tight mb-8 reveal-fade-up-2">
+              Power Your Business with <span class="text-primary-600 headline-gradient">Dynamic QR Menus.</span>
             </h1>
-            <p class="text-lg lg:text-xl text-text-secondary leading-relaxed mb-10 max-w-2xl mx-auto lg:mx-0">
+            <p class="text-lg lg:text-xl text-text-secondary leading-relaxed mb-10 max-w-2xl mx-auto lg:mx-0 reveal-fade-up-3">
               Ditch the printing costs and go fully digital. Create, manage, and scale beautiful contactless menus for any service in minutes. Engage your customers instantly.
             </p>
             
-            <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+            <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 reveal-fade-up-4">
               <button @click="openAuth('register')" class="group flex items-center gap-3 rounded-2xl bg-primary-600 px-8 py-4 text-base font-black text-white shadow-button hover:brightness-110 active:scale-95 transition-all">
                 Get Started for Free
                 <ArrowRight class="h-5 w-5 transition-transform group-hover:translate-x-1" />
               </button>
-              <!-- <button class="flex items-center gap-3 rounded-2xl border border-border px-8 py-4 text-base font-bold text-text-primary hover:bg-surface-input transition-all">
-                <Play class="h-4 w-4 fill-primary-600 text-primary-600" />
-                See how it works
-              </button> -->
             </div>
           </div>
 
-          <!-- Right Image Decor -->
-          <!-- <div class="flex-1 relative"> -->
-            <!-- <div class="relative z-10 rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white">
-              <img src="https://images.unsplash.com/photo-1544161515-436cead54573?q=80&w=2070&auto=format&fit=crop" alt="Spa Experience" class="w-full h-auto" />
-            </div> -->
-            <!-- Floating Tablet Preview -->
-            <!-- <div class="absolute -bottom-10 -left-10 z-20 w-3/4 rounded-3xl overflow-hidden shadow-2xl border-4 border-white hidden sm:block">
-              <img src="https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?q=80&w=2070&auto=format&fit=crop" alt="Digital Menu Preview" />
-            </div> -->
-            <!-- Decor -->
-            <!-- <div class="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] bg-primary-600/5 blur-[120px] rounded-full"></div> -->
-          <!-- </div> -->
+          <!-- Right Product Showcase -->
+          <div class="relative flex-1 w-full max-w-xl lg:max-w-none reveal-fade-right">
+            <div class="absolute -right-8 -top-8 h-48 w-48 rounded-full bg-primary-200/50 blur-3xl animate-pulse"></div>
+            <div class="absolute -bottom-12 -left-10 h-56 w-56 rounded-full bg-primary-600/10 blur-3xl"></div>
+
+            <div class="relative z-10 overflow-hidden rounded-[2.5rem] border border-primary-100/60 bg-white p-3 shadow-[0_24px_90px_rgba(2,83,205,0.22)] animate-float">
+              <div class="relative overflow-hidden rounded-[2rem]">
+                <img
+                  :src="heroImg"
+                  alt="Customer menu preview"
+                  class="h-[340px] w-full object-cover object-center brightness-[0.92] sm:h-[460px] hover:scale-105"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -273,7 +302,14 @@ onMounted(() => {
             </div>
           </div>
           
-          <div class="flex-1">
+          <div class="flex-1 w-full">
+            <div class="mx-auto w-full max-w-[560px] overflow-hidden rounded-[2.5rem] border border-border/60 bg-white p-3 shadow-[0_20px_60px_rgba(15,23,42,0.14)]">
+              <img
+                :src="stepsShowcaseImg"
+                alt="Digital service catalog preview"
+                class="h-auto w-full rounded-[2rem] object-cover"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -370,6 +406,21 @@ onMounted(() => {
                     Signing in...
                   </template>
                 </button>
+
+                <div class="relative py-1">
+                  <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 text-[11px] font-bold uppercase tracking-wide text-text-muted">or</span>
+                </div>
+
+                <button
+                  type="button"
+                  @click="handleGoogleAuth"
+                  class="w-full flex items-center justify-center gap-3 rounded-2xl border border-border bg-white py-3.5 text-sm font-bold text-text-primary shadow-sm transition-all hover:bg-surface-input active:scale-95"
+                >
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.2-1.4 3.6-5.5 3.6-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.2.8 3.9 1.5l2.7-2.7C16.8 2.5 14.6 1.5 12 1.5 6.8 1.5 2.6 5.8 2.6 11s4.2 9.5 9.4 9.5c5.4 0 9-3.8 9-9.2 0-.6-.1-1-.2-1.4H12z"/>
+                  </svg>
+                  Continue with Google
+                </button>
               </form>
 
               <!-- REGISTER FORM -->
@@ -396,6 +447,21 @@ onMounted(() => {
                     Creating Account...
                   </template>
                 </button>
+
+                <div class="relative py-1">
+                  <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 text-[11px] font-bold uppercase tracking-wide text-text-muted">or</span>
+                </div>
+
+                <button
+                  type="button"
+                  @click="handleGoogleAuth"
+                  class="w-full flex items-center justify-center gap-3 rounded-2xl border border-border bg-white py-3.5 text-sm font-bold text-text-primary shadow-sm transition-all hover:bg-surface-input active:scale-95"
+                >
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.2-1.4 3.6-5.5 3.6-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.2.8 3.9 1.5l2.7-2.7C16.8 2.5 14.6 1.5 12 1.5 6.8 1.5 2.6 5.8 2.6 11s4.2 9.5 9.4 9.5c5.4 0 9-3.8 9-9.2 0-.6-.1-1-.2-1.4H12z"/>
+                  </svg>
+                  Continue with Google
+                </button>
               </form>
 
               <div class="mt-8 text-center text-sm font-medium">
@@ -421,6 +487,13 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.headline-gradient {
+  background: linear-gradient(135deg, var(--color-primary-600) 0%, #B44CFF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .fade-enter-active, .fade-leave-active { transition: opacity 0.4s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
@@ -428,4 +501,42 @@ onMounted(() => {
 .zoom-leave-active { transition: all 0.3s ease-in; }
 .zoom-enter-from { opacity: 0; transform: scale(0.9) translateY(20px); }
 .zoom-leave-to { opacity: 0; transform: scale(0.95); }
+
+/* Custom Animations */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-right {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.1); }
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.reveal-fade-up { animation: fade-up 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+.reveal-fade-up-2 { animation: fade-up 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s forwards; opacity: 0; }
+.reveal-fade-up-3 { animation: fade-up 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s forwards; opacity: 0; }
+.reveal-fade-up-4 { animation: fade-up 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s forwards; opacity: 0; }
+.reveal-fade-right { animation: fade-right 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+.animate-float { animation: float 6s ease-in-out infinite; }
+.animate-pulse-slow { animation: pulse-slow 8s ease-in-out infinite; }
+.animate-bounce-slow { animation: bounce-slow 4s ease-in-out infinite; }
+.banner-delay { animation-delay: 2s; }
 </style>

@@ -20,7 +20,13 @@ interface RegisterPayload extends LoginPayload {
 interface ProfileResponse {
   id: string
   username: string
+  fullName?: string | null
   lastLogin: string | null
+}
+
+interface SessionResponse {
+  accessToken: string
+  admin: { id: string; username: string; fullName: string }
 }
 
 export const authApi = {
@@ -32,4 +38,10 @@ export const authApi = {
 
   getProfile: () =>
     apiClient.get<ApiResponse<ProfileResponse>>('/auth/me'),
+
+  getSession: () =>
+    apiClient.get<ApiResponse<SessionResponse>>('/auth/session'),
+
+  logout: () =>
+    apiClient.post<ApiResponse<{ ok: true }>>('/auth/logout'),
 }
