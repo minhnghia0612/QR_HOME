@@ -24,11 +24,11 @@ const THEMES = [
   { id: 'modern-minimal', name: 'Modern Minimal', desc: 'Image backgrounds with gradient overlays', color: '#6366f1' },
   { id: 'rustic', name: 'Rustic', desc: 'Vintage paper style with decorative borders', color: '#8b5a2b' },
   { id: 'vibrant', name: 'Vibrant', desc: 'Colorful bubbles, emojis and fun rotated cards', color: '#ec4899' },
-  { id: 'stitch', name: 'Stitch Design', desc: 'Modern grid/list layout with smooth transitions', color: '#f97316' },
-  { id: 'nature', name: 'Nature Retreat', desc: 'Greenery tones, rounded leaves', color: '#10b981' },
-  { id: 'neon', name: 'Neon Cyber', desc: 'Dark mode with bright neon glowing text', color: '#06b6d4' },
-  { id: 'rose', name: 'Rose Gold', desc: 'Elegant pinks and thin serif fonts', color: '#fda4af' },
-  { id: 'ocean', name: 'Ocean Breeze', desc: 'Cool blues and waves dividers', color: '#3b82f6' },
+  { id: 'stitch', name: 'Stitch Design', desc: 'Ivory editorial layout with centered serif typography', color: '#b58566' },
+  { id: 'nature', name: 'Nature Retreat', desc: 'Botanical paper cards with moss-green handcrafted tones', color: '#5a7a55' },
+  { id: 'neon', name: 'Neon Cyber', desc: 'Tactical HUD style with cyan scanline neon effects', color: '#26e5ff' },
+  { id: 'rose', name: 'Rose Gold', desc: 'Luxe blush editorial cards with soft metallic accents', color: '#c97d95' },
+  { id: 'ocean', name: 'Ocean Breeze', desc: 'Seafoam split cards with airy aqua gradients', color: '#26a4c8' },
 ]
 
 const { data: config, isLoading: loadingConfig } = useQuery({
@@ -103,17 +103,28 @@ const previewUrl = computed(() => {
 
   return `/menu/${adminId}?${params.toString()}`
 })
+
+const previewFrameKey = computed(() => {
+  return [
+    selectedTheme.value,
+    customerInterface.value.currencyUnit,
+    customerInterface.value.primaryColor,
+    customerInterface.value.secondaryColor,
+    customerInterface.value.fontFamily,
+    customerInterface.value.customerUiSize,
+  ].join('|')
+})
 </script>
 
 <template>
-  <div class="px-6 py-8 h-[calc(100vh-64px)] overflow-hidden flex flex-col">
-    <div class="mb-6 flex items-center justify-between flex-shrink-0">
+  <div class="flex min-h-[calc(100vh-64px)] flex-col overflow-y-auto px-4 py-6 sm:px-6 sm:py-8">
+    <div class="mb-6 flex flex-shrink-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h2 class="text-3xl font-bold tracking-tight text-text-primary">Theme Settings</h2>
         <p class="mt-1 text-sm text-text-secondary">Choose template and customer interface style</p>
       </div>
       <button
-        class="flex items-center gap-2 rounded-xl bg-gradient-to-b from-primary-600 to-[#0048B5] px-6 py-3 text-sm font-extrabold text-white shadow-button transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
+        class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-primary-600 to-[#0048B5] px-6 py-3 text-sm font-extrabold text-white shadow-button transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 sm:w-auto"
         :disabled="saving"
         @click="saveTheme()"
       >
@@ -124,13 +135,13 @@ const previewUrl = computed(() => {
     </div>
 
     <!-- Main Setting Area -->
-    <div class="flex flex-1 gap-8 min-h-0">
+    <div class="flex min-h-0 flex-1 flex-col gap-6 lg:flex-row lg:gap-8">
       <!-- Left: Theme Selection List -->
-      <div class="w-1/2 flex flex-col rounded-3xl bg-white shadow-sm ring-1 ring-border overflow-hidden">
+      <div class="w-full min-h-0 rounded-3xl bg-white shadow-sm ring-1 ring-border lg:w-1/2 lg:overflow-hidden">
         <div class="p-6 border-b border-border bg-surface-page/50 flex-shrink-0">
           <h3 class="text-lg font-bold text-text-primary">Theme & Customer Interface</h3>
         </div>
-        <div class="flex-1 overflow-y-auto p-6">
+        <div class="p-6 lg:flex-1 lg:overflow-y-auto">
           <div v-if="loadingConfig" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div
               v-for="i in 8"
@@ -269,23 +280,28 @@ const previewUrl = computed(() => {
       </div>
 
       <!-- Right: Live Preview Mockup -->
-      <div class="w-1/2 rounded-3xl bg-[#EEF2F6] flex flex-col items-center justify-center p-6 overflow-hidden shadow-inner ring-1 ring-border">
+      <div class="w-full rounded-3xl bg-[#EEF2F6] p-4 shadow-inner ring-1 ring-border sm:p-6 lg:w-1/2">
         <p class="mb-4 text-xs font-bold text-text-secondary uppercase tracking-widest text-center w-full">Live Preview</p>
         
-        <!-- Mockup Device Wrapper (Responsive height) -->
-        <div class="relative w-full max-w-[320px] h-full max-h-[640px] bg-black rounded-[45px] p-2.5 shadow-2xl ring-4 ring-text-primary/10 flex flex-col shrink">
-          <!-- Screen -->
-          <div class="relative w-full h-full bg-white rounded-[35px] overflow-hidden flex flex-col">
-            <!-- Top notch -->
-            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-b-2xl z-[100]"></div>
+        <!-- Mockup Device Wrapper (Fixed viewport + responsive scale) -->
+        <div class="mx-auto flex w-full justify-center overflow-hidden h-[540px] sm:h-[630px] md:h-[720px] lg:h-[760px] xl:h-[790px] items-start">
+          <div class="relative h-[868px] w-[414px] shrink-0 border-[12px] border-black rounded-[48px] bg-black shadow-2xl scale-[0.6] sm:scale-[0.7] md:scale-[0.8] lg:scale-[0.85] xl:scale-[0.88] origin-top">
+          <!-- Screen notch -->
+            <div class="absolute top-0 inset-x-0 h-6 flex justify-center z-50">
+              <div class="w-32 h-6 bg-black rounded-b-3xl"></div>
+            </div>
             
-            <div v-if="loadingConfig" class="m-3 h-full rounded-[24px] bg-surface-input animate-pulse"></div>
-            <iframe
-              v-else-if="authStore.admin?.id"
-              :src="previewUrl"
-              class="w-full h-full border-0"
-              title="Theme Preview"
-            ></iframe>
+            <!-- Screen content -->
+            <div class="relative h-full w-full overflow-hidden rounded-[36px] bg-white">
+              <div v-if="loadingConfig" class="h-full w-full bg-surface-input animate-pulse"></div>
+              <iframe
+                v-else-if="authStore.admin?.id"
+                :key="previewFrameKey"
+                :src="previewUrl"
+                class="absolute inset-0 h-full w-full border-0"
+                title="Theme Preview"
+              ></iframe>
+            </div>
           </div>
         </div>
       </div>

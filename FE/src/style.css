@@ -7,6 +7,9 @@
    ============================================ */
 
 @theme {
+  /* Base spacing token for Tailwind v4 spacing utilities (m-*, p-*, gap-*) */
+  --spacing: 0.25rem;
+
   /* === Primary Palette (from Figma) === */
   --color-primary-900: #0F172A;
   --color-primary-700: #1D4ED8;
