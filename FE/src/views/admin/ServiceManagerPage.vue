@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { servicesApi } from '@/api/services.api'
@@ -75,6 +75,8 @@ const searchQuery = ref('')
 const selectedStatus = ref('')
 const selectedCategory = ref('')
 const selectedSort = ref<'newest' | 'oldest'>('newest')
+const openFilter = ref<'status' | 'category' | 'sort' | null>(null)
+const filterPanelRef = ref<HTMLElement | null>(null)
 const page = ref(1)
 const PAGE_SIZE = 20
 const formError = ref('')
@@ -85,13 +87,29 @@ const fieldErrors = ref({
   name: '',
   categoryId: '',
   price: '',
+  imageUrl: '',
   variantOptions: '',
 })
 
 const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'danger' | 'warning' })
+const uploadLoading = ref(false)
+
+const MAX_IMAGE_SIZE_MB = 5
+const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
 
 function showToast(message: string, type: 'success' | 'danger' | 'warning' = 'success') {
   toast.value = { show: true, message, type }
+}
+
+function getApiErrorMessage(err: any, fallback: string): string {
+  const raw = err?.response?.data?.message
+  if (Array.isArray(raw)) {
+    const normalized = raw.map((item) => String(item || '').trim()).filter(Boolean)
+    return normalized[0] || fallback
+  }
+  if (typeof raw === 'string' && raw.trim()) return raw
+  if (typeof err?.message === 'string' && err.message.trim()) return err.message
+  return fallback
 }
 
 // Debounce search
@@ -112,6 +130,47 @@ watch([selectedStatus, selectedCategory], () => {
 watch(selectedSort, () => {
   page.value = 1
 })
+
+const statusLabel = computed(() => {
+  if (selectedStatus.value === 'true') return 'Active'
+  if (selectedStatus.value === 'false') return 'Inactive'
+  return 'All Status'
+})
+
+const categoryLabel = computed(() => {
+  if (!selectedCategory.value) return 'All Categories'
+  const category = categories.value?.find((c: any) => c.id === selectedCategory.value)
+  return category?.name || 'All Categories'
+})
+
+const sortLabel = computed(() => (selectedSort.value === 'oldest' ? 'Oldest First' : 'Newest First'))
+
+function toggleFilter(name: 'status' | 'category' | 'sort') {
+  openFilter.value = openFilter.value === name ? null : name
+}
+
+function setStatusFilter(value: string) {
+  selectedStatus.value = value
+  openFilter.value = null
+}
+
+function setCategoryFilter(value: string) {
+  selectedCategory.value = value
+  openFilter.value = null
+}
+
+function setSortFilter(value: 'newest' | 'oldest') {
+  selectedSort.value = value
+  openFilter.value = null
+}
+
+function handleDocumentClick(event: MouseEvent) {
+  if (!filterPanelRef.value) return
+  const target = event.target as Node | null
+  if (target && !filterPanelRef.value.contains(target)) {
+    openFilter.value = null
+  }
+}
 
 // Form state
 const form = ref({
@@ -281,8 +340,13 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick, true)
   trafficSocket?.disconnect()
   trafficSocket = null
+})
+
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick, true)
 })
 
 const { data: qrConfig } = useQuery({
@@ -333,7 +397,7 @@ const growthTone = computed(() => {
 const { mutate: saveService, isPending: saving } = useMutation({
   mutationFn: async () => {
     formError.value = ''
-    fieldErrors.value = { name: '', categoryId: '', price: '', variantOptions: '' }
+    fieldErrors.value = { name: '', categoryId: '', price: '', imageUrl: '', variantOptions: '' }
 
     if (!String(form.value.name || '').trim()) {
       fieldErrors.value.name = 'Service name is required'
@@ -343,6 +407,11 @@ const { mutate: saveService, isPending: saving } = useMutation({
     if (!form.value.categoryId) {
       fieldErrors.value.categoryId = 'Please select category'
       throw new Error('Please select category')
+    }
+
+    if (!String(form.value.imageUrl || '').trim()) {
+      fieldErrors.value.imageUrl = 'Image is required'
+      throw new Error('Image is required')
     }
 
     const hasVariants = !!form.value.hasVariants
@@ -421,6 +490,7 @@ const { mutate: saveService, isPending: saving } = useMutation({
 
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['services'] }),
+      queryClient.invalidateQueries({ queryKey: ['nav-services-count'] }),
       queryClient.invalidateQueries({ queryKey: ['public-services'] }),
       queryClient.invalidateQueries({ queryKey: ['public-categories'] }),
     ])
@@ -458,8 +528,12 @@ const { mutate: saveService, isPending: saving } = useMutation({
     }
   },
   onError: (err: any) => {
-    formError.value = err.message || 'Failed to save service'
-    showToast(err.message || 'Failed to save service', 'danger')
+    const message = getApiErrorMessage(err, 'Failed to save service')
+    if (err?.response?.status === 400 && /image/i.test(message)) {
+      fieldErrors.value.imageUrl = 'Service image is required'
+    }
+    formError.value = message
+    showToast(message, 'danger')
   },
 })
 
@@ -467,6 +541,7 @@ const { mutate: deleteService } = useMutation({
   mutationFn: (id: string) => servicesApi.delete(id),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['services'] })
+    queryClient.invalidateQueries({ queryKey: ['nav-services-count'] })
     queryClient.invalidateQueries({ queryKey: ['public-services'] })
     queryClient.invalidateQueries({ queryKey: ['public-categories'] })
   },
@@ -506,14 +581,14 @@ function openCreate() {
   priceFromInput.value = ''
   priceToInput.value = ''
   formError.value = ''
-  fieldErrors.value = { name: '', categoryId: '', price: '', variantOptions: '' }
+  fieldErrors.value = { name: '', categoryId: '', price: '', imageUrl: '', variantOptions: '' }
   showForm.value = true
 }
 
 async function openEdit(svc: any) {
   editingService.value = svc
   formError.value = ''
-  fieldErrors.value = { name: '', categoryId: '', price: '', variantOptions: '' }
+  fieldErrors.value = { name: '', categoryId: '', price: '', imageUrl: '', variantOptions: '' }
   formLoading.value = true
   showForm.value = true
 
@@ -558,7 +633,7 @@ function resetForm() {
   showForm.value = false
   editingService.value = null
   formError.value = ''
-  fieldErrors.value = { name: '', categoryId: '', price: '', variantOptions: '' }
+  fieldErrors.value = { name: '', categoryId: '', price: '', imageUrl: '', variantOptions: '' }
   formLoading.value = false
 }
 
@@ -621,10 +696,40 @@ function removeVariantOption(index: number) {
 async function handleUpload(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
+
+  const isImage = String(file.type || '').startsWith('image/')
+  if (!isImage) {
+    showToast('Only image files are allowed (JPG, PNG, WEBP, ...).', 'danger')
+    ;(e.target as HTMLInputElement).value = ''
+    return
+  }
+
+  if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    showToast(`Image is too large. Max size is ${MAX_IMAGE_SIZE_MB}MB.`, 'danger')
+    ;(e.target as HTMLInputElement).value = ''
+    return
+  }
+
+  uploadLoading.value = true
   try {
     const { data } = await uploadApi.upload(file)
-    form.value.imageUrl = data.data?.url || ''
-  } catch { /* skip */ }
+    const imageUrl = data.data?.url || ''
+    if (!imageUrl) {
+      showToast('Upload failed: server did not return an image URL.', 'danger')
+      return
+    }
+    form.value.imageUrl = imageUrl
+    showToast('Image uploaded successfully.', 'success')
+  } catch (err: any) {
+    const message =
+      err?.response?.data?.message ||
+      err?.message ||
+      'Image upload failed. Please try again.'
+    showToast(String(message), 'danger')
+  } finally {
+    uploadLoading.value = false
+    ;(e.target as HTMLInputElement).value = ''
+  }
 }
 
 function formatPrice(p: number) {
@@ -781,46 +886,52 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
     <!-- Current Service List Header -->
     <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <h3 class="text-xl font-bold flex-shrink-0 text-text-primary">Current Service List</h3>
-      <div class="flex flex-col gap-3 sm:flex-row w-full sm:w-auto">
-        <div class="relative flex-grow sm:flex-grow-0">
+      <div ref="filterPanelRef" class="grid  grid-cols-1 gap-3 sm:grid-cols-[minmax(240px,1fr)_160px_200px_200px] sm:items-center sm:gap-4">
+        <div class="relative min-w-0">
           <Search class="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
           <input
             v-model="searchInput"
             type="text"
             placeholder="Search services..."
-            class="w-full rounded-full border border-border bg-white py-2.5 pl-11 pr-4 text-sm font-medium text-text-primary shadow-sm outline-none placeholder:text-text-muted focus:border-primary-500 focus:ring-1 focus:ring-primary-500 sm:w-64"
+            class="w-full rounded-full border border-border bg-white py-2.5 pl-11 pr-4 text-sm font-medium text-text-primary shadow-sm outline-none placeholder:text-text-muted focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
           />
         </div>
-        <div class="relative min-w-[150px]">
-          <select
-            v-model="selectedStatus"
-            class="w-full appearance-none rounded-full border border-border bg-white px-4 py-2.5 pr-10 text-sm font-extrabold text-text-primary shadow-sm outline-none transition-colors focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">All Status</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </select>
-          <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+        <div class="relative min-w-0">
+          <button type="button" class="filter-trigger" @click="toggleFilter('status')">
+            <span class="truncate">{{ statusLabel }}</span>
+            <ChevronDown :class="['h-4 w-4 text-text-muted transition-transform duration-200', openFilter === 'status' ? 'rotate-180' : '']" />
+          </button>
+          <Transition name="fade-down">
+            <div v-if="openFilter === 'status'" class="filter-menu">
+              <button type="button" :class="['filter-option', !selectedStatus ? 'filter-option-active' : '']" @click="setStatusFilter('')">All Status</button>
+              <button type="button" :class="['filter-option', selectedStatus === 'true' ? 'filter-option-active' : '']" @click="setStatusFilter('true')">Active</button>
+              <button type="button" :class="['filter-option', selectedStatus === 'false' ? 'filter-option-active' : '']" @click="setStatusFilter('false')">Inactive</button>
+            </div>
+          </Transition>
         </div>
-        <div class="relative min-w-[190px]">
-          <select
-            v-model="selectedCategory"
-            class="w-full appearance-none rounded-full border border-border bg-white px-4 py-2.5 pr-10 text-sm font-extrabold text-text-primary shadow-sm outline-none transition-colors focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">All Categories</option>
-            <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-          </select>
-          <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+        <div class="relative min-w-0">
+          <button type="button" class="filter-trigger" @click="toggleFilter('category')">
+            <span class="truncate">{{ categoryLabel }}</span>
+            <ChevronDown :class="['h-4 w-4 text-text-muted transition-transform duration-200', openFilter === 'category' ? 'rotate-180' : '']" />
+          </button>
+          <Transition name="fade-down">
+            <div v-if="openFilter === 'category'" class="filter-menu">
+              <button type="button" :class="['filter-option', !selectedCategory ? 'filter-option-active' : '']" @click="setCategoryFilter('')">All Categories</button>
+              <button v-for="cat in categories" :key="cat.id" type="button" :class="['filter-option', selectedCategory === cat.id ? 'filter-option-active' : '']" @click="setCategoryFilter(cat.id)">{{ cat.name }}</button>
+            </div>
+          </Transition>
         </div>
-        <div class="relative min-w-[190px]">
-          <select
-            v-model="selectedSort"
-            class="w-full appearance-none rounded-full border border-border bg-white px-4 py-2.5 pr-10 text-sm font-extrabold text-text-primary shadow-sm outline-none transition-colors focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-          </select>
-          <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+        <div class="relative min-w-0">
+          <button type="button" class="filter-trigger" @click="toggleFilter('sort')">
+            <span class="truncate">{{ sortLabel }}</span>
+            <ChevronDown :class="['h-4 w-4 text-text-muted transition-transform duration-200', openFilter === 'sort' ? 'rotate-180' : '']" />
+          </button>
+          <Transition name="fade-down">
+            <div v-if="openFilter === 'sort'" class="filter-menu">
+              <button type="button" :class="['filter-option', selectedSort === 'newest' ? 'filter-option-active' : '']" @click="setSortFilter('newest')">Newest First</button>
+              <button type="button" :class="['filter-option', selectedSort === 'oldest' ? 'filter-option-active' : '']" @click="setSortFilter('oldest')">Oldest First</button>
+            </div>
+          </Transition>
         </div>
       </div>
     </div>
@@ -1158,10 +1269,11 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
               </div>
               <label class="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface-input p-8 transition-colors hover:border-primary-600">
                 <Upload class="mb-2 h-8 w-8 text-text-muted" />
-                <span class="text-sm font-bold text-text-primary">Upload image or drag and drop</span>
-                <span class="mt-1 text-xs text-text-muted">Recommended JPG or PNG. Max size 5MB.</span>
+                <span class="text-sm font-bold text-text-primary">{{ uploadLoading ? 'Uploading image...' : 'Upload image or drag and drop' }}</span>
+                <span class="mt-1 text-xs text-text-muted">Recommended JPG/PNG/WEBP. Max size 5MB.</span>
                 <input type="file" accept="image/*" class="hidden" @change="handleUpload" />
               </label>
+              <p v-if="fieldErrors.imageUrl" class="mt-1 text-xs font-medium text-danger">{{ fieldErrors.imageUrl }}</p>
               <div v-if="form.imageUrl" class="mt-3 overflow-hidden rounded-xl">
                 <img :src="form.imageUrl" alt="Preview" class="h-32 w-full object-cover" />
               </div>
@@ -1205,4 +1317,78 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
 .slide-right-enter-active { transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .slide-right-leave-active { transition: transform 0.2s ease-in; }
 .slide-right-enter-from, .slide-right-leave-to { transform: translateX(100%); }
+
+.fade-down-enter-active,
+.fade-down-leave-active {
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.fade-down-enter-from,
+.fade-down-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.filter-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--color-border);
+  border-radius: 0.95rem;
+  background: #ffffff;
+  padding: 0.7rem 2.35rem 0.7rem 0.95rem;
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.filter-trigger:focus {
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px rgba(0, 72, 181, 0.14);
+}
+
+.filter-trigger:hover {
+  background: #f8fafc;
+}
+
+.filter-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  z-index: 30;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid #dbe3f0;
+  border-radius: 0.9rem;
+  background: #ffffff;
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.16);
+  padding: 0.35rem;
+}
+
+.filter-option {
+  width: 100%;
+  border: none;
+  border-radius: 0.65rem;
+  background: transparent;
+  padding: 0.58rem 0.7rem;
+  text-align: left;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.filter-option:hover {
+  background: #f4f8ff;
+}
+
+.filter-option-active {
+  background: #e8f0ff;
+  color: #0048b5;
+}
 </style>

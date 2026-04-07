@@ -46,19 +46,68 @@ watch(config, (val) => {
 }, { immediate: true })
 
 const toast = ref({ show: false, message: '', type: 'danger' as 'success' | 'danger' | 'warning' })
+const uploadLoading = ref<'spaLogo' | 'bannerUrl' | null>(null)
+
+const MAX_IMAGE_SIZE_MB = 5
+const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
 
 function showToast(message: string, type: 'success' | 'danger' | 'warning' = 'danger') {
   toast.value = { show: true, message, type }
 }
 
+function getApiErrorMessage(err: any, fallback: string): string {
+  const raw = err?.response?.data?.message
+  if (Array.isArray(raw)) {
+    const normalized = raw.map((item) => String(item || '').trim()).filter(Boolean)
+    return normalized[0] || fallback
+  }
+  if (typeof raw === 'string' && raw.trim()) return raw
+  if (typeof err?.message === 'string' && err.message.trim()) return err.message
+  return fallback
+}
+
+function normalizeText(value: string) {
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function normalizeEmail(value: string) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
 const { mutate: saveConfig, isPending: saving } = useMutation({
   mutationFn: async () => {
-    // Validation
-    if (!form.value.spaName) throw new Error('Store Name is required')
-    if (!form.value.spaPhone) throw new Error('Phone Number is required')
-    if (!form.value.spaAddress) throw new Error('Address is required')
+    const payload = {
+      spaName: normalizeText(form.value.spaName),
+      spaAddress: normalizeText(form.value.spaAddress),
+      spaPhone: normalizeText(form.value.spaPhone),
+      spaEmail: normalizeEmail(form.value.spaEmail),
+      spaLogo: String(form.value.spaLogo || '').trim(),
+      bannerUrl: String(form.value.bannerUrl || '').trim(),
+      welcomeMessage: normalizeText(form.value.welcomeMessage),
+      status: normalizeText(form.value.status),
+    }
 
-    const { data } = await qrConfigApi.updateConfig(form.value)
+    // All fields are required and whitespace-only values are invalid.
+    if (!payload.spaName) throw new Error('Store Name is required')
+    if (!payload.spaAddress) throw new Error('Address is required')
+    if (!payload.spaPhone) throw new Error('Phone Number is required')
+    if (!payload.spaEmail) throw new Error('Contact Email is required')
+    if (!isValidEmail(payload.spaEmail)) throw new Error('Contact Email is invalid')
+    if (!payload.spaLogo) throw new Error('Logo is required')
+    if (!payload.bannerUrl) throw new Error('Banner is required')
+    if (!payload.welcomeMessage) throw new Error('Welcome Message is required')
+    if (!payload.status) throw new Error('Status is required')
+
+    // Reflect normalized values back to UI so users see cleaned content.
+    form.value = { ...payload }
+
+    const { data } = await qrConfigApi.updateConfig(payload)
     return data
   },
   onSuccess: async () => {
@@ -71,18 +120,44 @@ const { mutate: saveConfig, isPending: saving } = useMutation({
     }, 1500)
   },
   onError: (err: any) => {
-    showToast(err.message || 'Failed to save settings', 'danger')
+    showToast(getApiErrorMessage(err, 'Failed to save settings'), 'danger')
   }
 })
 
 async function handleUpload(e: Event, field: 'spaLogo' | 'bannerUrl') {
-  const file = (e.target as HTMLInputElement).files?.[0]
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
   if (!file) return
+
+  const isImage = String(file.type || '').startsWith('image/')
+  if (!isImage) {
+    showToast('Only image files are allowed (JPG, PNG, WEBP, ...).', 'danger')
+    input.value = ''
+    return
+  }
+
+  if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    showToast(`Image is too large. Max size is ${MAX_IMAGE_SIZE_MB}MB.`, 'danger')
+    input.value = ''
+    return
+  }
+
+  uploadLoading.value = field
+
   try {
     const { data } = await uploadApi.upload(file)
-    form.value[field] = data.data?.url || ''
-  } catch (err) {
-    console.error('Upload Error:', err)
+    const imageUrl = data.data?.url || ''
+    if (!imageUrl) {
+      showToast('Upload failed: server did not return an image URL.', 'danger')
+      return
+    }
+    form.value[field] = imageUrl
+    showToast(field === 'spaLogo' ? 'Logo uploaded successfully.' : 'Banner uploaded successfully.', 'success')
+  } catch (err: any) {
+    showToast(getApiErrorMessage(err, 'Image upload failed. Please try again.'), 'danger')
+  } finally {
+    uploadLoading.value = null
+    input.value = ''
   }
 }
 
@@ -131,12 +206,12 @@ async function handleUpload(e: Event, field: 'spaLogo' | 'bannerUrl') {
                 <div v-else class="flex h-full w-full items-center justify-center text-2xl">⠿</div>
                 <label class="absolute bottom-1 right-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-border hover:bg-surface-input">
                   <Upload class="h-3 w-3 text-text-primary" />
-                  <input type="file" class="hidden" @change="e => handleUpload(e, 'spaLogo')" />
+                  <input type="file" accept="image/*" class="hidden" :disabled="uploadLoading === 'spaLogo'" @change="e => handleUpload(e, 'spaLogo')" />
                 </label>
               </div>
               <div>
                 <p class="font-bold text-text-primary text-sm">Logo</p>
-                <p class="text-xs text-text-muted mt-1">Recommended 512×512px (PNG, JPG)</p>
+                <p class="text-xs text-text-muted mt-1">{{ uploadLoading === 'spaLogo' ? 'Uploading logo...' : 'Recommended 512×512px (PNG, JPG)' }}</p>
               </div>
             </div>
 
@@ -186,16 +261,16 @@ async function handleUpload(e: Event, field: 'spaLogo' | 'bannerUrl') {
             <!-- Banner Upload -->
             <div>
               <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Banner</label>
-              <label class="flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface-input p-6 transition-colors hover:border-primary-600">
+              <label class="flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface-input p-6 transition-colors hover:border-primary-600" :class="uploadLoading === 'bannerUrl' ? 'opacity-70 pointer-events-none' : ''">
                 <template v-if="!form.bannerUrl">
                   <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-600 mb-3">
                     <ImageIcon class="h-6 w-6" />
                   </div>
-                  <p class="text-sm font-bold text-text-primary">Upload image or drag and drop</p>
+                  <p class="text-sm font-bold text-text-primary">{{ uploadLoading === 'bannerUrl' ? 'Uploading banner...' : 'Upload image or drag and drop' }}</p>
                   <p class="mt-1 text-xs text-text-muted">Recommended JPG or PNG. Max size 5MB.</p>
                 </template>
                 <img v-else :src="form.bannerUrl" class="max-h-32 rounded-lg object-contain" />
-                <input type="file" class="hidden" @change="e => handleUpload(e, 'bannerUrl')" />
+                <input type="file" accept="image/*" class="hidden" :disabled="uploadLoading === 'bannerUrl'" @change="e => handleUpload(e, 'bannerUrl')" />
               </label>
             </div>
 
