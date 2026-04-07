@@ -737,16 +737,10 @@ function getDetailVariantOptions(service: any) {
                 @click="openDetail(svc)"
                 class="absolute inset-0 cursor-pointer overflow-hidden"
               >
-                <img
-                  v-if="svc.imageUrl"
-                  :src="svc.imageUrl"
-                  :alt="svc.name"
-                  class="h-full w-full object-cover transition-transform duration-[5000ms] ease-linear scale-100 group-hover:scale-110"
-                />
-                <div v-else class="flex h-full w-full items-center justify-center bg-surface-input text-5xl">
-                  ✨
-                </div>
-                
+                <!-- Slide Image -->
+                <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover" />
+                <div v-else class="flex h-full w-full items-center justify-center bg-surface-input text-4xl">✨</div>
+
                 <!-- Content Overlay -->
                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-5">
                   <h3 class="text-white font-bold text-lg leading-tight">{{ svc.name }}</h3>
@@ -1053,11 +1047,19 @@ function getDetailVariantOptions(service: any) {
                 </div>
               </div>
             </div>
-
-            <div class="mt-4 grid gap-2 text-xs font-semibold text-cyan-100/85 sm:grid-cols-3">
-              <div class="neon-hero-chip rounded-xl px-3 py-2">{{ spaConfig.spaAddress || 'Address updating' }}</div>
-              <div class="neon-hero-chip rounded-xl px-3 py-2">{{ spaConfig.spaPhone || 'Phone updating' }}</div>
-              <div class="neon-hero-chip rounded-xl px-3 py-2">{{ spaConfig.spaEmail || 'Email updating' }}</div>
+            <div v-if="spaConfig.spaAddress || spaConfig.spaPhone || spaConfig.spaEmail" class="mt-4 grid gap-2 text-xs font-semibold text-cyan-100/85 sm:grid-cols-3">
+              <div v-if="spaConfig.spaAddress" class="neon-hero-chip rounded-xl px-3 py-2 flex items-center gap-1.5">
+                <MapPin class="h-3.5 w-3.5 flex-shrink-0" />
+                <span class="line-clamp-2">{{ spaConfig.spaAddress }}</span>
+              </div>
+              <div v-if="spaConfig.spaPhone" class="neon-hero-chip rounded-xl px-3 py-2 flex items-center gap-1.5">
+                <Phone class="h-3.5 w-3.5 flex-shrink-0" />
+                <span class="line-clamp-1">{{ spaConfig.spaPhone }}</span>
+              </div>
+              <div v-if="spaConfig.spaEmail" class="neon-hero-chip rounded-xl px-3 py-2 flex items-center gap-1.5">
+                <Mail class="h-3.5 w-3.5 flex-shrink-0" />
+                <span class="line-clamp-1">{{ spaConfig.spaEmail }}</span>
+              </div>
             </div>
           </div>
         </template>
@@ -1074,10 +1076,26 @@ function getDetailVariantOptions(service: any) {
 
               <div class="min-w-0 flex-1">
                 <p class="line-clamp-1 text-2xl font-black text-white">{{ spaConfig.spaName || 'QR Home' }}</p>
-                <p class="line-clamp-1 text-sm font-semibold text-white/80">{{ spaConfig.welcomeMessage || 'Freshly curated menu' }}</p>
+                <p v-if="spaConfig.welcomeMessage" class="line-clamp-2 mt-1 text-sm font-semibold text-white/80">{{ spaConfig.welcomeMessage }}</p>
               </div>
 
             </div>
+
+            <div v-if="spaConfig.spaAddress || spaConfig.spaPhone || spaConfig.spaEmail" class="mt-4 grid gap-2 text-xs font-semibold text-white/80 sm:grid-cols-3">
+              <div v-if="spaConfig.spaAddress" class="rounded-xl bg-white/10 px-3 py-2 flex items-center gap-1.5">
+                <MapPin class="h-3.5 w-3.5 flex-shrink-0" />
+                <span class="line-clamp-2">{{ spaConfig.spaAddress }}</span>
+              </div>
+              <div v-if="spaConfig.spaPhone" class="rounded-xl bg-white/10 px-3 py-2 flex items-center gap-1.5">
+                <Phone class="h-3.5 w-3.5 flex-shrink-0" />
+                <span class="line-clamp-1">{{ spaConfig.spaPhone }}</span>
+              </div>
+              <div v-if="spaConfig.spaEmail" class="rounded-xl bg-white/10 px-3 py-2 flex items-center gap-1.5">
+                <Mail class="h-3.5 w-3.5 flex-shrink-0" />
+                <span class="line-clamp-1">{{ spaConfig.spaEmail }}</span>
+              </div>
+            </div>
+
           </div>
         </template>
 
@@ -1087,15 +1105,15 @@ function getDetailVariantOptions(service: any) {
 
           <div class="nl-hero-card relative rounded-[28px] bg-white/90 p-5 shadow-card ring-1 ring-border backdrop-blur-md">
             <div class="flex items-start justify-between gap-4">
-              <div>
-                <h1 class="mt-2 text-3xl font-black leading-tight text-text-primary">
-                  {{ spaConfig.spaName || 'QR Home ' }}
-                </h1>
-                <p v-if="spaConfig.welcomeMessage" class="mt-2 text-sm font-medium text-text-secondary">
+              <div class="min-w-0 flex-1">
+                <p class="mt-2 text-3xl font-black leading-tight text-text-primary line-clamp-1">
+                  {{ spaConfig.spaName || 'QR Home' }}
+                </p>
+                <p v-if="spaConfig.welcomeMessage" class="mt-2 text-sm font-medium text-text-secondary line-clamp-2">
                   {{ spaConfig.welcomeMessage }}
                 </p>
               </div>
-              <div class="w-[140px] aspect-square overflow-hidden rounded-full bg-surface-input shadow-inner ring-1 ring-border">
+              <div class="w-[85px] aspect-square overflow-hidden rounded-full bg-surface-input shadow-inner ring-1 ring-border">
                 <img v-if="spaConfig.spaLogo" :src="spaConfig.spaLogo" class="h-full w-full object-cover rounded-full" />
                 <div v-else class="flex h-full w-full items-center justify-center text-xl font-black text-primary-600">
                   {{ (spaConfig.spaName || 'Q').charAt(0).toUpperCase() }}
@@ -1103,18 +1121,18 @@ function getDetailVariantOptions(service: any) {
               </div>
             </div>
 
-            <div class="mt-4 grid gap-2 text-xs font-semibold text-text-secondary sm:grid-cols-3">
-              <div class="rounded-xl bg-surface px-3 py-2 flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg"width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin-house-icon lucide-map-pin-house"><path d="M15 22a1 1 0 0 1-1-1v-4a1 1 0 0 1 .445-.832l3-2a1 1 0 0 1 1.11 0l3 2A1 1 0 0 1 22 17v4a1 1 0 0 1-1 1z"/><path d="M18 10a8 8 0 0 0-16 0c0 4.993 5.539 10.193 7.399 11.799a1 1 0 0 0 .601.2"/><path d="M18 22v-3"/><circle cx="10" cy="10" r="3"/></svg>
-                {{ spaConfig.spaAddress || 'Address updating' }}
+            <div v-if="spaConfig.spaAddress || spaConfig.spaPhone || spaConfig.spaEmail" class="mt-4 grid gap-2 text-xs font-semibold text-text-secondary sm:grid-cols-3">
+              <div v-if="spaConfig.spaAddress" class="rounded-xl bg-surface px-3 py-2 flex items-center gap-1.5">
+                <MapPin class="h-3.5 w-3.5 flex-shrink-0" />
+                <span class="line-clamp-2">{{ spaConfig.spaAddress }}</span>
               </div>
-              <div class="rounded-xl bg-surface px-3 py-2 flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone-icon lucide-phone"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>
-                {{ spaConfig.spaPhone || 'Phone updating' }}
+              <div v-if="spaConfig.spaPhone" class="rounded-xl bg-surface px-3 py-2 flex items-center gap-1.5">
+                <Phone class="h-3.5 w-3.5 flex-shrink-0" />
+                <span class="line-clamp-1">{{ spaConfig.spaPhone }}</span>
               </div>
-              <div class="rounded-xl bg-surface px-3 py-2 flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail-icon lucide-mail"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
-                {{ spaConfig.spaEmail || 'Email updating' }}
+              <div v-if="spaConfig.spaEmail" class="rounded-xl bg-surface px-3 py-2 flex items-center gap-1.5">
+                <Mail class="h-3.5 w-3.5 flex-shrink-0" />
+                <span class="line-clamp-1">{{ spaConfig.spaEmail }}</span>
               </div>
             </div>
           </div>
@@ -1177,7 +1195,6 @@ function getDetailVariantOptions(service: any) {
               :class="['neon-mode-tab flex-shrink-0 flex flex-col items-center justify-center p-2 rounded-2xl transition-all min-w-[72px]', !selectedCategoryId ? 'bg-cyan-500/20 text-cyan-50 ring-1 ring-cyan-400/50' : 'text-slate-400 hover:text-cyan-200']"
               @click="selectedCategoryId = null"
             >
-              <div :class="['h-9 w-9 rounded-[14px] flex items-center justify-center mb-1.5 transition-all', !selectedCategoryId ? 'bg-cyan-400/20 shadow-[0_0_10px_rgba(34,211,238,0.3)]' : 'bg-slate-800/80 ring-1 ring-white/10']">✨</div>
               <span class="text-[10px] font-black uppercase tracking-wider">All</span>
             </button>
 
@@ -1187,9 +1204,6 @@ function getDetailVariantOptions(service: any) {
               :class="['neon-mode-tab flex-shrink-0 flex flex-col items-center justify-center p-2 rounded-2xl transition-all min-w-[72px]', selectedCategoryId === cat.id ? 'bg-cyan-500/20 text-cyan-50 ring-1 ring-cyan-400/50' : 'text-slate-400 hover:text-cyan-200']"
               @click="selectedCategoryId = cat.id"
             >
-              <div :class="['h-9 w-9 rounded-[14px] flex items-center justify-center mb-1.5 transition-all text-xs font-black', selectedCategoryId === cat.id ? 'bg-cyan-400/20 shadow-[0_0_10px_rgba(34,211,238,0.3)] text-cyan-300' : 'bg-slate-800/80 ring-1 ring-white/10 text-slate-300']">
-                {{ (cat.name || 'C').charAt(0).toUpperCase() }}
-              </div>
               <span class="line-clamp-1 w-full text-center text-[10px] font-black uppercase tracking-wider">{{ cat.name }}</span>
             </button>
           </div>
@@ -1399,7 +1413,6 @@ function getDetailVariantOptions(service: any) {
                 <div class="relative overflow-hidden" :class="idx === 0 ? 'h-44' : 'h-52'">
                   <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover" />
                   <div v-else class="flex h-full w-full items-center justify-center bg-surface-input text-3xl">✨</div>
-                  <div class="absolute right-2 top-2 rounded-full bg-white/85 px-1.5 py-0.5 text-xs font-black text-text-primary">...</div>
                 </div>
                 <div class="p-3">
                   <p class="line-clamp-1 text-sm font-black text-text-primary">{{ svc.name }}</p>
@@ -1494,6 +1507,18 @@ function getDetailVariantOptions(service: any) {
                   </p>
                   <p v-if="spaConfig.welcomeMessage" class="mt-1 line-clamp-2 text-sm font-semibold text-white/80">
                     {{ spaConfig.welcomeMessage }}
+                  </p>
+                  <p v-if="spaConfig.spaAddress" class="mt-1 flex items-center gap-1.5 text-sm font-semibold text-white/80">
+                    <MapPin class="h-3.5 w-3.5 flex-shrink-0" />
+                    <span class="line-clamp-2">{{ spaConfig.spaAddress }}</span>
+                  </p>
+                  <p v-if="spaConfig.spaPhone" class="mt-1 flex items-center gap-1.5 text-sm font-semibold text-white/80">
+                    <Phone class="h-3.5 w-3.5 flex-shrink-0" />
+                    <span class="line-clamp-1">{{ spaConfig.spaPhone }}</span>
+                  </p>
+                  <p v-if="spaConfig.spaEmail" class="mt-1 flex items-center gap-1.5 text-sm font-semibold text-white/80">
+                    <Mail class="h-3.5 w-3.5 flex-shrink-0" />
+                    <span class="line-clamp-1">{{ spaConfig.spaEmail }}</span>
                   </p>
                 </div>
                 <div class="h-14 w-14 flex-shrink-0 overflow-hidden rounded-2xl bg-white/20 ring-1 ring-white/30">
@@ -1636,7 +1661,7 @@ function getDetailVariantOptions(service: any) {
                           {{ label.label }}
                         </span>
                       </div>
-                      <p class="rose-slide-price mt-3 text-[30px] font-black text-primary-700">{{ getServiceDisplayPrice(svc) }}</p>
+                      <p class="rose-slide-price mt-3 text-[15px] font-black text-primary-700">{{ getServiceDisplayPrice(svc) }}</p>
                     </div>
                   </button>
                 </div>

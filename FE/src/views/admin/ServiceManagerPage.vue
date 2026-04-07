@@ -31,7 +31,7 @@ const LABEL_OPTIONS: Array<{ value: LabelValue; label: string }> = [
 const LABEL_STYLE_MAP: Record<string, { chipActive: string; chipInactive: string; badge: string }> = {
   best_seller: {
     chipActive: 'bg-primary-100 text-primary-700 ring-2 ring-primary-300',
-    chipInactive: 'bg-surface-input text-primary-600/80 ring-1 ring-primary-100 hover:bg-primary-100',
+    chipInactive: 'bg-surface-input text-primary-600/80 hover:bg-primary-100',
     badge: 'bg-primary-100 text-primary-700',
   },
   new_service: {
@@ -90,6 +90,7 @@ const fieldErrors = ref({
   imageUrl: '',
   variantOptions: '',
 })
+const formCategoryOpen = ref(false)
 
 const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'danger' | 'warning' })
 const uploadLoading = ref(false)
@@ -145,6 +146,12 @@ const categoryLabel = computed(() => {
 
 const sortLabel = computed(() => (selectedSort.value === 'oldest' ? 'Oldest First' : 'Newest First'))
 
+const formCategoryLabel = computed(() => {
+  if (!form.value.categoryId) return 'Select Category'
+  const cat = categories.value?.find((c: any) => c.id === form.value.categoryId)
+  return cat?.name || 'Select Category'
+})
+
 function toggleFilter(name: 'status' | 'category' | 'sort') {
   openFilter.value = openFilter.value === name ? null : name
 }
@@ -165,10 +172,13 @@ function setSortFilter(value: 'newest' | 'oldest') {
 }
 
 function handleDocumentClick(event: MouseEvent) {
-  if (!filterPanelRef.value) return
   const target = event.target as Node | null
-  if (target && !filterPanelRef.value.contains(target)) {
+  if (filterPanelRef.value && !filterPanelRef.value.contains(target)) {
     openFilter.value = null
+  }
+  // Close form category dropdown if clicking outside its elements
+  if (formCategoryOpen.value && target && !(target as HTMLElement).closest('.filter-trigger') && !(target as HTMLElement).closest('.filter-menu')) {
+    formCategoryOpen.value = false
   }
 }
 
@@ -886,7 +896,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
     <!-- Current Service List Header -->
     <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <h3 class="text-xl font-bold flex-shrink-0 text-text-primary">Current Service List</h3>
-      <div ref="filterPanelRef" class="grid  grid-cols-1 gap-3 sm:grid-cols-[minmax(240px,1fr)_160px_200px_200px] sm:items-center sm:gap-4">
+      <div ref="filterPanelRef" class="grid  grid-cols-1 gap-3 sm:grid-cols-[minmax(240px,1fr)_120px_160px_160px] sm:items-center sm:gap-4">
         <div class="relative min-w-0">
           <Search class="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
           <input
@@ -1097,16 +1107,43 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
 
             <!-- Category -->
             <div>
-              <div>
-                <label class="mb-1.5 block text-sm font-medium text-text-secondary">Category</label>
-                <select
-                  v-model="form.categoryId"
-                  class="w-full appearance-none rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent focus:ring-2 focus:ring-primary-600"
+              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Category</label>
+              <div class="relative">
+                <button 
+                  type="button" 
+                  class="w-full text-left"
+                  style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        border-radius: 0.95rem;
+                        padding: 0.7rem 0.95rem;
+                        font-size: 0.84rem;
+                        font-weight: 400;
+                        color: gray;
+                        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+                        outline: none;
+                        transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;"
+                  @click="formCategoryOpen = !formCategoryOpen"
                 >
-                  <option value="" disabled>Select</option>
-                  <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-                </select>
+                  <span class="truncate">{{ formCategoryLabel }}</span>
+                  <ChevronDown :class="['h-4 w-4 text-text-muted transition-transform duration-200', formCategoryOpen ? 'rotate-180' : '']" />
+                </button>
                 <p v-if="fieldErrors.categoryId" class="mt-1 text-xs font-medium text-danger">{{ fieldErrors.categoryId }}</p>
+                
+                <Transition name="fade-down">
+                  <div v-if="formCategoryOpen" class="filter-menu w-full">
+                    <button 
+                      v-for="cat in categories" 
+                      :key="cat.id" 
+                      type="button" 
+                      :class="['filter-option', form.categoryId === cat.id ? 'filter-option-active' : '']" 
+                      @click="form.categoryId = cat.id; formCategoryOpen = false"
+                    >
+                      {{ cat.name }}
+                    </button>
+                  </div>
+                </Transition>
               </div>
             </div>
 
@@ -1132,7 +1169,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
             </div>
 
             <div v-if="!form.hasVariants">
-              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Price (VND)</label>
+              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Price</label>
               <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                 <input
                   v-model="priceFromInput"
@@ -1337,7 +1374,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
   border: 1px solid var(--color-border);
   border-radius: 0.95rem;
   background: #ffffff;
-  padding: 0.7rem 2.35rem 0.7rem 0.95rem;
+  padding: 0.7rem 0.95rem;
   font-size: 0.84rem;
   font-weight: 800;
   color: var(--color-text-primary);

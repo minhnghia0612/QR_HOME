@@ -762,67 +762,76 @@
 
 .theme-nature .nl-services {
   position: relative;
-  margin-left: 4.25rem;
-  margin-right: 0.3rem;
-  padding-left: 0.8rem !important;
-  padding-right: 0.8rem !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
 }
 
 .theme-nature .nl-controls-nature {
   position: sticky !important;
-  top: 6.2rem !important;
+  top: 0 !important;
   left: 0;
   z-index: 30;
-  width: 0;
-  height: 0;
+  width: auto !important;
+  height: auto !important;
   overflow: visible;
-  margin: 0;
-  transition: none !important;
-  animation: none !important;
-  will-change: auto !important;
+  margin: 0 -1.5rem !important;
+  padding: 0 1.5rem !important;
+  background: linear-gradient(to bottom, #eef4ea, rgba(238, 244, 234, 0.95)) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .theme-nature .nl-controls-nature > .flex {
-  width: 3.75rem;
-  max-height: 68vh;
-  padding: 0.65rem 0.35rem !important;
-  border-radius: 999px !important;
-  border: 1px solid #8ac4aa !important;
-  background: linear-gradient(180deg, #65ad8f 0%, #4f9d7f 100%) !important;
-  box-shadow: 0 16px 24px -18px rgba(45, 113, 84, 0.62) !important;
-  margin-left: -4.05rem;
+  width: 100% !important;
+  max-height: none !important;
+  padding: 0.7rem 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  margin-left: 0 !important;
   gap: 0.5rem !important;
+  overflow-x: auto;
 }
 
 .theme-nature .nl-controls-nature .no-scrollbar {
   display: flex;
-  flex-direction: column !important;
+  flex-direction: row !important;
   align-items: center;
-  gap: 0.45rem !important;
-  overflow: auto !important;
-  padding-bottom: 0 !important;
-  max-height: 62vh;
+  gap: 0.5rem !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  max-height: none !important;
+  width: 100%;
+  padding:1rem;
 }
 
 .theme-nature .nl-controls-nature .no-scrollbar > button {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  min-height: 4.8rem;
-  min-width: 2rem;
+  writing-mode: horizontal-tb !important;
+  transform: none !important;
+  min-height: auto !important;
+  min-width: max-content !important;
   font-size: 0.72rem !important;
   letter-spacing: 0.06em !important;
-  padding: 0.55rem 0.35rem !important;
-  color: #e9fbf2 !important;
-  border: none !important;
-  background: transparent !important;
-  opacity: 0.78;
+  padding: 0.4rem 0.85rem !important;
+  color: #4f7a60 !important;
+  border: 1px solid #cbe5d8 !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  opacity: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .theme-nature .nl-controls-nature .no-scrollbar > button.bg-primary-600 {
-  background: rgba(255, 255, 255, 0.2) !important;
+  background: linear-gradient(135deg, #65ad8f 0%, #4f9d7f 100%) !important;
   color: #ffffff !important;
+  border-color: #4f9d7f !important;
   opacity: 1;
-  border-radius: 16px !important;
+  border-radius: 999px !important;
+  box-shadow: 0 4px 10px -6px rgba(45, 113, 84, 0.55) !important;
 }
 
 .theme-nature .nl-controls-nature .relative.w-full,
@@ -867,18 +876,16 @@
   }
 
   .theme-nature .nl-services {
-    margin-left: 4.15rem;
-    margin-right: 0.25rem;
-    padding-left: 0.75rem !important;
-    padding-right: 0.75rem !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
   }
 
   .theme-nature .nl-controls-nature {
-    top: 5.95rem !important;
-  }
-
-  .theme-nature .nl-controls-nature > .flex {
-    margin-left: -3.95rem;
+    top: 0 !important;
+    margin: 0 -1.25rem !important;
+    padding: 0 1.25rem !important;
   }
 
   .theme-nature .nl-service-card {
@@ -1071,7 +1078,17 @@
 }
 
 .theme-rose .nl-hero-card > .mt-4.grid {
-  display: none !important;
+  display: grid !important;
+  gap: 0.5rem !important;
+}
+
+.theme-rose .nl-hero-card > .mt-4.grid > div {
+  background: rgba(251, 207, 232, 0.35) !important;
+  border: 1px solid rgba(236, 72, 153, 0.15) !important;
+  border-radius: 999px !important;
+  color: #9f1239 !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
 }
 
 .theme-rose .nl-hero-card h1 {
@@ -1149,7 +1166,7 @@
 .theme-rose .rose-slide-price {
   font-family: var(--menu-font-family), 'Inter', system-ui, sans-serif;
   color: var(--color-primary-600) !important;
-  font-size: 28px !important;
+  font-size: 15px !important;
   line-height: 1;
 }
 

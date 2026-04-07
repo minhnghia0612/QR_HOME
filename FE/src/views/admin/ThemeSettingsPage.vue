@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { useAuthStore } from '@/stores/auth.store'
 import { setAdminPreviewSession } from '@/lib/admin-preview-session'
-import { CheckCircle2, Save } from 'lucide-vue-next'
+import { CheckCircle2, Save, ChevronDown } from 'lucide-vue-next'
 import Toast from '@/components/Toast.vue'
 
 type CurrencyUnit = 'VND' | 'USD' | 'EUR'
@@ -20,16 +20,16 @@ function showToast(message: string, type: 'success' | 'danger' | 'warning' = 'su
 }
 
 const THEMES = [
-  { id: 'classic', name: 'Classic', desc: 'Clean white layout with simple product cards', color: '#22c55e' },
-  { id: 'dark-elegance', name: 'Dark Elegance', desc: 'Full black with sticky sections and gold accents', color: '#d4af37' },
-  { id: 'modern-minimal', name: 'Modern Minimal', desc: 'Image backgrounds with gradient overlays', color: '#6366f1' },
-  { id: 'rustic', name: 'Rustic', desc: 'Vintage paper style with decorative borders', color: '#8b5a2b' },
-  { id: 'vibrant', name: 'Vibrant', desc: 'Colorful bubbles, emojis and fun rotated cards', color: '#ec4899' },
-  { id: 'stitch', name: 'Stitch Design', desc: 'Ivory editorial layout with centered serif typography', color: '#b58566' },
-  { id: 'nature', name: 'Nature Retreat', desc: 'Botanical paper cards with moss-green handcrafted tones', color: '#5a7a55' },
-  { id: 'neon', name: 'Neon Cyber', desc: 'Tactical HUD style with cyan scanline neon effects', color: '#26e5ff' },
-  { id: 'rose', name: 'Rose Gold', desc: 'Luxe blush editorial cards with soft metallic accents', color: '#c97d95' },
-  { id: 'ocean', name: 'Ocean Breeze', desc: 'Seafoam split cards with airy aqua gradients', color: '#26a4c8' },
+  { id: 'classic',        name: 'Classic',        desc: 'Clean white layout with simple product cards',                    color: '#22c55e', primaryColor: '#16A34A', secondaryColor: '#0EA5E9' },
+  { id: 'dark-elegance',  name: 'Dark Elegance',  desc: 'Full black with sticky sections and gold accents',              color: '#d4af37', primaryColor: '#D4AF37', secondaryColor: '#B8860B' },
+  { id: 'modern-minimal', name: 'Modern Minimal', desc: 'Image backgrounds with gradient overlays',                       color: '#6366f1', primaryColor: '#6366F1', secondaryColor: '#8B5CF6' },
+  { id: 'rustic',         name: 'Rustic',         desc: 'Vintage paper style with decorative borders',                    color: '#8b5a2b', primaryColor: '#8B5A2B', secondaryColor: '#A16207' },
+  { id: 'vibrant',        name: 'Vibrant',        desc: 'Colorful bubbles, emojis and fun rotated cards',                color: '#ec4899', primaryColor: '#EC4899', secondaryColor: '#F97316' },
+  { id: 'stitch',         name: 'Stitch Design',  desc: 'Ivory editorial layout with centered serif typography',         color: '#b58566', primaryColor: '#B58566', secondaryColor: '#7C5C4E' },
+  { id: 'nature',         name: 'Nature Retreat', desc: 'Botanical paper cards with moss-green handcrafted tones',       color: '#5a7a55', primaryColor: '#5A7A55', secondaryColor: '#2D6A4F' },
+  { id: 'neon',           name: 'Neon Cyber',     desc: 'Tactical HUD style with cyan scanline neon effects',            color: '#26e5ff', primaryColor: '#26E5FF', secondaryColor: '#A855F7' },
+  { id: 'rose',           name: 'Rose Gold',      desc: 'Luxe blush editorial cards with soft metallic accents',        color: '#c97d95', primaryColor: '#C97D95', secondaryColor: '#BE185D' },
+  { id: 'ocean',          name: 'Ocean Breeze',   desc: 'Seafoam split cards with airy aqua gradients',                  color: '#26a4c8', primaryColor: '#26A4C8', secondaryColor: '#0284C7' },
 ]
 
 const { data: config, isLoading: loadingConfig } = useQuery({
@@ -52,6 +52,44 @@ const customerInterface = ref({
 const primaryColorPresets = ['#0253CD', '#0EA5E9', '#16A34A', '#EA580C', '#7C3AED']
 const secondaryColorPresets = ['#5E0B61', '#0F766E', '#374151', '#BE185D', '#92400E']
 const fontOptions = ['Inter', 'Montserrat', 'Dancing Script', 'Pacifico']
+const fontDropdownOpen = ref(false)
+const fontDropdownRef = ref<HTMLElement | null>(null)
+
+// Derived color presets from the active theme
+const themeColorPresets = computed(() => {
+  const theme = THEMES.find(t => t.id === selectedTheme.value)
+  if (!theme) return { primary: ['#0253CD', '#0EA5E9', '#16A34A', '#EA580C', '#7C3AED'], secondary: ['#5E0B61', '#0F766E', '#374151', '#BE185D', '#92400E'] }
+  // Build 5-swatch palette: theme primary + 4 alternates from other themes
+  const others = THEMES.filter(t => t.id !== theme.id)
+  return {
+    primary: [
+      theme.primaryColor,
+      ...others.slice(0, 4).map(t => t.primaryColor),
+    ],
+    secondary: [
+      theme.secondaryColor,
+      ...others.slice(0, 4).map(t => t.secondaryColor),
+    ],
+  }
+})
+
+// Auto-apply theme default colors when user switches theme
+watch(selectedTheme, (themeId) => {
+  const theme = THEMES.find(t => t.id === themeId)
+  if (theme) {
+    customerInterface.value.primaryColor = theme.primaryColor
+    customerInterface.value.secondaryColor = theme.secondaryColor
+  }
+})
+
+function handleClickOutside(event: MouseEvent) {
+  if (fontDropdownRef.value && !fontDropdownRef.value.contains(event.target as Node)) {
+    fontDropdownOpen.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('mousedown', handleClickOutside))
+onBeforeUnmount(() => document.removeEventListener('mousedown', handleClickOutside))
 
 watch(config, (val) => {
   if (val) {
@@ -227,53 +265,89 @@ watch(
               </div>
 
               <div>
-                <p class="mb-3 text-xs font-bold text-text-muted">Primary Color</p>
-                <div class="flex flex-wrap gap-3">
+                <p class="mb-2 text-xs font-bold text-text-muted">Primary Color</p>
+                <div class="flex flex-wrap items-center gap-2.5">
                   <button
-                    v-for="color in primaryColorPresets"
+                    v-for="color in themeColorPresets.primary"
                     :key="color"
                     type="button"
                     @click="customerInterface.primaryColor = color"
-                    :style="{ backgroundColor: color }"
-                    class="h-8 w-8 rounded-full ring-2 ring-offset-2 transition-transform active:scale-90"
-                    :class="customerInterface.primaryColor === color ? 'ring-primary-600 scale-110' : 'ring-transparent'"
+                    :style="{ backgroundColor: color, '--ring-color': color } as any"
+                    class="color-swatch"
+                    :class="customerInterface.primaryColor === color ? 'color-swatch--active' : ''"
                   />
-                  <input
-                    v-model="customerInterface.primaryColor"
-                    type="color"
-                    class="h-8 w-10 cursor-pointer rounded border border-border bg-white p-1"
-                  />
+                  <label class="relative cursor-pointer" title="Custom color">
+                    <span
+                      class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed border-border bg-white text-xs font-black text-text-muted hover:border-primary-400 transition-colors"
+                    >+</span>
+                    <input
+                      v-model="customerInterface.primaryColor"
+                      type="color"
+                      class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    />
+                  </label>
+                  <div class="flex items-center gap-1.5 rounded-lg bg-surface-input px-2.5 py-1.5">
+                    <span class="h-3.5 w-3.5 rounded-full flex-shrink-0" :style="{ backgroundColor: customerInterface.primaryColor }" />
+                    <code class="text-[11px] font-bold text-text-secondary uppercase">{{ customerInterface.primaryColor }}</code>
+                  </div>
                 </div>
               </div>
 
               <div>
-                <p class="mb-3 text-xs font-bold text-text-muted">Secondary Color</p>
-                <div class="flex flex-wrap gap-3">
+                <p class="mb-2 text-xs font-bold text-text-muted">Secondary Color</p>
+                <div class="flex flex-wrap items-center gap-2.5">
                   <button
-                    v-for="color in secondaryColorPresets"
+                    v-for="color in themeColorPresets.secondary"
                     :key="color"
                     type="button"
                     @click="customerInterface.secondaryColor = color"
-                    :style="{ backgroundColor: color }"
-                    class="h-8 w-8 rounded-full ring-2 ring-offset-2 transition-transform active:scale-90"
-                    :class="customerInterface.secondaryColor === color ? 'ring-primary-600 scale-110' : 'ring-transparent'"
+                    :style="{ backgroundColor: color, '--ring-color': color } as any"
+                    class="color-swatch"
+                    :class="customerInterface.secondaryColor === color ? 'color-swatch--active' : ''"
                   />
-                  <input
-                    v-model="customerInterface.secondaryColor"
-                    type="color"
-                    class="h-8 w-10 cursor-pointer rounded border border-border bg-white p-1"
-                  />
+                  <label class="relative cursor-pointer" title="Custom color">
+                    <span
+                      class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed border-border bg-white text-xs font-black text-text-muted hover:border-primary-400 transition-colors"
+                    >+</span>
+                    <input
+                      v-model="customerInterface.secondaryColor"
+                      type="color"
+                      class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    />
+                  </label>
+                  <div class="flex items-center gap-1.5 rounded-lg bg-surface-input px-2.5 py-1.5">
+                    <span class="h-3.5 w-3.5 rounded-full flex-shrink-0" :style="{ backgroundColor: customerInterface.secondaryColor }" />
+                    <code class="text-[11px] font-bold text-text-secondary uppercase">{{ customerInterface.secondaryColor }}</code>
+                  </div>
                 </div>
               </div>
 
               <div>
                 <p class="mb-3 text-xs font-bold text-text-muted">Font Family</p>
-                <select
-                  v-model="customerInterface.fontFamily"
-                  class="w-full rounded-xl border-0 bg-surface-input px-4 py-3 text-sm font-bold text-text-primary outline-none focus:ring-2 focus:ring-primary-600"
-                >
-                  <option v-for="font in fontOptions" :key="font" :value="font">{{ font }}</option>
-                </select>
+                <div class="relative" ref="fontDropdownRef">
+                  <button
+                    type="button"
+                    class="theme-dropdown-trigger"
+                    @click="fontDropdownOpen = !fontDropdownOpen"
+                  >
+                    <span :style="{ fontFamily: customerInterface.fontFamily }">{{ customerInterface.fontFamily }}</span>
+                    <ChevronDown :class="['h-4 w-4 text-text-muted transition-transform duration-200', fontDropdownOpen ? 'rotate-180' : '']" />
+                  </button>
+                  <Transition name="fade-down">
+                    <div v-if="fontDropdownOpen" class="theme-dropdown-menu">
+                      <button
+                        v-for="font in fontOptions"
+                        :key="font"
+                        type="button"
+                        :class="['theme-dropdown-option', customerInterface.fontFamily === font ? 'theme-dropdown-option--active' : '']"
+                        :style="{ fontFamily: font }"
+                        @click="customerInterface.fontFamily = font; fontDropdownOpen = false"
+                      >
+                        {{ font }}
+                      </button>
+                    </div>
+                  </Transition>
+                </div>
               </div>
 
               <div>
@@ -336,3 +410,87 @@ watch(
     />
   </div>
 </template>
+
+<style scoped>
+.fade-down-enter-active,
+.fade-down-leave-active {
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+.fade-down-enter-from,
+.fade-down-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* Color swatch */
+.color-swatch {
+  height: 2rem;
+  width: 2rem;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: transform 0.15s ease, outline-color 0.15s ease;
+  flex-shrink: 0;
+}
+.color-swatch:hover { transform: scale(1.1); }
+.color-swatch--active {
+  transform: scale(1.12);
+  outline-color: var(--ring-color);
+}
+
+/* Font dropdown */
+.theme-dropdown-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.95rem;
+  background: #ffffff;
+  padding: 0.7rem 0.95rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.theme-dropdown-trigger:focus {
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px rgba(0, 72, 181, 0.14);
+}
+.theme-dropdown-trigger:hover { background: #f8fafc; }
+
+.theme-dropdown-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  z-index: 30;
+  border: 1px solid #dbe3f0;
+  border-radius: 0.9rem;
+  background: #ffffff;
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.16);
+  padding: 0.35rem;
+}
+
+.theme-dropdown-option {
+  width: 100%;
+  border: none;
+  border-radius: 0.65rem;
+  background: transparent;
+  padding: 0.58rem 0.8rem;
+  text-align: left;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  transition: background-color 0.15s ease;
+}
+.theme-dropdown-option:hover { background: #f4f8ff; }
+.theme-dropdown-option--active {
+  background: #e8f0ff;
+  color: #0048b5;
+}
+</style>

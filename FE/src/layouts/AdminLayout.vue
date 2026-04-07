@@ -20,7 +20,8 @@ const { data: configRes, isLoading: loadingConfig } = useQuery({
     const { data } = await qrConfigApi.getConfig()
     return (data as any).data || data
   },
-  staleTime: 60000,
+  staleTime: 0,
+  refetchOnMount: 'always',
   refetchOnWindowFocus: false,
 })
 
@@ -31,7 +32,8 @@ const { data: catsRes, isLoading: loadingCats } = useQuery({
     const { data } = await categoriesApi.getAll()
     return (data as any).data || data
   },
-  staleTime: 60000,
+  staleTime: 0,
+  refetchOnMount: 'always',
   refetchOnWindowFocus: false,
 })
 
@@ -42,7 +44,8 @@ const { data: servicesRes, isLoading: loadingServices } = useQuery({
     const { data } = await servicesApi.getAll({ limit: 1 })
     return (data as any).data || data
   },
-  staleTime: 60000,
+  staleTime: 0,
+  refetchOnMount: 'always',
   refetchOnWindowFocus: false,
 })
 
@@ -128,22 +131,22 @@ async function logout() {
 
         <!-- Onboarding Hint (Subtle) -->
         <div v-if="!navLoading && !isSetupComplete" class="mt-6 px-4 py-4 rounded-xl bg-primary-50/30 border border-primary-100/30">
-          <p class="text-[10px] font-bold text-primary-800 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+          <p class="text-[15px] font-bold text-primary-800 uppercase tracking-widest mb-1.5 flex items-center gap-2">
             <span class="flex h-1.5 w-1.5 rounded-full bg-primary-500 animate-pulse"></span>
             Setup Progress
           </p>
           <div class="space-y-2">
-             <div class="flex items-center justify-between text-[9px] text-text-muted">
+             <div class="flex items-center justify-between text-[12px] text-text-muted">
                <span>Business Profile</span>
                <span v-if="isStep1Complete" class="text-success-600 font-bold">Done</span>
                <span v-else class="text-primary-400">Step 1</span>
              </div>
-             <div class="flex items-center justify-between text-[9px] text-text-muted">
+             <div class="flex items-center justify-between text-[12px] text-text-muted">
                <span>Categories</span>
                <span v-if="isStep2Complete" class="text-success-600 font-bold">Done</span>
                <span v-else class="text-primary-400">Step 2</span>
              </div>
-             <div class="flex items-center justify-between text-[9px] text-text-muted">
+             <div class="flex items-center justify-between text-[12px] text-text-muted">
                <span>Services</span>
                <span v-if="isStep3Complete" class="text-success-600 font-bold">Done</span>
                <span v-else class="text-primary-400">Step 3</span>

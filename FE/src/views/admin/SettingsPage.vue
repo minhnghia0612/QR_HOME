@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { uploadApi } from '@/api/upload.api'
-import { Save, Settings as SettingsIcon, Image as ImageIcon, Upload } from 'lucide-vue-next'
+import { Save, Settings as SettingsIcon, Image as ImageIcon, Upload, AlertCircle } from 'lucide-vue-next'
 import Toast from '@/components/Toast.vue'
 
 const router = useRouter()
@@ -21,6 +21,27 @@ const form = ref({
   welcomeMessage: '',
   status: 'active',
 })
+
+const phoneError = ref('')
+const validatePhone = () => {
+  const value = form.value.spaPhone.trim()
+
+  if (!value) {
+    phoneError.value = 'Phone number is required'
+    return
+  }
+
+  // 0987654321 hoặc 098 765 4321
+  const phoneRegex = /^(0\d{9}|0\d{2}\s\d{3}\s\d{4})$/
+
+  if (!phoneRegex.test(value)) {
+    phoneError.value =
+      'Phone number must be in the format 0987654321 or 098 765 4321'
+    return
+  }
+
+  phoneError.value = ''
+}
 
 const { data: config, isLoading: loadingConfig } = useQuery({
   queryKey: ['qr-config'],
@@ -82,6 +103,12 @@ function isValidEmail(value: string) {
 
 const { mutate: saveConfig, isPending: saving } = useMutation({
   mutationFn: async () => {
+    // Re-validate everything before sending
+    validatePhone()
+    if (phoneError.value) {
+      throw new Error(phoneError.value)
+    }
+
     const payload = {
       spaName: normalizeText(form.value.spaName),
       spaAddress: normalizeText(form.value.spaAddress),
@@ -238,14 +265,35 @@ async function handleUpload(e: Event, field: 'spaLogo' | 'bannerUrl') {
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-              <div>
+              <div class="relative">
                 <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Phone Number</label>
-                <input
-                  v-model="form.spaPhone"
-                  type="text"
-                  placeholder="098 765 4321"
-                  class="w-full rounded-xl border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary-600"
-                />
+                <div class="relative">
+                  <input
+                    v-model="form.spaPhone"
+                    type="text"
+                    placeholder="098 765 4321"
+                    :class="[
+                      'w-full rounded-xl border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none transition-all duration-200',
+                      phoneError 
+                        ? 'bg-danger/5 ring-2 ring-danger/20 text-danger placeholder:text-danger/40' 
+                        : 'focus:ring-2 focus:ring-primary-600'
+                    ]"
+                    @blur="validatePhone"
+                    @input="validatePhone"
+                  />
+                  <AlertCircle 
+                    v-if="phoneError"
+                    class="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-danger animate-pulse"
+                  />
+                </div>
+                <Transition name="fade-slide">
+                  <p
+                    v-if="phoneError"
+                    class="mt-1.5 flex items-center gap-1.5 text-[11px] font-bold text-danger"
+                  >
+                    {{ phoneError }}
+                  </p>
+                </Transition>
               </div>
               <div>
                 <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Contact Email</label>
@@ -327,3 +375,13 @@ async function handleUpload(e: Event, field: 'spaLogo' | 'bannerUrl') {
     />
   </div>
 </template>
+
+<style scoped>
+.fade-slide-enter-active, .fade-slide-leave-active {
+  transition: all 0.3s ease;
+}
+.fade-slide-enter-from, .fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+</style>

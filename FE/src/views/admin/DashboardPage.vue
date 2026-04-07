@@ -30,6 +30,8 @@ const { data: qrConfig, isLoading: loadingQrConfig } = useQuery({
     const { data } = await qrConfigApi.getConfig()
     return data.data
   },
+  staleTime: 0,
+  refetchOnMount: 'always',
 })
 
 const { data: categories } = useQuery({

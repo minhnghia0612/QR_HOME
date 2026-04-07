@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { servicesApi } from '@/api/services.api'
 import { categoriesApi } from '@/api/categories.api'
 import { uploadApi } from '@/api/upload.api'
 import type { CreateServicePayload } from '@/types/service.types'
-import { Upload, ArrowLeft, Plus, Trash2 } from 'lucide-vue-next'
+import { Upload, ArrowLeft, Plus, Trash2, ChevronDown } from 'lucide-vue-next'
 
 type SpecialTag = 'must_try' | 'limited_edition' | 'summer_special' | 'happy_hour'
 
@@ -47,6 +47,8 @@ const isUploading = ref(false)
 const priceFromInput = ref('')
 const priceToInput = ref('')
 const formError = ref('')
+const formCategoryOpen = ref(false)
+const categoryDropdownRef = ref<HTMLElement | null>(null)
 
 const { data: categories } = useQuery({
   queryKey: ['categories'],
@@ -56,8 +58,15 @@ const { data: categories } = useQuery({
   },
 })
 
+const formCategoryLabel = computed(() => {
+  if (!form.value.categoryId) return 'Select category...'
+  const cat = categories.value?.find((c: any) => c.id === form.value.categoryId)
+  return cat?.name || 'Select category...'
+})
+
 // Load existing service for edit
 onMounted(async () => {
+  document.addEventListener('mousedown', handleClickOutside)
   if (isEditing.value) {
     try {
       const { data } = await servicesApi.getOne(serviceId.value)
@@ -94,6 +103,16 @@ onMounted(async () => {
     }
   }
 })
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
+})
+
+function handleClickOutside(event: MouseEvent) {
+  if (categoryDropdownRef.value && !categoryDropdownRef.value.contains(event.target as Node)) {
+    formCategoryOpen.value = false
+  }
+}
 
 function parseOptionalNumber(value: string): number | undefined {
   const trimmed = value.trim()
@@ -270,19 +289,31 @@ async function handleImageUpload(e: Event) {
         </div>
       </div>
 
-      <!-- Category -->
       <div>
         <label class="mb-1 block text-sm font-medium text-navy-700">Category</label>
-        <select
-          v-model="form.categoryId"
-          required
-          class="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-azure-400 focus:ring-2 focus:ring-azure-100"
-        >
-          <option value="">Select category...</option>
-          <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-            {{ cat.name }}
-          </option>
-        </select>
+        <div class="relative" ref="categoryDropdownRef">
+          <button 
+            type="button" 
+            class="filter-trigger w-full text-left" 
+            @click="formCategoryOpen = !formCategoryOpen"
+          >
+            <span class="truncate">{{ formCategoryLabel }}</span>
+            <ChevronDown :class="['h-4 w-4 text-text-muted transition-transform duration-200', formCategoryOpen ? 'rotate-180' : '']" />
+          </button>
+          <Transition name="fade-down">
+            <div v-if="formCategoryOpen" class="filter-menu w-full">
+              <button 
+                v-for="cat in categories" 
+                :key="cat.id" 
+                type="button" 
+                :class="['filter-option', form.categoryId === cat.id ? 'filter-option-active' : '']" 
+                @click="form.categoryId = cat.id; formCategoryOpen = false"
+              >
+                {{ cat.name }}
+              </button>
+            </div>
+          </Transition>
+        </div>
       </div>
 
       <!-- Name -->
@@ -521,3 +552,72 @@ async function handleImageUpload(e: Event) {
     </form>
   </div>
 </template>
+
+<style scoped>
+.fade-down-enter-active,
+.fade-down-leave-active {
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.fade-down-enter-from,
+.fade-down-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.filter-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.95rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  box-shadow: none;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-trigger:focus {
+  border-color: #0080ff;
+  box-shadow: 0 0 0 4px rgba(0, 128, 255, 0.1);
+}
+
+.filter-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  z-index: 30;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid #dbe3f0;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 0.35rem;
+}
+
+.filter-option {
+  width: 100%;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  transition: background-color 0.15s ease;
+}
+
+.filter-option:hover {
+  background: #f4f8ff;
+}
+
+.filter-option-active {
+  background: #e8f0ff;
+  color: #0048b5;
+}
+</style>

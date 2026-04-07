@@ -4,7 +4,7 @@ import { qrConfigApi } from '@/api/qr-config.api'
 import { categoriesApi } from '@/api/categories.api'
 import { servicesApi } from '@/api/services.api'
 
-const ONBOARDING_CACHE_TTL_MS = 15000
+const ONBOARDING_CACHE_TTL_MS = 3000
 let onboardingCache:
   | {
   adminId: string

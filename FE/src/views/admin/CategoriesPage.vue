@@ -47,11 +47,12 @@ const { mutate: saveCategory, isPending: saving } = useMutation({
     showToast('Category saved successfully', 'success')
     resetForm()
 
-    // Onboarding flow: after creating the first category, continue to service setup.
+    // Onboarding flow: Chuyển sang service nếu đây là danh mục đầu tiên
+    // Dùng hadNoCategoryBefore (tính TRƯỚC invalidate) để tránh race condition
     if (isCreating && hadNoCategoryBefore) {
       setTimeout(() => {
         router.push('/admin/services')
-      }, 1200)
+      }, 800)
     }
   },
   onError: (err: any) => {
