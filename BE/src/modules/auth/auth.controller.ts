@@ -97,13 +97,27 @@ export class AuthController {
   @HttpCode(200)
   logout(@Res({ passthrough: true }) res: Response) {
     const cookieOptions = this.getAuthCookieOptions();
-    res.clearCookie('access_token', {
+    const primaryClearOptions = {
       httpOnly: cookieOptions.httpOnly,
       secure: cookieOptions.secure,
       sameSite: cookieOptions.sameSite,
       path: cookieOptions.path,
       ...(cookieOptions.domain ? { domain: cookieOptions.domain } : {}),
-    });
+    };
+
+    // Primary clear path matches current cookie settings.
+    res.clearCookie('access_token', primaryClearOptions);
+
+    // Backward-compatible clears for cookies set with previous env settings.
+    res.clearCookie('access_token', { path: '/' });
+
+    if (cookieOptions.domain) {
+      res.clearCookie('access_token', {
+        path: '/',
+        domain: cookieOptions.domain,
+      });
+    }
+
     return { ok: true };
   }
 

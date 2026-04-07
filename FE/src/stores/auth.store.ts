@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/api/auth.api'
+import { clearAuthBrowserState } from '@/lib/auth-storage'
+import { queryClient } from '@/lib/query-client'
 import router from '@/router'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -14,6 +16,8 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true
     try {
       const { data } = await authApi.login({ username, password })
+      clearAuthBrowserState()
+      queryClient.clear()
       token.value = data.data.accessToken
       admin.value = data.data.admin
       localStorage.setItem('qr_home_token', data.data.accessToken)
@@ -29,6 +33,8 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true
     try {
       const { data } = await authApi.register(payload)
+      clearAuthBrowserState()
+      queryClient.clear()
       token.value = data.data.accessToken
       admin.value = data.data.admin
       localStorage.setItem('qr_home_token', data.data.accessToken)
@@ -58,6 +64,8 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true
     try {
       const { data } = await authApi.getSession()
+      clearAuthBrowserState()
+      queryClient.clear()
       token.value = data.data.accessToken
       admin.value = data.data.admin
       localStorage.setItem('qr_home_token', data.data.accessToken)
@@ -70,14 +78,17 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
+    // Clear local auth state immediately to prevent stale-session race conditions.
+    token.value = null
+    admin.value = null
+    clearAuthBrowserState()
+    queryClient.clear()
+
     try {
       await authApi.logout()
     } catch {
       // Ignore logout transport errors and clear local auth state anyway.
     }
-    token.value = null
-    admin.value = null
-    localStorage.removeItem('qr_home_token')
     router.push('/')
   }
 

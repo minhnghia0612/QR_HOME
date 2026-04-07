@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import { 
@@ -32,7 +32,10 @@ const authMode = ref<'login' | 'register'>('login')
 const showPassword = ref(false)
 const loading = ref(false)
 const error = ref('')
-const googleAuthUrl = String(import.meta.env.VITE_GOOGLE_AUTH_URL || '').trim()
+const googleAuthUrl = String(
+  import.meta.env.VITE_GOOGLE_AUTH_URL || '/api/auth/google',
+).trim()
+const isGoogleLoginEnabled = computed(() => Boolean(googleAuthUrl))
 
 // Form State
 const loginForm = ref({ username: '', password: '' })
@@ -55,6 +58,7 @@ function closeAuth() {
 function handleGoogleAuth() {
   if (googleAuthUrl) {
     window.location.href = googleAuthUrl
+    console.log('Redirecting to Google auth URL:', googleAuthUrl)
     return
   }
   error.value = 'Google login is not configured yet. Please use username/password for now.'
@@ -157,7 +161,7 @@ const features = [
 
 onMounted(() => {
   const oauth = String(route.query.oauth || '').toLowerCase()
-  if (oauth === 'google') {
+  if (oauth === 'google' && isGoogleLoginEnabled.value) {
     authStore.completeGoogleLoginFromCookie().then((result) => {
       if (result.success) {
         window.history.replaceState({}, document.title, '/')
@@ -407,20 +411,22 @@ onMounted(() => {
                   </template>
                 </button>
 
-                <div class="relative py-1">
-                  <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 text-[11px] font-bold uppercase tracking-wide text-text-muted">or</span>
-                </div>
+                <template v-if="isGoogleLoginEnabled">
+                  <div class="relative py-1">
+                    <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 text-[11px] font-bold uppercase tracking-wide text-text-muted">or</span>
+                  </div>
 
-                <button
-                  type="button"
-                  @click="handleGoogleAuth"
-                  class="w-full flex items-center justify-center gap-3 rounded-2xl border border-border bg-white py-3.5 text-sm font-bold text-text-primary shadow-sm transition-all hover:bg-surface-input active:scale-95"
-                >
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
-                    <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.2-1.4 3.6-5.5 3.6-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.2.8 3.9 1.5l2.7-2.7C16.8 2.5 14.6 1.5 12 1.5 6.8 1.5 2.6 5.8 2.6 11s4.2 9.5 9.4 9.5c5.4 0 9-3.8 9-9.2 0-.6-.1-1-.2-1.4H12z"/>
-                  </svg>
-                  Continue with Google
-                </button>
+                  <button
+                    type="button"
+                    @click="handleGoogleAuth"
+                    class="w-full flex items-center justify-center gap-3 rounded-2xl border border-border bg-white py-3.5 text-sm font-bold text-text-primary shadow-sm transition-all hover:bg-surface-input active:scale-95"
+                  >
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.2-1.4 3.6-5.5 3.6-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.2.8 3.9 1.5l2.7-2.7C16.8 2.5 14.6 1.5 12 1.5 6.8 1.5 2.6 5.8 2.6 11s4.2 9.5 9.4 9.5c5.4 0 9-3.8 9-9.2 0-.6-.1-1-.2-1.4H12z"/>
+                    </svg>
+                    Continue with Google
+                  </button>
+                </template>
               </form>
 
               <!-- REGISTER FORM -->
@@ -448,20 +454,22 @@ onMounted(() => {
                   </template>
                 </button>
 
-                <div class="relative py-1">
-                  <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 text-[11px] font-bold uppercase tracking-wide text-text-muted">or</span>
-                </div>
+                <template v-if="isGoogleLoginEnabled">
+                  <div class="relative py-1">
+                    <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 text-[11px] font-bold uppercase tracking-wide text-text-muted">or</span>
+                  </div>
 
-                <button
-                  type="button"
-                  @click="handleGoogleAuth"
-                  class="w-full flex items-center justify-center gap-3 rounded-2xl border border-border bg-white py-3.5 text-sm font-bold text-text-primary shadow-sm transition-all hover:bg-surface-input active:scale-95"
-                >
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
-                    <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.2-1.4 3.6-5.5 3.6-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.2.8 3.9 1.5l2.7-2.7C16.8 2.5 14.6 1.5 12 1.5 6.8 1.5 2.6 5.8 2.6 11s4.2 9.5 9.4 9.5c5.4 0 9-3.8 9-9.2 0-.6-.1-1-.2-1.4H12z"/>
-                  </svg>
-                  Continue with Google
-                </button>
+                  <button
+                    type="button"
+                    @click="handleGoogleAuth"
+                    class="w-full flex items-center justify-center gap-3 rounded-2xl border border-border bg-white py-3.5 text-sm font-bold text-text-primary shadow-sm transition-all hover:bg-surface-input active:scale-95"
+                  >
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.2-1.4 3.6-5.5 3.6-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.2.8 3.9 1.5l2.7-2.7C16.8 2.5 14.6 1.5 12 1.5 6.8 1.5 2.6 5.8 2.6 11s4.2 9.5 9.4 9.5c5.4 0 9-3.8 9-9.2 0-.6-.1-1-.2-1.4H12z"/>
+                    </svg>
+                    Continue with Google
+                  </button>
+                </template>
               </form>
 
               <div class="mt-8 text-center text-sm font-medium">

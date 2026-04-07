@@ -7,6 +7,7 @@ import { servicesApi } from '@/api/services.api'
 const ONBOARDING_CACHE_TTL_MS = 15000
 let onboardingCache:
   | {
+  adminId: string
       checkedAt: number
       isStep1Complete: boolean
       isStep2Complete: boolean
@@ -98,10 +99,16 @@ router.beforeEach(async (to) => {
     try {
       // 1. Fetch profile to ensure we have admin ID
       if (!authStore.admin) await authStore.fetchProfile()
+      const currentAdminId = String(authStore.admin?.id || '')
+      if (!currentAdminId) {
+        return { name: 'landing' }
+      }
 
       const now = Date.now()
       const hasFreshCache =
-        !!onboardingCache && now - onboardingCache.checkedAt < ONBOARDING_CACHE_TTL_MS
+        !!onboardingCache &&
+        onboardingCache.adminId === currentAdminId &&
+        now - onboardingCache.checkedAt < ONBOARDING_CACHE_TTL_MS
 
       if (hasFreshCache) {
         const cache = onboardingCache!
@@ -156,6 +163,7 @@ router.beforeEach(async (to) => {
         const isStep3Complete = (Array.isArray(services) ? services.length : (services?.items?.length || 0)) > 0
 
         onboardingCache = {
+          adminId: currentAdminId,
           checkedAt: now,
           isStep1Complete,
           isStep2Complete,
@@ -167,6 +175,7 @@ router.beforeEach(async (to) => {
         }
       } else {
         onboardingCache = {
+          adminId: currentAdminId,
           checkedAt: now,
           isStep1Complete,
           isStep2Complete,

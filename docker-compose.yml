@@ -27,6 +27,7 @@ services:
     container_name: qr_home_api
     env_file:
       - .env
+      - ./BE/.env
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -54,6 +55,8 @@ services:
     build:
       context: ./FE
       dockerfile: Dockerfile
+      args:
+        VITE_GOOGLE_AUTH_URL: ${VITE_GOOGLE_AUTH_URL:-/api/auth/google}
     container_name: qr_home_web
     ports:
       - "5173:80"

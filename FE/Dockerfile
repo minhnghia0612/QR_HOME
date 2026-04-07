@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+ARG VITE_GOOGLE_AUTH_URL=/api/auth/google
+ENV VITE_GOOGLE_AUTH_URL=$VITE_GOOGLE_AUTH_URL
+
 COPY package*.json ./
 RUN npm ci
 

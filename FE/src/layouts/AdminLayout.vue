@@ -76,8 +76,8 @@ function isActive(path: string) {
   return currentRoute.value === path || currentRoute.value.startsWith(path + '/')
 }
 
-function logout() {
-  authStore.logout()
+async function logout() {
+  await authStore.logout()
 }
 </script>
 

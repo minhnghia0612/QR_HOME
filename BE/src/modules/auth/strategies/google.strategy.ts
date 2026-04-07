@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { Strategy, VerifyCallback, Profile } from 'passport-google-oauth20';
@@ -10,26 +10,33 @@ export type GoogleAuthUser = {
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
+  private readonly logger = new Logger(GoogleStrategy.name);
+
   constructor(configService: ConfigService) {
-    const clientID = configService.get<string>('GOOGLE_CLIENT_ID', '');
-    const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET', '');
+    const clientID = configService.get<string>('GOOGLE_CLIENT_ID', '').trim();
+    const clientSecret = configService
+      .get<string>('GOOGLE_CLIENT_SECRET', '')
+      .trim();
     const callbackURL = configService.get<string>(
       'GOOGLE_CALLBACK_URL',
       'http://localhost:3000/api/auth/google/callback',
     );
-
-    if (!clientID || !clientSecret) {
-      throw new Error(
-        'GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is not defined',
-      );
-    }
+    const googleEnabled = Boolean(clientID && clientSecret);
 
     super({
-      clientID,
-      clientSecret,
+      // Keep app bootable even when Google OAuth is not configured.
+      // Guard will return 503 for Google routes in that case.
+      clientID: clientID || 'disabled_google_client_id',
+      clientSecret: clientSecret || 'disabled_google_client_secret',
       callbackURL,
       scope: ['email', 'profile'],
     });
+
+    if (!googleEnabled) {
+      this.logger.warn(
+        'Google OAuth disabled: GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET is missing',
+      );
+    }
   }
 
   validate(
