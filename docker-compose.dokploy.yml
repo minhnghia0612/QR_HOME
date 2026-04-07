@@ -6,7 +6,6 @@ services:
     container_name: qr_home_api
     env_file:
       - .env
-      - ./BE/.env
     environment:
       DB_HOST: ${DB_HOST}
       DB_PORT: 5432
@@ -39,6 +38,8 @@ services:
       args:
         VITE_GOOGLE_AUTH_URL: ${VITE_GOOGLE_AUTH_URL:-/api/auth/google}
     container_name: qr_home_web
+    env_file:
+      - .env
     ports:
       - "5173:80"
     depends_on:
