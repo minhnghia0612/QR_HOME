@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { getAdminPreviewSession, type AdminPreviewPayload } from '@/lib/admin-preview-session'
 import { Search, Clock, X, ChevronDown, ChevronLeft, ChevronRight, Phone, Mail, MapPin, ArrowLeft, Share2, DollarSign, Heart } from 'lucide-vue-next'
 import heroImg from '@/assets/hero_customer.png'
+import imgFallback from '@/assets/img_fallback.png'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -649,6 +650,13 @@ function getDetailVariantOptions(service: any) {
     }))
     .filter((opt: any) => opt.name && Number.isFinite(opt.price) && opt.price > 0)
 }
+
+function handleImgError(e: Event) {
+  const target = e.target as HTMLImageElement
+  if (target.src !== imgFallback) {
+    target.src = imgFallback
+  }
+}
 </script>
 
 <template>
@@ -738,8 +746,7 @@ function getDetailVariantOptions(service: any) {
                 class="absolute inset-0 cursor-pointer overflow-hidden"
               >
                 <!-- Slide Image -->
-                <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover" />
-                <div v-else class="flex h-full w-full items-center justify-center bg-surface-input text-4xl">✨</div>
+                <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
 
                 <!-- Content Overlay -->
                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-5">
@@ -859,14 +866,11 @@ function getDetailVariantOptions(service: any) {
             <!-- Thumbnail -->
             <div class="t-card-img relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl bg-surface-input shadow-inner">
               <img
-                v-if="svc.imageUrl"
-                :src="svc.imageUrl"
+                :src="svc.imageUrl || imgFallback"
                 :alt="svc.name"
                 class="h-full w-full object-cover"
+                @error="handleImgError"
               />
-              <div v-else class="flex h-full w-full items-center justify-center text-2xl text-text-muted">
-                🧖
-              </div>
             </div>
 
             <!-- Info -->
@@ -951,8 +955,7 @@ function getDetailVariantOptions(service: any) {
                     class="absolute inset-0 text-left"
                     @click="openDetail(svc)"
                   >
-                    <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover opacity-80" />
-                    <div v-else class="flex h-full w-full items-center justify-center bg-[#23252B] text-3xl">✨</div>
+                    <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover opacity-80" @error="handleImgError" />
                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent"></div>
                     <div class="absolute bottom-0 left-0 right-0 p-4">
                       <p class="line-clamp-1 text-xl font-black text-white">{{ svc.name }}</p>
@@ -1009,8 +1012,7 @@ function getDetailVariantOptions(service: any) {
                 @click="openDetail(svc)"
               >
                 <div class="h-24 w-24 flex-shrink-0 overflow-hidden bg-[#121317] rounded-2xl">
-                  <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover rounded-2xl" />
-                  <div v-else class="flex h-full w-full items-center justify-center text-2xl text-white/50">🧖</div>
+                  <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover rounded-2xl" @error="handleImgError" />
                 </div>
                 <div class="min-w-0 flex-1">
                   <p class="line-clamp-1 text-lg font-black text-white">{{ svc.name }}</p>
@@ -1154,8 +1156,7 @@ function getDetailVariantOptions(service: any) {
                 @click="openDetail(svc)"
                 class="absolute inset-0 text-left"
               >
-                <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover" />
-                <div v-else class="flex h-full w-full items-center justify-center bg-slate-900 text-3xl text-cyan-200">⚡</div>
+                <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/30 to-transparent"></div>
                 <div class="absolute bottom-0 left-0 right-0 p-4">
                   <p class="line-clamp-1 text-2xl font-black text-white">{{ svc.name }}</p>
@@ -1231,8 +1232,7 @@ function getDetailVariantOptions(service: any) {
                 @click="openDetail(svc)"
                 class="absolute inset-0 text-left"
               >
-                <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover" />
-                <div v-else class="flex h-full w-full items-center justify-center bg-surface-input text-3xl">✨</div>
+                <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                 <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
                 <div class="absolute bottom-0 left-0 right-0 p-4">
                   <p class="line-clamp-1 text-2xl font-black text-white">{{ svc.name }}</p>
@@ -1259,8 +1259,7 @@ function getDetailVariantOptions(service: any) {
               class="nl-feature-card group relative overflow-hidden rounded-2xl bg-surface text-left ring-1 ring-border transition-all hover:-translate-y-0.5 hover:shadow-elevated"
             >
               <div class="absolute inset-0 bg-gradient-to-r from-black/65 to-transparent"></div>
-              <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-28 w-full object-cover" />
-              <div v-else class="flex h-28 items-center justify-center bg-surface-input text-3xl">✨</div>
+              <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-28 w-full object-cover" @error="handleImgError" />
               <div class="absolute inset-0 flex flex-col justify-end p-3">
                 <p class="line-clamp-1 text-sm font-black text-white">{{ svc.name }}</p>
                 <p class="text-xs font-bold text-white/90">{{ getServiceDisplayPrice(svc) }}</p>
@@ -1393,8 +1392,7 @@ function getDetailVariantOptions(service: any) {
                 @click="openDetail(svc)"
               >
                 <div class="relative overflow-hidden" :class="idx === 0 ? 'h-56' : 'h-44'">
-                  <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover" />
-                  <div v-else class="flex h-full w-full items-center justify-center bg-surface-input text-3xl">✨</div>
+                  <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                 </div>
                 <div class="p-3">
                   <p class="line-clamp-1 text-sm font-black text-text-primary">{{ svc.name }}</p>
@@ -1411,8 +1409,7 @@ function getDetailVariantOptions(service: any) {
                 @click="openDetail(svc)"
               >
                 <div class="relative overflow-hidden" :class="idx === 0 ? 'h-44' : 'h-52'">
-                  <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover" />
-                  <div v-else class="flex h-full w-full items-center justify-center bg-surface-input text-3xl">✨</div>
+                  <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                 </div>
                 <div class="p-3">
                   <p class="line-clamp-1 text-sm font-black text-text-primary">{{ svc.name }}</p>
@@ -1444,8 +1441,7 @@ function getDetailVariantOptions(service: any) {
                   <div class="absolute inset-0 bg-slate-900 border border-white/5 rounded-[24px]"></div>
                   
                   <div class="absolute inset-0 overflow-hidden rounded-[24px]">
-                    <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
-                    <div v-else class="flex h-full w-full items-center justify-center bg-slate-900 text-3xl text-cyan-200">⚡</div>
+                    <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover transition-transform duration-500 hover:scale-105" @error="handleImgError" />
                   </div>
 
                   <div :class="['absolute inset-0 bg-gradient-to-t rounded-[24px]', index % 5 === 0 ? 'from-slate-950 via-slate-900/60 to-transparent' : 'from-slate-950 to-transparent']"></div>
@@ -1484,8 +1480,7 @@ function getDetailVariantOptions(service: any) {
                     @click="openDetail(svc)"
                   >
                     <div class="ocean-service-media h-36 w-full overflow-hidden bg-surface-input">
-                      <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover" />
-                      <div v-else class="flex h-full w-full items-center justify-center text-3xl text-text-muted">🧋</div>
+                      <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                     </div>
 
                     <div class="ocean-service-body px-3 py-2.5">
@@ -1542,8 +1537,7 @@ function getDetailVariantOptions(service: any) {
                     class="absolute inset-0 text-left"
                     @click="openDetail(svc)"
                   >
-                    <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover" />
-                    <div v-else class="flex h-full w-full items-center justify-center bg-white/20 text-3xl text-white">✨</div>
+                    <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                     <div class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"></div>
                     <div class="absolute bottom-0 left-0 right-0 p-3">
                       <p class="line-clamp-1 text-lg font-black text-white">{{ svc.name }}</p>
@@ -1602,8 +1596,7 @@ function getDetailVariantOptions(service: any) {
                     @click="openDetail(svc)"
                   >
                     <div class="vibrant-card-media">
-                      <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover" />
-                      <div v-else class="flex h-full w-full items-center justify-center text-2xl text-text-muted">🥤</div>
+                      <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                     </div>
 
                     <div class="vibrant-card-body">
@@ -1645,8 +1638,7 @@ function getDetailVariantOptions(service: any) {
                     @click="openDetail(svc)"
                   >
                     <div class="rose-slide-img h-36 w-full overflow-hidden rounded-2xl bg-surface-input">
-                      <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover" />
-                      <div v-else class="flex h-full w-full items-center justify-center text-2xl text-text-muted">🧴</div>
+                      <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                     </div>
 
                     <div class="rose-slide-info mt-3">
@@ -1707,8 +1699,7 @@ function getDetailVariantOptions(service: any) {
                     @click="openDetail(svc)"
                   >
                     <div class="nl-service-img h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-surface-input">
-                      <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover" />
-                      <div v-else class="flex h-full w-full items-center justify-center text-2xl text-text-muted">🧴</div>
+                      <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                     </div>
 
                     <div class="nl-service-info flex min-w-0 flex-1 flex-col justify-between py-1">
@@ -1748,8 +1739,7 @@ function getDetailVariantOptions(service: any) {
                 @click="openDetail(svc)"
               >
                 <div class="nl-service-img h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-surface-input">
-                  <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.name" class="h-full w-full object-cover" />
-                  <div v-else class="flex h-full w-full items-center justify-center text-2xl text-text-muted">🧖</div>
+                  <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                 </div>
 
                 <div class="nl-service-info flex min-w-0 flex-1 flex-col justify-between py-1">
@@ -1802,12 +1792,11 @@ function getDetailVariantOptions(service: any) {
           <!-- Full Width Hero Image -->
           <div class="relative w-full overflow-hidden h-[360px] shadow-lg bg-surface-input">
             <img
-              v-if="selectedService.imageUrl"
-              :src="selectedService.imageUrl"
+              :src="selectedService.imageUrl || imgFallback"
               :alt="selectedService.name"
               class="h-full w-full object-cover"
+              @error="handleImgError"
             />
-            <div v-else class="flex h-full w-full items-center justify-center text-6xl text-text-muted">🧖</div>
           </div>
 
           <!-- Content (Title and tags are no longer on image) -->
