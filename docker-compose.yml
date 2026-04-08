@@ -57,6 +57,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_GOOGLE_AUTH_URL: ${VITE_GOOGLE_AUTH_URL:-/api/auth/google}
+        BACKEND_URL: ${BACKEND_URL:-http://backend:3000}
     container_name: qr_home_web
     ports:
       - "5173:80"

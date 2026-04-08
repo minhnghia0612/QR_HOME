@@ -176,6 +176,8 @@ export class TrafficService {
     let growthPercent: number | null = null;
     if (yesterdayViews > 0) {
       growthPercent = ((todayViews - yesterdayViews) / yesterdayViews) * 100;
+    } else if (todayViews > 0) {
+      growthPercent = 100;
     }
 
     return { todayViews, yesterdayViews, growthPercent };
