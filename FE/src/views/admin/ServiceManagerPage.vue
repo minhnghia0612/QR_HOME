@@ -6,11 +6,15 @@ import { servicesApi } from '@/api/services.api'
 import { categoriesApi } from '@/api/categories.api'
 import { uploadApi } from '@/api/upload.api'
 import { trafficApi } from '@/api/traffic.api'
-import { Plus, Search, Image, X, Upload, Pencil, Trash2, Eye, ChevronDown } from 'lucide-vue-next'
+import { 
+  Plus, Search, Image, X, Upload, Pencil, Trash2, Eye, ChevronDown,
+  ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight 
+} from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth.store'
 import { useRouter } from 'vue-router'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { io, type Socket } from 'socket.io-client'
+import imgFallback from '@/assets/img_fallback.png'
 
 type SpecialTag = 'must_try' | 'limited_edition' | 'summer_special' | 'happy_hour'
 type LabelValue = 'best_seller' | 'new_service' | SpecialTag
@@ -93,6 +97,8 @@ const fieldErrors = ref({
 const formCategoryOpen = ref(false)
 
 const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'danger' | 'warning' })
+const showConflictDialog = ref(false)
+const existingService = ref<any>(null)
 const uploadLoading = ref(false)
 
 const MAX_IMAGE_SIZE_MB = 5
@@ -100,6 +106,13 @@ const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
 
 function showToast(message: string, type: 'success' | 'danger' | 'warning' = 'success') {
   toast.value = { show: true, message, type }
+}
+
+function handleImgError(e: Event) {
+  const target = e.target as HTMLImageElement
+  if (target.src !== imgFallback) {
+    target.src = imgFallback
+  }
 }
 
 function getApiErrorMessage(err: any, fallback: string): string {
@@ -419,11 +432,6 @@ const { mutate: saveService, isPending: saving } = useMutation({
       throw new Error('Please select category')
     }
 
-    if (!String(form.value.imageUrl || '').trim()) {
-      fieldErrors.value.imageUrl = 'Image is required'
-      throw new Error('Image is required')
-    }
-
     const hasVariants = !!form.value.hasVariants
     const priceFrom = hasVariants ? undefined : parseOptionalNumber(priceFromInput.value)
     const priceTo = hasVariants ? undefined : parseOptionalNumber(priceToInput.value)
@@ -484,6 +492,7 @@ const { mutate: saveService, isPending: saving } = useMutation({
       price: normalizedPrice,
       priceFrom,
       priceTo,
+      imageUrl: form.value.imageUrl || imgFallback,
       variantOptions: hasVariants ? form.value.variantOptions : undefined,
     }
 
@@ -538,14 +547,28 @@ const { mutate: saveService, isPending: saving } = useMutation({
     }
   },
   onError: (err: any) => {
-    const message = getApiErrorMessage(err, 'Failed to save service')
-    if (err?.response?.status === 400 && /image/i.test(message)) {
-      fieldErrors.value.imageUrl = 'Service image is required'
+    const errorData = err.response?.data
+    if (err.response?.status === 409 && errorData?.existingService) {
+      existingService.value = errorData.existingService
+      showConflictDialog.value = true
+      return
     }
+    const message = getApiErrorMessage(err, 'Failed to save service')
     formError.value = message
     showToast(message, 'danger')
   },
 })
+
+function handleConflictYes() {
+  if (existingService.value) {
+    openEdit(existingService.value)
+  }
+  showConflictDialog.value = false
+}
+
+function handleConflictNo() {
+  showConflictDialog.value = false
+}
 
 const { mutate: deleteService } = useMutation({
   mutationFn: (id: string) => servicesApi.delete(id),
@@ -811,6 +834,23 @@ function getServiceLabelItems(svc: any) {
   })
 }
 
+const displayedPages = computed(() => {
+  const total = servicesView.value.totalPages
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  const current = page.value
+  const range = []
+  if (current <= 4) {
+    range.push(1, 2, 3, '...', total)
+  } else if (current >= total - 3) {
+    range.push(1, '...', total - 2, total - 1, total)
+  } else {
+    range.push(1, '...', current - 1, current, current + 1, '...', total)
+  }
+  return range
+})
+
 const pageLoading = computed(() => loadingServices.value || loadingTraffic.value)
 </script>
 
@@ -977,12 +1017,11 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
         <!-- Horizontal Image -->
         <div class="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-[20px] bg-surface-input">
           <img
-            v-if="svc.imageUrl"
-            :src="svc.imageUrl"
+            :src="svc.imageUrl || imgFallback"
             :alt="svc.name"
             class="h-full w-full object-cover"
+            @error="handleImgError"
           />
-          <div v-else class="flex h-full w-full items-center justify-center text-3xl opacity-50">🧖</div>
           
           <!-- Inactive Overlay -->
           <div v-if="!svc.isActive" class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
@@ -1053,18 +1092,60 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
     </div>
 
     <!-- Pagination -->
-    <div v-if="servicesView.totalPages > 1" class="mt-8 flex items-center justify-center gap-4">
+    <div v-if="servicesView.totalPages > 1" class="mt-8 flex items-center justify-center gap-2">
+      <!-- First -->
+      <button 
+        :disabled="page === 1" 
+        @click="page = 1" 
+        class="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-secondary text-text-muted transition-all hover:bg-surface-input disabled:opacity-30"
+      >
+        <ChevronsLeft class="h-4 w-4" />
+      </button>
+
+      <!-- Previous -->
       <button 
         :disabled="page === 1" 
         @click="page--" 
-        class="rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-bold text-text-secondary shadow-sm transition-colors hover:bg-surface-input disabled:opacity-50"
-      >Previous</button>
-      <span class="text-sm font-semibold text-text-secondary">Page {{ page }} of {{ servicesView.totalPages }}</span>
+        class="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-secondary text-text-muted transition-all hover:bg-surface-input disabled:opacity-30"
+      >
+        <ChevronLeft class="h-4 w-4" />
+      </button>
+
+      <!-- Page Numbers -->
+      <button 
+        v-for="p in displayedPages" 
+        :key="p === '...' ? 'dot-' + Math.random() : p"
+        :disabled="p === '...'"
+        @click="typeof p === 'number' ? page = p : null"
+        :class="[
+          'flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold transition-all',
+          p === page 
+            ? 'bg-primary-600 text-white shadow-button ring-1 ring-primary-400' 
+            : p === '...' 
+              ? 'text-text-muted cursor-default' 
+              : 'bg-surface-secondary text-text-secondary hover:bg-surface-input'
+        ]"
+      >
+        {{ p }}
+      </button>
+
+      <!-- Next -->
       <button 
         :disabled="page === servicesView.totalPages" 
         @click="page++" 
-        class="rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-bold text-text-secondary shadow-sm transition-colors hover:bg-surface-input disabled:opacity-50"
-      >Next</button>
+        class="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-secondary text-text-muted transition-all hover:bg-surface-input disabled:opacity-30"
+      >
+        <ChevronRight class="h-4 w-4" />
+      </button>
+
+      <!-- Last -->
+      <button 
+        :disabled="page === servicesView.totalPages" 
+        @click="page = servicesView.totalPages" 
+        class="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-secondary text-text-muted transition-all hover:bg-surface-input disabled:opacity-30"
+      >
+        <ChevronsRight class="h-4 w-4" />
+      </button>
     </div>
 
     <!-- Slide-over Form -->
@@ -1120,7 +1201,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
                         padding: 0.7rem 0.95rem;
                         font-size: 0.84rem;
                         font-weight: 400;
-                        color: gray;
+                        color: black;
                         box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
                         outline: none;
                         transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;"
@@ -1311,8 +1392,8 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
                 <input type="file" accept="image/*" class="hidden" @change="handleUpload" />
               </label>
               <p v-if="fieldErrors.imageUrl" class="mt-1 text-xs font-medium text-danger">{{ fieldErrors.imageUrl }}</p>
-              <div v-if="form.imageUrl" class="mt-3 overflow-hidden rounded-xl">
-                <img :src="form.imageUrl" alt="Preview" class="h-32 w-full object-cover" />
+              <div v-if="form.imageUrl && form.imageUrl !== imgFallback" class="mt-3 overflow-hidden rounded-xl">
+                <img :src="form.imageUrl" alt="Preview" class="h-32 w-full object-cover" @error="handleImgError" />
               </div>
             </div>
           </div>
@@ -1344,10 +1425,51 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
       :type="toast.type" 
       @close="toast.show = false" 
     />
+
+    <!-- Conflict Confirmation Dialog -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="showConflictDialog" class="fixed inset-0 z-[60] bg-black/30" @click="showConflictDialog = false" />
+      </Transition>
+      <Transition name="scale-up-center">
+        <div v-if="showConflictDialog" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div class="w-full max-w-sm rounded-[32px] bg-white p-8 text-center shadow-popup" @click.stop>
+            <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-warning/10 text-warning">
+              <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 8V21H3V8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M23 3H1V8H23V3Z" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10 12H14" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3 class="mb-2 text-xl font-bold text-text-primary">Service {{ form.name }} is exist</h3>
+            <p class="mb-8 text-sm text-text-secondary">Do you want to change it?</p>
+            
+            <div class="flex gap-3">
+              <button
+                class="flex-1 rounded-2xl bg-gradient-to-b from-primary-600 to-[#0048B5] py-3 text-sm font-extrabold text-white shadow-button transition-all hover:brightness-110"
+                @click="handleConflictYes"
+              >
+                Yes, edit it
+              </button>
+              <button
+                class="flex-1 rounded-2xl bg-surface-secondary py-3 text-sm font-bold text-text-dim transition-all hover:bg-surface-input"
+                @click="handleConflictNo"
+              >
+                No, cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <style scoped>
+.scale-up-center-enter-active { transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.scale-up-center-leave-active { transition: all 0.15s ease-in; }
+.scale-up-center-enter-from, .scale-up-center-leave-to { opacity: 0; transform: scale(0.95); }
+
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 

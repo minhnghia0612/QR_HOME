@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Service } from './entities/service.entity';
@@ -184,6 +184,17 @@ export class ServicesService {
   }
 
   async create(dto: CreateServiceDto, adminId: string): Promise<Service> {
+    const existing = await this.serviceRepo.findOne({
+      where: { name: dto.name, adminId },
+    });
+
+    if (existing) {
+      throw new ConflictException({
+        message: 'Service already exists',
+        existingService: existing,
+      });
+    }
+
     const payload = this.validateAndNormalizePayload(dto);
 
     if (
@@ -205,6 +216,19 @@ export class ServicesService {
 
   async update(id: string, dto: UpdateServiceDto, adminId: string): Promise<Service> {
     const service = await this.findOne(id, adminId);
+
+    if (dto.name && dto.name !== service.name) {
+      const existing = await this.serviceRepo.findOne({
+        where: { name: dto.name, adminId },
+      });
+
+      if (existing) {
+        throw new ConflictException({
+          message: 'Service name already exists',
+          existingService: existing,
+        });
+      }
+    }
 
     const payload = this.validateAndNormalizePayload(dto, service);
 

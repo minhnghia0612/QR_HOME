@@ -8,6 +8,7 @@ import { servicesApi } from '@/api/services.api'
 import { computed, onBeforeUnmount, watch } from 'vue'
 import { io, type Socket } from 'socket.io-client'
 import { useAuthStore } from '@/stores/auth.store'
+import imgFallback from '@/assets/img_fallback.png'
 
 const queryClient = useQueryClient()
 const authStore = useAuthStore()
@@ -51,12 +52,14 @@ const { data: services } = useQuery({
 })
 
 const { data: qrImageRes } = useQuery({
-  queryKey: ['qr-image'],
+  queryKey: computed(() => ['qr-image', qrConfig.value?.status, qrConfig.value?.qrUrl]),
   queryFn: async () => {
     const { data } = await qrConfigApi.downloadQr()
     return data.data
   },
   enabled: computed(() => qrConfig.value?.status === 'active' && !!qrConfig.value?.qrUrl),
+  staleTime: 0,
+  refetchOnMount: 'always',
 })
 
 const setupProgress = computed(() => {
@@ -133,6 +136,13 @@ const weeklyWithData = computed(() => {
     return date >= since && Number(day.count) > 0
   })
 })
+
+function handleImgError(e: Event) {
+  const target = e.target as HTMLImageElement
+  if (target.src !== imgFallback) {
+    target.src = imgFallback
+  }
+}
 
 const maxBarValue = computed(() => {
   if (!weeklyWithData.value.length) return 1
@@ -311,7 +321,7 @@ async function downloadQr() {
           class="overflow-hidden rounded-3xl bg-white shadow-card transition-shadow hover:shadow-elevated"
         >
           <div class="relative h-28 w-full overflow-hidden rounded-2xl bg-surface-input">
-            <img v-if="svc.imageUrl" :src="svc.imageUrl" :alt="svc.serviceName" class="h-full w-full object-cover" />
+            <img :src="svc.imageUrl || imgFallback" :alt="svc.serviceName" class="h-full w-full object-cover" @error="handleImgError" />
             <div class="absolute left-2 top-2 rounded-lg bg-white/60 px-2 py-0.5 text-xs font-bold text-text-primary backdrop-blur-sm">
               #{{ i + 1 }}
             </div>

@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Patch, Body, UseGuards, Query } from '@nestjs/common';
 import { QrConfigService } from './qr-config.service';
 import { UpdateQrStatusDto } from './dto/update-qr-status.dto';
-import { UpdateQrConfigDto } from './dto/update-qr-config.dto';
+import { UpdateSettingsConfigDto } from './dto/update-settings-config.dto';
+import { UpdateThemeConfigDto } from './dto/update-theme-config.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetAdmin } from '../../common/decorators/get-admin.decorator';
 
@@ -36,8 +37,14 @@ export class QrConfigController {
 
   @UseGuards(JwtAuthGuard)
   @Patch()
-  update(@Body() dto: UpdateQrConfigDto, @GetAdmin() admin: any) {
-    return this.qrConfigService.updateConfig(admin.id, dto);
+  updateSettings(@Body() dto: UpdateSettingsConfigDto, @GetAdmin() admin: any) {
+    return this.qrConfigService.updateSettingsConfig(admin.id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('theme')
+  updateTheme(@Body() dto: UpdateThemeConfigDto, @GetAdmin() admin: any) {
+    return this.qrConfigService.updateThemeConfig(admin.id, dto);
   }
 
   @UseGuards(JwtAuthGuard)

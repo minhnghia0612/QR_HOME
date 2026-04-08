@@ -5,7 +5,8 @@ import { ConfigService } from '@nestjs/config';
 import * as QRCode from 'qrcode';
 import { QrConfig, QrStatus } from './entities/qr-config.entity';
 import { ServicesService } from '../services/services.service';
-import { UpdateQrConfigDto } from './dto/update-qr-config.dto';
+import { UpdateSettingsConfigDto } from './dto/update-settings-config.dto';
+import { UpdateThemeConfigDto } from './dto/update-theme-config.dto';
 
 @Injectable()
 export class QrConfigService {
@@ -74,7 +75,30 @@ export class QrConfigService {
     return config;
   }
 
-  async updateConfig(adminId: string, dto: UpdateQrConfigDto): Promise<QrConfig> {
+  async updateSettingsConfig(
+    adminId: string,
+    dto: UpdateSettingsConfigDto,
+  ): Promise<QrConfig> {
+    const config = await this.getConfig(adminId);
+    Object.assign(config, dto);
+    config.updatedAt = new Date();
+    return this.qrConfigRepo.save(config);
+  }
+
+  async updateThemeConfig(
+    adminId: string,
+    dto: UpdateThemeConfigDto,
+  ): Promise<QrConfig> {
+    const config = await this.getConfig(adminId);
+    Object.assign(config, dto);
+    config.updatedAt = new Date();
+    return this.qrConfigRepo.save(config);
+  }
+
+  async updateConfig(
+    adminId: string,
+    dto: UpdateSettingsConfigDto & UpdateThemeConfigDto,
+  ): Promise<QrConfig> {
     const config = await this.getConfig(adminId);
     Object.assign(config, dto);
     config.updatedAt = new Date();

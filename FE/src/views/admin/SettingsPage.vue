@@ -7,6 +7,8 @@ import { uploadApi } from '@/api/upload.api'
 import { Save, Settings as SettingsIcon, Image as ImageIcon, Upload, AlertCircle } from 'lucide-vue-next'
 import Toast from '@/components/Toast.vue'
 
+type CurrencyUnit = 'VND' | 'USD' | 'EUR'
+
 const router = useRouter()
 
 const queryClient = useQueryClient()
@@ -19,6 +21,7 @@ const form = ref({
   spaLogo: '',
   bannerUrl: '',
   welcomeMessage: '',
+  currencyUnit: 'VND' as CurrencyUnit,
   status: 'active',
 })
 
@@ -61,6 +64,7 @@ watch(config, (val) => {
       spaLogo: val.spaLogo || '',
       bannerUrl: val.bannerUrl || '',
       welcomeMessage: val.welcomeMessage || '',
+      currencyUnit: (val.currencyUnit || 'VND') as CurrencyUnit,
       status: val.status || 'active',
     }
   }
@@ -117,6 +121,7 @@ const { mutate: saveConfig, isPending: saving } = useMutation({
       spaLogo: String(form.value.spaLogo || '').trim(),
       bannerUrl: String(form.value.bannerUrl || '').trim(),
       welcomeMessage: normalizeText(form.value.welcomeMessage),
+      currencyUnit: form.value.currencyUnit,
       status: normalizeText(form.value.status),
     }
 
@@ -129,12 +134,13 @@ const { mutate: saveConfig, isPending: saving } = useMutation({
     if (!payload.spaLogo) throw new Error('Logo is required')
     if (!payload.bannerUrl) throw new Error('Banner is required')
     if (!payload.welcomeMessage) throw new Error('Welcome Message is required')
+    if (!payload.currencyUnit) throw new Error('Currency Unit is required')
     if (!payload.status) throw new Error('Status is required')
 
     // Reflect normalized values back to UI so users see cleaned content.
     form.value = { ...payload }
 
-    const { data } = await qrConfigApi.updateConfig(payload)
+    const { data } = await qrConfigApi.updateSettingsConfig(payload)
     return data
   },
   onSuccess: async () => {
@@ -306,6 +312,26 @@ async function handleUpload(e: Event, field: 'spaLogo' | 'bannerUrl') {
               </div>
             </div>
 
+            <div>
+              <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Currency Unit</label>
+              <div class="grid grid-cols-3 gap-2">
+                <button
+                  v-for="unit in ['VND', 'USD', 'EUR']"
+                  :key="unit"
+                  type="button"
+                  :class="[
+                    'rounded-xl px-3 py-2 text-xs font-extrabold transition-all',
+                    form.currencyUnit === unit
+                      ? 'bg-primary-600 text-white shadow-sm'
+                      : 'bg-surface-input text-text-secondary hover:bg-surface-secondary'
+                  ]"
+                  @click="form.currencyUnit = unit as CurrencyUnit"
+                >
+                  {{ unit }}
+                </button>
+              </div>
+            </div>
+
             <!-- Banner Upload -->
             <div>
               <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Banner</label>
@@ -351,6 +377,7 @@ async function handleUpload(e: Event, field: 'spaLogo' | 'bannerUrl') {
           spaLogo: config.spaLogo || '',
           bannerUrl: config.bannerUrl || '',
           welcomeMessage: config.welcomeMessage || '',
+          currencyUnit: config.currencyUnit || 'VND',
           status: config.status || 'active'
         })"
       >

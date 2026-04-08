@@ -13,6 +13,8 @@ const editingCategory = ref<any>(null)
 const form = ref({ name: '', isActive: true })
 
 const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'danger' | 'warning' })
+const showConflictDialog = ref(false)
+const existingCategory = ref<any>(null)
 
 function showToast(message: string, type: 'success' | 'danger' | 'warning' = 'success') {
   toast.value = { show: true, message, type }
@@ -40,8 +42,8 @@ const { mutate: saveCategory, isPending: saving } = useMutation({
     }
   },
   onSuccess: async () => {
-    const isCreating = !editingCategory.value
-    const hadNoCategoryBefore = (categories.value?.length || 0) === 0
+    // const isCreating = !editingCategory.value
+    // const hadNoCategoryBefore = (categories.value?.length || 0) === 0
 
     await queryClient.invalidateQueries({ queryKey: ['categories'] })
     showToast('Category saved successfully', 'success')
@@ -49,16 +51,35 @@ const { mutate: saveCategory, isPending: saving } = useMutation({
 
     // Onboarding flow: Chuyển sang service nếu đây là danh mục đầu tiên
     // Dùng hadNoCategoryBefore (tính TRƯỚC invalidate) để tránh race condition
-    if (isCreating && hadNoCategoryBefore) {
-      setTimeout(() => {
-        router.push('/admin/services')
-      }, 800)
-    }
+    // if (isCreating && hadNoCategoryBefore) {
+    //   setTimeout(() => {
+    //     router.push('/admin/services')
+    //   }, 800)
+    // }
   },
   onError: (err: any) => {
-    showToast(err.message || 'Failed to save category', 'danger')
+    const errorData = err.response?.data
+    if (err.response?.status === 409 && errorData?.existingCategory) {
+      existingCategory.value = errorData.existingCategory
+      showConflictDialog.value = true
+      return
+    }
+    const message = errorData?.message || err.message || 'Failed to save category'
+    showToast(message, 'danger')
   },
 })
+
+function handleConflictYes() {
+  if (existingCategory.value) {
+    openEdit(existingCategory.value)
+  }
+  showConflictDialog.value = false
+}
+
+function handleConflictNo() {
+  showConflictDialog.value = false
+  // Stay in create mode, maybe clear the name or let user change it
+}
 
 const { mutate: deleteCategory } = useMutation({
   mutationFn: (id: string) => categoriesApi.delete(id),
@@ -169,6 +190,7 @@ function resetForm() {
                   type="text"
                   placeholder="e.g., Massage, Skincare"
                   class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent placeholder:text-text-muted focus:ring-2 focus:ring-primary-600"
+                  @keyup.enter="saveCategory()"
                 />
               </div>
 
@@ -187,6 +209,39 @@ function resetForm() {
                 @click="resetForm"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Conflict Confirmation Dialog -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="showConflictDialog" class="fixed inset-0 z-[60] bg-black/30" @click="showConflictDialog = false" />
+      </Transition>
+      <Transition name="scale-up">
+        <div v-if="showConflictDialog" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div class="w-full max-w-sm rounded-[32px] bg-white p-8 text-center shadow-popup" @click.stop>
+            <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-warning/10 text-warning">
+              <FolderOpen class="h-8 w-8" />
+            </div>
+            <h3 class="mb-2 text-xl font-bold text-text-primary">Categories is exist</h3>
+            <p class="mb-8 text-sm text-text-secondary">Do you want to change it?</p>
+            
+            <div class="flex gap-3">
+              <button
+                class="flex-1 rounded-2xl bg-gradient-to-b from-primary-600 to-[#0048B5] py-3 text-sm font-extrabold text-white shadow-button transition-all hover:brightness-110"
+                @click="handleConflictYes"
+              >
+                Yes, edit it
+              </button>
+              <button
+                class="flex-1 rounded-2xl bg-surface-secondary py-3 text-sm font-bold text-text-dim transition-all hover:bg-surface-input"
+                @click="handleConflictNo"
+              >
+                No, cancel
               </button>
             </div>
           </div>

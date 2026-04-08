@@ -12,8 +12,11 @@ export const qrConfigApi = {
   generate: () =>
     apiClient.post<ApiResponse<QrConfig>>('/qr-config/generate'),
 
-  updateConfig: (data: any) =>
+  updateSettingsConfig: (data: any) =>
     apiClient.patch<ApiResponse<QrConfig>>('/qr-config', data),
+
+  updateThemeConfig: (data: any) =>
+    apiClient.patch<ApiResponse<QrConfig>>('/qr-config/theme', data),
 
   updateStatus: (status: QrStatus) =>
     apiClient.patch<ApiResponse<QrConfig>>('/qr-config/status', { status }),

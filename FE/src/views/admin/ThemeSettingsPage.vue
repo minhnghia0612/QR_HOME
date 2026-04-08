@@ -7,7 +7,6 @@ import { setAdminPreviewSession } from '@/lib/admin-preview-session'
 import { CheckCircle2, Save, ChevronDown } from 'lucide-vue-next'
 import Toast from '@/components/Toast.vue'
 
-type CurrencyUnit = 'VND' | 'USD' | 'EUR'
 type CustomerUiSize = 'large' | 'normal' | 'compact'
 
 const authStore = useAuthStore()
@@ -42,18 +41,16 @@ const { data: config, isLoading: loadingConfig } = useQuery({
 
 const selectedTheme = ref('classic')
 const customerInterface = ref({
-  currencyUnit: 'VND' as CurrencyUnit,
   primaryColor: '#0253CD',
   secondaryColor: '#5E0B61',
   fontFamily: 'Inter',
   customerUiSize: 'normal' as CustomerUiSize,
 })
 
-const primaryColorPresets = ['#0253CD', '#0EA5E9', '#16A34A', '#EA580C', '#7C3AED']
-const secondaryColorPresets = ['#5E0B61', '#0F766E', '#374151', '#BE185D', '#92400E']
 const fontOptions = ['Inter', 'Montserrat', 'Dancing Script', 'Pacifico']
 const fontDropdownOpen = ref(false)
 const fontDropdownRef = ref<HTMLElement | null>(null)
+const previewCurrencyUnit = computed(() => String(config.value?.currencyUnit || 'VND'))
 
 // Derived color presets from the active theme
 const themeColorPresets = computed(() => {
@@ -100,7 +97,6 @@ watch(config, (val) => {
 
     selectedTheme.value = val.themeId || 'classic'
     customerInterface.value = {
-      currencyUnit: (val.currencyUnit || 'VND') as CurrencyUnit,
       primaryColor: val.primaryColor || '#0253CD',
       secondaryColor: val.secondaryColor || '#5E0B61',
       fontFamily: normalizedFontFamily,
@@ -111,9 +107,8 @@ watch(config, (val) => {
 
 const { mutate: saveTheme, isPending: saving } = useMutation({
   mutationFn: async () => {
-    const { data } = await qrConfigApi.updateConfig({
+    const { data } = await qrConfigApi.updateThemeConfig({
       themeId: selectedTheme.value,
-      currencyUnit: customerInterface.value.currencyUnit,
       primaryColor: customerInterface.value.primaryColor,
       secondaryColor: customerInterface.value.secondaryColor,
       fontFamily: customerInterface.value.fontFamily,
@@ -141,7 +136,7 @@ const previewUrl = computed(() => {
 const previewFrameKey = computed(() => {
   return [
     selectedTheme.value,
-    customerInterface.value.currencyUnit,
+    previewCurrencyUnit.value,
     customerInterface.value.primaryColor,
     customerInterface.value.secondaryColor,
     customerInterface.value.fontFamily,
@@ -153,7 +148,7 @@ watch(
   [
     () => authStore.admin?.id,
     selectedTheme,
-    () => customerInterface.value.currencyUnit,
+    previewCurrencyUnit,
     () => customerInterface.value.primaryColor,
     () => customerInterface.value.secondaryColor,
     () => customerInterface.value.fontFamily,
@@ -164,7 +159,7 @@ watch(
 
     setAdminPreviewSession(adminId, {
       themeId: selectedTheme.value,
-      currencyUnit: customerInterface.value.currencyUnit,
+      currencyUnit: previewCurrencyUnit.value,
       primaryColor: customerInterface.value.primaryColor,
       secondaryColor: customerInterface.value.secondaryColor,
       fontFamily: customerInterface.value.fontFamily,
@@ -244,26 +239,6 @@ watch(
             <h4 class="text-sm font-bold uppercase tracking-wider text-text-secondary">Customer Interface</h4>
 
             <div class="mt-5 space-y-6">
-              <div>
-                <p class="mb-3 text-xs font-bold text-text-muted">Currency Unit</p>
-                <div class="grid grid-cols-3 gap-2">
-                  <button
-                    v-for="unit in ['VND', 'USD', 'EUR']"
-                    :key="unit"
-                    type="button"
-                    :class="[
-                      'rounded-xl px-3 py-2 text-xs font-extrabold transition-all',
-                      customerInterface.currencyUnit === unit
-                        ? 'bg-primary-600 text-white shadow-sm'
-                        : 'bg-surface-input text-text-secondary hover:bg-surface-secondary'
-                    ]"
-                    @click="customerInterface.currencyUnit = unit as CurrencyUnit"
-                  >
-                    {{ unit }}
-                  </button>
-                </div>
-              </div>
-
               <div>
                 <p class="mb-2 text-xs font-bold text-text-muted">Primary Color</p>
                 <div class="flex flex-wrap items-center gap-2.5">

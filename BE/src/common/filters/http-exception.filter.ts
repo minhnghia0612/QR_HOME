@@ -38,12 +38,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.error(`Unhandled error: ${message}`, exception.stack);
     }
 
-    response.status(status).json({
+    const responseData: any = {
       success: false,
       statusCode: status,
       message,
       timestamp: new Date().toISOString(),
       path: request.url,
-    });
+    };
+
+    if (
+      exception instanceof HttpException &&
+      typeof exception.getResponse() === 'object'
+    ) {
+      const resp = exception.getResponse() as object;
+      Object.assign(responseData, resp);
+    }
+
+    response.status(status).json(responseData);
   }
 }

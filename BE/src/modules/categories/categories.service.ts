@@ -42,12 +42,37 @@ export class CategoriesService {
   }
 
   async create(dto: CreateCategoryDto, adminId: string): Promise<Category> {
+    const existing = await this.categoryRepo.findOne({
+      where: { name: dto.name, adminId },
+    });
+
+    if (existing) {
+      throw new ConflictException({
+        message: 'Category already exists',
+        existingCategory: existing,
+      });
+    }
+
     const category = this.categoryRepo.create({ ...dto, adminId });
     return this.categoryRepo.save(category);
   }
 
   async update(id: string, dto: UpdateCategoryDto, adminId: string): Promise<Category> {
     const category = await this.findOne(id, adminId);
+
+    if (dto.name && dto.name !== category.name) {
+      const existing = await this.categoryRepo.findOne({
+        where: { name: dto.name, adminId },
+      });
+
+      if (existing) {
+        throw new ConflictException({
+          message: 'Category name already exists',
+          existingCategory: existing,
+        });
+      }
+    }
+
     Object.assign(category, dto);
     return this.categoryRepo.save(category);
   }

@@ -39,7 +39,7 @@ export class AuthService {
 
     // Initialize SPA config if spaName is provided
     if (dto.spaName) {
-      await this.qrConfigService.updateConfig(admin.id, {
+      await this.qrConfigService.updateSettingsConfig(admin.id, {
         spaName: dto.spaName,
       });
     } else {
