@@ -34,11 +34,15 @@ const router = createRouter({
 
     {
       path: '/admin/login',
-      redirect: '/',
+      name: 'admin-login',
+      component: () => import('@/views/admin/LoginPage.vue'),
+      meta: { layout: 'blank' },
     },
     {
       path: '/admin/register',
-      redirect: '/',
+      name: 'admin-register',
+      component: () => import('@/views/admin/RegisterPage.vue'),
+      meta: { layout: 'blank' },
     },
     {
       path: '/admin',

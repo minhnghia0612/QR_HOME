@@ -174,12 +174,12 @@ async function handlePostAuthRedirect() {
     }
 
     // If all steps done, go to dashboard
-    window.location.href = '/admin/dashboard'
+    router.push('/admin/dashboard')
     
     closeAuth()
   } catch (err) {
     console.error('Redirect error:', err)
-    window.location.href = '/admin/dashboard'
+    router.push('/admin/dashboard')
     closeAuth()
   }
 }
@@ -207,6 +207,20 @@ const features = [
 ]
 
 onMounted(() => {
+  // 1. Handle explicit error from URL (e.g. backend redirects back with error)
+  const queryErr = route.query.error
+  if (queryErr) {
+    const errorMsg = String(queryErr)
+    if (errorMsg === 'access_denied') {
+      error.value = 'Login canceled. Please try again.'
+    } else {
+      error.value = errorMsg
+    }
+    // Clean URL
+    window.history.replaceState({}, document.title, '/')
+  }
+
+  // 2. Handle OAuth Success Completion
   const oauth = String(route.query.oauth || '').toLowerCase()
   if (oauth === 'google' && isGoogleLoginEnabled.value) {
     authStore.completeGoogleLoginFromCookie().then((result) => {
@@ -221,8 +235,7 @@ onMounted(() => {
   }
 
   if (authStore.isAuthenticated) {
-     // Optional: Redirect if already logged in? 
-     // router.push('/admin/dashboard')
+    router.push('/admin/dashboard')
   }
 
   initScrollReveal()

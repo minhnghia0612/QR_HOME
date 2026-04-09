@@ -34,4 +34,17 @@ export class GoogleAuthGuard extends AuthGuard('google') {
 
     return super.canActivate(context);
   }
+
+  handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
+    if (err || !user) {
+      const response = context.switchToHttp().getResponse();
+      const frontendUrl = this.configService.get<string>(
+        'FRONTEND_URL',
+        'http://localhost:5173',
+      );
+      // Redirect back to frontend with error info
+      return response.redirect(`${frontendUrl}/?error=access_denied`);
+    }
+    return user;
+  }
 }
