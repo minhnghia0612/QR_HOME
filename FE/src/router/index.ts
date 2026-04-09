@@ -24,6 +24,12 @@ const router = createRouter({
       component: () => import('@/views/LandingPage.vue'),
       meta: { layout: 'blank' },
     },
+    {
+      path: '/auth/callback',
+      name: 'auth-callback',
+      component: () => import('@/views/AuthCallbackPage.vue'),
+      meta: { layout: 'blank' },
+    },
     // ── Customer Routes ──
     {
       path: '/menu/:id',
@@ -125,7 +131,19 @@ router.beforeEach(async (to) => {
           !cache.isStep2Complete &&
           !['admin-settings', 'admin-categories'].includes(to.name as string)
         ) {
-          return { name: 'admin-categories' }
+          const { data: catsRes } = await categoriesApi.getAll()
+          const categories = (catsRes as any).data?.data || (catsRes as any).data || []
+          const isStep2Complete = Array.isArray(categories) && categories.length > 0
+
+          onboardingCache = {
+            ...cache,
+            checkedAt: now,
+            isStep2Complete,
+          }
+
+          if (!isStep2Complete) {
+            return { name: 'admin-categories' }
+          }
         }
         if (
           cache.isStep1Complete &&
@@ -133,7 +151,25 @@ router.beforeEach(async (to) => {
           !cache.isStep3Complete &&
           !['admin-settings', 'admin-categories', 'admin-services'].includes(to.name as string)
         ) {
-          return { name: 'admin-services' }
+          const { data: svcRes } = await servicesApi.getAll({ limit: 1 })
+          const servicesRaw = (svcRes as any).data
+          const services = servicesRaw?.data?.items || servicesRaw?.items || servicesRaw?.data || []
+          const isStep3Complete =
+            (Array.isArray(services)
+              ? services.length
+              : Array.isArray(services?.items)
+                ? services.items.length
+                : 0) > 0
+
+          onboardingCache = {
+            ...cache,
+            checkedAt: now,
+            isStep3Complete,
+          }
+
+          if (!isStep3Complete) {
+            return { name: 'admin-services' }
+          }
         }
         return
       }
@@ -163,8 +199,14 @@ router.beforeEach(async (to) => {
       // 3. Check Services (Step 3)
       if (isStep1Complete && isStep2Complete) {
         const { data: svcRes } = await servicesApi.getAll({ limit: 1 })
-        const services = (svcRes as any).data?.items || (svcRes as any).data || []
-        const isStep3Complete = (Array.isArray(services) ? services.length : (services?.items?.length || 0)) > 0
+        const servicesRaw = (svcRes as any).data
+        const services = servicesRaw?.data?.items || servicesRaw?.items || servicesRaw?.data || []
+        const isStep3Complete =
+          (Array.isArray(services)
+            ? services.length
+            : Array.isArray(services?.items)
+              ? services.items.length
+              : 0) > 0
 
         onboardingCache = {
           adminId: currentAdminId,

@@ -27,7 +27,10 @@ export class AuthController {
   private getAuthCookieOptions() {
     const isProd = this.configService.get<string>('NODE_ENV') === 'production';
     const sameSiteRaw = String(
-      this.configService.get<string>('COOKIE_SAME_SITE', isProd ? 'none' : 'lax'),
+      this.configService.get<string>(
+        'COOKIE_SAME_SITE',
+        isProd ? 'none' : 'lax',
+      ),
     ).toLowerCase();
     const sameSite: 'lax' | 'none' | 'strict' =
       sameSiteRaw === 'none' || sameSiteRaw === 'strict' ? sameSiteRaw : 'lax';
@@ -39,7 +42,9 @@ export class AuthController {
         : isProd || sameSite === 'none';
 
     const domain = this.configService.get<string>('COOKIE_DOMAIN', '').trim();
-    const maxAge = Number(this.configService.get<string>('COOKIE_MAX_AGE_MS', '86400000'));
+    const maxAge = Number(
+      this.configService.get<string>('COOKIE_MAX_AGE_MS', '86400000'),
+    );
 
     return {
       httpOnly: true,
@@ -47,19 +52,26 @@ export class AuthController {
       sameSite,
       ...(domain ? { domain } : {}),
       path: '/',
-      maxAge: Number.isFinite(maxAge) && maxAge > 0 ? maxAge : 24 * 60 * 60 * 1000,
+      maxAge:
+        Number.isFinite(maxAge) && maxAge > 0 ? maxAge : 24 * 60 * 60 * 1000,
     };
   }
 
   @Post('login')
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const auth = await this.authService.login(dto);
     res.cookie('access_token', auth.accessToken, this.getAuthCookieOptions());
     return auth;
   }
 
   @Post('register')
-  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const auth = await this.authService.register(dto);
     res.cookie('access_token', auth.accessToken, this.getAuthCookieOptions());
     return auth;
@@ -83,8 +95,10 @@ export class AuthController {
       'FRONTEND_URL',
       'http://localhost:5173',
     );
-
-    return res.redirect(`${frontendUrl}/?oauth=google`);
+    if (!req.user) {
+      return res.redirect(`${frontendUrl}/auth/callback?error=access_denied`);
+    }
+    return res.redirect(`${frontendUrl}/auth/callback?oauth=google`);
   }
 
   @UseGuards(JwtAuthGuard)
