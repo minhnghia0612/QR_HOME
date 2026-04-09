@@ -314,16 +314,16 @@ async function handleUpload(e: Event, field: 'spaLogo' | 'bannerUrl') {
 
             <div>
               <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Currency Unit</label>
-              <div class="grid grid-cols-3 gap-2">
+              <div class="flex w-fit items-center gap-1.5 rounded-2xl bg-surface-input p-1.5 ring-1 ring-border">
                 <button
                   v-for="unit in ['VND', 'USD', 'EUR']"
                   :key="unit"
                   type="button"
                   :class="[
-                    'rounded-xl px-3 py-2 text-xs font-extrabold transition-all',
+                    'min-w-[90px] rounded-xl px-4 py-2.5 text-[11px] font-black tracking-widest transition-all',
                     form.currencyUnit === unit
-                      ? 'bg-primary-600 text-white shadow-sm'
-                      : 'bg-surface-input text-text-secondary hover:bg-surface-secondary'
+                      ? 'bg-primary-600 text-white shadow-button ring-1 ring-primary-500'
+                      : 'text-text-secondary hover:bg-white hover:text-text-primary hover:shadow-card'
                   ]"
                   @click="form.currencyUnit = unit as CurrencyUnit"
                 >

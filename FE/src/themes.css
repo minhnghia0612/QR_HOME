@@ -522,26 +522,34 @@
   color: var(--color-text-primary) !important;
   font-family: var(--menu-font-family), 'Inter', system-ui, sans-serif;
   font-weight: 700 !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 16px !important;
+  width: 100% !important;
   margin: 0 auto !important;
-  width: fit-content;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  position: relative;
+  transition: transform 0.2s ease;
+}
+
+.theme-stitch .t-cat-pill-label {
   padding: 0.42rem 1.5rem;
   background: var(--color-surface);
   border: 2px solid color-mix(in srgb, var(--color-primary-600) 35%, white);
   border-radius: 999px;
-  position: relative;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  flex-shrink: 0;
+  transition: box-shadow 0.2s ease, background-color 0.2s ease;
+  box-shadow: 0 4px 10px -8px rgba(139, 93, 64, 0.4);
 }
 
-.theme-stitch .t-cat-title:hover {
-  transform: translateY(-1px);
+.theme-stitch .t-cat-title:hover .t-cat-pill-label {
   box-shadow: 0 10px 18px -16px rgba(139, 93, 64, 0.75);
 }
 
-.theme-stitch .t-cat-title.is-active {
+.theme-stitch .t-cat-title.is-active .t-cat-pill-label {
   background: color-mix(in srgb, var(--color-primary-600) 14%, var(--color-surface));
 }
 
@@ -549,23 +557,10 @@
 .theme-stitch .t-cat-title::after {
   content: '';
   height: 1px;
-  width: 126px;
+  flex: 1;
+  max-width: 126px;
   background: color-mix(in srgb, var(--color-primary-600) 45%, white);
-  position: absolute;
-  top: 50%;
-}
-
-.theme-stitch .t-cat-title::before {
-  right: calc(100% + 16px);
-}
-
-.theme-stitch .t-cat-title::after {
-  left: calc(100% + 16px);
-}
-
-.theme-stitch .t-cat-title > span,
-.theme-stitch .t-cat-title {
-  position: relative;
+  position: static !important;
 }
 
 .theme-stitch .t-card-grid {
@@ -584,12 +579,21 @@
 @media (max-width: 640px) {
   .theme-stitch .t-cat-title {
     font-size: 1.5rem !important;
+    gap: 8px !important;
+  }
+  
+  .theme-stitch .t-cat-pill-label {
     padding: 0.38rem 1rem;
+    font-size: 14px;
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .theme-stitch .t-cat-title::before,
   .theme-stitch .t-cat-title::after {
-    width: max(88px, calc((100vw - 176px) / 2));
+    max-width: 60px;
   }
 }
 

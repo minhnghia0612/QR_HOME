@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import { 
@@ -36,6 +36,12 @@ const googleAuthUrl = String(
   import.meta.env.VITE_GOOGLE_AUTH_URL || '/api/auth/google',
 ).trim()
 const isGoogleLoginEnabled = computed(() => Boolean(googleAuthUrl))
+const heroTiltX = ref(0)
+const heroTiltY = ref(0)
+const revealObserver = ref<IntersectionObserver | null>(null)
+const heroCardStyle = computed(() => ({
+  transform: `perspective(1200px) rotateX(${heroTiltX.value}deg) rotateY(${heroTiltY.value}deg)`,
+}))
 
 // Form State
 const loginForm = ref({ username: '', password: '' })
@@ -44,6 +50,47 @@ const registerForm = ref({
   email: '',
   password: '',
 })
+
+function handleHeroMouseMove(event: MouseEvent) {
+  const el = event.currentTarget as HTMLElement | null
+  if (!el) return
+
+  const rect = el.getBoundingClientRect()
+  const px = (event.clientX - rect.left) / rect.width
+  const py = (event.clientY - rect.top) / rect.height
+
+  heroTiltY.value = (px - 0.5) * 8
+  heroTiltX.value = (0.5 - py) * 7
+}
+
+function resetHeroTilt() {
+  heroTiltX.value = 0
+  heroTiltY.value = 0
+}
+
+function initScrollReveal() {
+  if (typeof window === 'undefined') return
+
+  const elements = document.querySelectorAll<HTMLElement>('[data-reveal]')
+  if (!elements.length) return
+
+  revealObserver.value = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const target = entry.target as HTMLElement
+          const delay = target.dataset.revealDelay
+          if (delay) target.style.transitionDelay = delay
+          target.classList.add('is-visible')
+          revealObserver.value?.unobserve(target)
+        }
+      })
+    },
+    { threshold: 0.2 },
+  )
+
+  elements.forEach((el) => revealObserver.value?.observe(el))
+}
 
 function openAuth(mode: 'login' | 'register') {
   authMode.value = mode
@@ -177,6 +224,12 @@ onMounted(() => {
      // Optional: Redirect if already logged in? 
      // router.push('/admin/dashboard')
   }
+
+  initScrollReveal()
+})
+
+onBeforeUnmount(() => {
+  revealObserver.value?.disconnect()
 })
 </script>
 
@@ -200,12 +253,12 @@ onMounted(() => {
     </nav>
 
     <!-- Hero Section -->
-    <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+    <section class="relative min-h-screen flex items-center overflow-hidden">
       <!-- Background Mesh Glows -->
       <div class="absolute -top-24 -left-20 h-[500px] w-[500px] rounded-full bg-primary-100/30 blur-[120px] animate-pulse-slow"></div>
       <div class="absolute top-1/2 -right-40 h-[600px] w-[600px] rounded-full bg-purple-100/20 blur-[140px] animate-pulse-slow banner-delay"></div>
 
-      <div class="mx-auto max-w-7xl px-6 relative z-10">
+      <div class="mx-auto max-w-7xl px-6 relative z-10 w-full py-24 pt-0">
         <div class="flex flex-col lg:flex-row items-center gap-16">
           <!-- Left Content -->
           <div class="flex-1 text-center lg:text-left reveal-fade-up">
@@ -228,35 +281,54 @@ onMounted(() => {
           </div>
 
           <!-- Right Product Showcase -->
-          <div class="relative flex-1 w-full max-w-xl lg:max-w-none reveal-fade-right">
+          <div
+            class="relative flex-1 w-full max-w-xl lg:max-w-none reveal-fade-right"
+            @mousemove="handleHeroMouseMove"
+            @mouseleave="resetHeroTilt"
+          >
             <div class="absolute -right-8 -top-8 h-48 w-48 rounded-full bg-primary-200/50 blur-3xl animate-pulse"></div>
             <div class="absolute -bottom-12 -left-10 h-56 w-56 rounded-full bg-primary-600/10 blur-3xl"></div>
 
-            <div class="relative z-10 overflow-hidden rounded-[2.5rem] border border-primary-100/60 bg-white p-3 shadow-[0_24px_90px_rgba(2,83,205,0.22)] animate-float">
+            <div
+              class="relative z-10 overflow-hidden rounded-[2.5rem] border border-primary-100/60 bg-white p-3 shadow-[0_24px_90px_rgba(2,83,205,0.22)] animate-float will-change-transform transition-transform duration-300"
+              :style="heroCardStyle"
+            >
               <div class="relative overflow-hidden rounded-[2rem]">
                 <img
                   :src="heroImg"
                   alt="Customer menu preview"
                   class="h-[340px] w-full object-cover object-center brightness-[0.92] sm:h-[460px] hover:scale-105"
                 />
+                <div class="hero-shine"></div>
                 <div class="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none"></div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-60 animate-bounce">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-primary"><rect x="5" y="2" width="14" height="20" rx="7"/><path d="M12 6v4"/></svg>
+        <p class="text-[10px] font-bold uppercase tracking-widest text-text-primary">scroll to see more</p>
+      </div>
     </section>
 
     <!-- Features Section -->
-    <section class="py-24 bg-[#F8FAFC]">
+    <section class="py-24 bg-[#F8FAFC]" data-reveal>
       <div class="mx-auto max-w-7xl px-6">
-        <div class="text-center mb-16">
+        <div class="text-center mb-16" data-reveal data-reveal-delay="60ms">
           <h2 class="text-3xl lg:text-4xl font-black mb-4">Crafted for Excellence</h2>
           <p class="text-text-muted font-medium">Sophisticated tools to manage your spa's digital identity.</p>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div v-for="f in features" :key="f.title" class="group p-8 rounded-[32px] bg-white border border-border/50 shadow-sm hover:shadow-xl transition-all duration-500">
+          <div
+            v-for="(f, index) in features"
+            :key="f.title"
+            class="group p-8 rounded-[32px] bg-white border border-border/50 shadow-sm hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(15,23,42,0.1)] transition-all duration-500"
+            data-reveal
+            :data-reveal-delay="`${160 + index * 90}ms`"
+          >
             <div :class="['w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 duration-500', f.color]">
               <component :is="f.icon" class="h-6 w-6" />
             </div>
@@ -268,10 +340,10 @@ onMounted(() => {
     </section>
 
     <!-- Steps Section -->
-    <section class="py-32 overflow-hidden">
+    <section class="py-32 overflow-hidden" data-reveal>
       <div class="mx-auto max-w-7xl px-6">
         <div class="flex flex-col lg:flex-row items-center gap-24">
-          <div class="flex-1 space-y-12">
+          <div class="flex-1 space-y-12" data-reveal data-reveal-delay="100ms">
             <div class="max-w-md">
               <h2 class="text-4xl lg:text-5xl font-black leading-tight mb-6">Effortless implementation in three simple steps.</h2>
               <p class="text-text-muted font-medium mb-12">We've removed the complexity of tech, leaving only the benefits of digital transformation.</p>
@@ -306,8 +378,8 @@ onMounted(() => {
             </div>
           </div>
           
-          <div class="flex-1 w-full">
-            <div class="mx-auto w-full max-w-[560px] overflow-hidden rounded-[2.5rem] border border-border/60 bg-white p-3 shadow-[0_20px_60px_rgba(15,23,42,0.14)]">
+          <div class="flex-1 w-full" data-reveal data-reveal-delay="240ms">
+            <div class="mx-auto w-full max-w-[560px] overflow-hidden rounded-[2.5rem] border border-border/60 bg-white p-3 shadow-[0_20px_60px_rgba(15,23,42,0.14)] hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(15,23,42,0.16)] transition-all duration-500">
               <img
                 :src="stepsShowcaseImg"
                 alt="Digital service catalog preview"
@@ -510,6 +582,27 @@ onMounted(() => {
 .zoom-enter-from { opacity: 0; transform: scale(0.9) translateY(20px); }
 .zoom-leave-to { opacity: 0; transform: scale(0.95); }
 
+.scroll-reveal,
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.scroll-reveal.is-visible,
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hero-shine {
+  pointer-events: none;
+  position: absolute;
+  inset: -120% -20%;
+  background: linear-gradient(110deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.35) 50%, rgba(255, 255, 255, 0) 70%);
+  animation: hero-shine 6.8s ease-in-out infinite;
+}
+
 /* Custom Animations */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(30px); }
@@ -537,6 +630,13 @@ onMounted(() => {
   50% { transform: translateY(-8px); }
 }
 
+@keyframes hero-shine {
+  0% { transform: translateX(-65%) rotate(4deg); opacity: 0; }
+  16% { opacity: 1; }
+  42% { transform: translateX(65%) rotate(4deg); opacity: 0; }
+  100% { transform: translateX(65%) rotate(4deg); opacity: 0; }
+}
+
 .reveal-fade-up { animation: fade-up 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
 .reveal-fade-up-2 { animation: fade-up 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s forwards; opacity: 0; }
 .reveal-fade-up-3 { animation: fade-up 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s forwards; opacity: 0; }
@@ -547,4 +647,22 @@ onMounted(() => {
 .animate-pulse-slow { animation: pulse-slow 8s ease-in-out infinite; }
 .animate-bounce-slow { animation: bounce-slow 4s ease-in-out infinite; }
 .banner-delay { animation-delay: 2s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-fade-up,
+  .reveal-fade-up-2,
+  .reveal-fade-up-3,
+  .reveal-fade-up-4,
+  .reveal-fade-right,
+  .animate-float,
+  .animate-pulse-slow,
+  .animate-bounce-slow,
+  .hero-shine,
+  [data-reveal] {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
 </style>

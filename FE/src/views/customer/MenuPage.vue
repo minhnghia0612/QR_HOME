@@ -11,6 +11,7 @@ import { getAdminPreviewSession, type AdminPreviewPayload } from '@/lib/admin-pr
 import { Search, Clock, X, ChevronDown, ChevronLeft, ChevronRight, Phone, Mail, MapPin, ArrowLeft, Share2, DollarSign, Heart } from 'lucide-vue-next'
 import heroImg from '@/assets/hero_customer.png'
 import imgFallback from '@/assets/img_fallback.png'
+import MaintenanceState from './components/MaintenanceState.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -172,10 +173,7 @@ const customerInterfaceStyle = computed<Record<string, string>>(() => {
 
 watch([spaConfig, loadingConfig], ([config, loading]) => {
   if (hasPendingAdminSession.value) return
-  const isAdmin = isAdminPreview.value
-  if (!loading && config && config.status && config.status !== 'active' && !isAdmin) {
-    router.replace('/404')
-  }
+  // No longer redirecting to 404. The template will handle the maintenance view.
 })
 
 const categories = computed(() => {
@@ -660,7 +658,21 @@ function handleImgError(e: Event) {
 </script>
 
 <template>
-  <div :class="['menu-root min-h-screen bg-surface-page', `theme-${themeId}`, `menu-size-${menuSize}`]" :style="customerInterfaceStyle">
+  <!-- Outer page shell: fills the screen, theme-colored bg, centers the menu card -->
+  <div
+    :class="['min-h-screen flex justify-center items-start bg-surface-page', `theme-${themeId}`]"
+    :style="customerInterfaceStyle"
+  >
+    <div
+      :class="['menu-root w-full max-w-[800px] min-h-screen bg-surface-page relative', `theme-${themeId}`, `menu-size-${menuSize}`]"
+      :style="customerInterfaceStyle"
+    >
+    <!-- Maintenance State Overlay -->
+    <MaintenanceState 
+      v-if="!loadingConfig && spaConfig?.status !== 'active' && !isAdminPreview" 
+      :spa-name="spaConfig?.spaName" 
+    />
+
     <template v-if="isLegacyTheme">
     <!-- Hero Section -->
     <div class="t-hero-wrap relative w-full">
@@ -793,7 +805,7 @@ function handleImgError(e: Event) {
             v-for="cat in categories"
             :key="cat.id"
             :class="[
-              'whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide transition-all',
+              'max-w-[120px] truncate flex-shrink-0 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide transition-all',
               selectedCategoryId === cat.id
                 ? 'bg-primary-600 text-white shadow-card'
                 : 'bg-surface text-text-secondary ring-1 ring-border hover:bg-surface-input'
@@ -853,7 +865,8 @@ function handleImgError(e: Event) {
           @click="toggleLegacyCategory(group.category?.id)"
           style="margin-bottom: 2rem !important;"
         >
-          {{ group.category?.name }}
+          <span v-if="isStitchTheme" class="t-cat-pill-label">{{ group.category?.name }}</span>
+          <template v-else>{{ group.category?.name }}</template>
         </h2>
 
         <div v-if="group.services.length" class="t-card-grid space-y-3">
@@ -1728,7 +1741,6 @@ function handleImgError(e: Event) {
             <div class="flex items-center gap-3">
               <h3 class="nl-group-title text-lg font-black uppercase tracking-tight text-text-primary">{{ group.category?.name }}</h3>
               <span class="h-px flex-1 bg-border"></span>
-              <span class="rounded-full bg-surface px-2.5 py-1 text-[10px] font-black text-text-muted">{{ group.services.length }} items</span>
             </div>
 
             <div class="nl-service-grid grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -1855,6 +1867,7 @@ function handleImgError(e: Event) {
         </div>
       </Transition>
     </Teleport>
+  </div>
   </div>
 </template>
 

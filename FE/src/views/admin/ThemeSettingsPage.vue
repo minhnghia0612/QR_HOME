@@ -19,7 +19,7 @@ function showToast(message: string, type: 'success' | 'danger' | 'warning' = 'su
 }
 
 const THEMES = [
-  { id: 'classic',        name: 'Classic',        desc: 'Clean white layout with simple product cards',                    color: '#22c55e', primaryColor: '#16A34A', secondaryColor: '#0EA5E9' },
+  { id: 'classic',        name: 'Classic',        desc: 'Clean white layout with simple product cards',                    color: '#22c55e', primaryColor: '#6366F1', secondaryColor: '#A16207' },
   { id: 'dark-elegance',  name: 'Dark Elegance',  desc: 'Full black with sticky sections and gold accents',              color: '#d4af37', primaryColor: '#D4AF37', secondaryColor: '#B8860B' },
   { id: 'modern-minimal', name: 'Modern Minimal', desc: 'Image backgrounds with gradient overlays',                       color: '#6366f1', primaryColor: '#6366F1', secondaryColor: '#8B5CF6' },
   { id: 'rustic',         name: 'Rustic',         desc: 'Vintage paper style with decorative borders',                    color: '#8b5a2b', primaryColor: '#8B5A2B', secondaryColor: '#A16207' },
@@ -52,21 +52,31 @@ const fontDropdownOpen = ref(false)
 const fontDropdownRef = ref<HTMLElement | null>(null)
 const previewCurrencyUnit = computed(() => String(config.value?.currencyUnit || 'VND'))
 
-// Derived color presets from the active theme
+// Derived color presets from the active theme (deduplicated)
 const themeColorPresets = computed(() => {
   const theme = THEMES.find(t => t.id === selectedTheme.value)
   if (!theme) return { primary: ['#0253CD', '#0EA5E9', '#16A34A', '#EA580C', '#7C3AED'], secondary: ['#5E0B61', '#0F766E', '#374151', '#BE185D', '#92400E'] }
-  // Build 5-swatch palette: theme primary + 4 alternates from other themes
+
   const others = THEMES.filter(t => t.id !== theme.id)
+
+  // Build unique palette: theme color first, then unique alternates (case-insensitive compare)
+  const buildUnique = (selfColor: string, key: 'primaryColor' | 'secondaryColor') => {
+    const seen = new Set([selfColor.toUpperCase()])
+    const unique: string[] = [selfColor]
+    for (const t of others) {
+      if (unique.length >= 5) break
+      const c = t[key]
+      if (!seen.has(c.toUpperCase())) {
+        seen.add(c.toUpperCase())
+        unique.push(c)
+      }
+    }
+    return unique
+  }
+
   return {
-    primary: [
-      theme.primaryColor,
-      ...others.slice(0, 4).map(t => t.primaryColor),
-    ],
-    secondary: [
-      theme.secondaryColor,
-      ...others.slice(0, 4).map(t => t.secondaryColor),
-    ],
+    primary: buildUnique(theme.primaryColor, 'primaryColor'),
+    secondary: buildUnique(theme.secondaryColor, 'secondaryColor'),
   }
 })
 
@@ -243,8 +253,8 @@ watch(
                 <p class="mb-2 text-xs font-bold text-text-muted">Primary Color</p>
                 <div class="flex flex-wrap items-center gap-2.5">
                   <button
-                    v-for="color in themeColorPresets.primary"
-                    :key="color"
+                    v-for="(color, i) in themeColorPresets.primary"
+                    :key="`primary-${i}-${color}`"
                     type="button"
                     @click="customerInterface.primaryColor = color"
                     :style="{ backgroundColor: color, '--ring-color': color } as any"
@@ -272,8 +282,8 @@ watch(
                 <p class="mb-2 text-xs font-bold text-text-muted">Secondary Color</p>
                 <div class="flex flex-wrap items-center gap-2.5">
                   <button
-                    v-for="color in themeColorPresets.secondary"
-                    :key="color"
+                    v-for="(color, i) in themeColorPresets.secondary"
+                    :key="`secondary-${i}-${color}`"
                     type="button"
                     @click="customerInterface.secondaryColor = color"
                     :style="{ backgroundColor: color, '--ring-color': color } as any"
@@ -327,16 +337,16 @@ watch(
 
               <div>
                 <p class="mb-3 text-xs font-bold text-text-muted">Size</p>
-                <div class="grid grid-cols-3 gap-2">
+                <div class="flex w-fit items-center gap-1.5 rounded-2xl bg-surface-input p-1.5 ring-1 ring-border">
                   <button
                     v-for="size in ['large', 'normal', 'compact']"
                     :key="size"
                     type="button"
                     :class="[
-                      'rounded-xl px-3 py-2 text-xs font-extrabold capitalize transition-all',
+                      'min-w-[90px] rounded-xl px-4 py-2.5 text-[13px] font-black tracking-widest transition-all',
                       customerInterface.customerUiSize === size
-                        ? 'bg-primary-600 text-white shadow-sm'
-                        : 'bg-surface-input text-text-secondary hover:bg-surface-secondary'
+                        ? 'bg-primary-600 text-white shadow-button ring-1 ring-primary-500'
+                        : 'text-text-secondary hover:bg-white hover:text-text-primary hover:shadow-card'
                     ]"
                     @click="customerInterface.customerUiSize = size as CustomerUiSize"
                   >
