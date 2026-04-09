@@ -9,6 +9,7 @@ import type { CreateServicePayload } from '@/types/service.types'
 import { Upload, ArrowLeft, Plus, Trash2, ChevronDown } from 'lucide-vue-next'
 
 type SpecialTag = 'must_try' | 'limited_edition' | 'summer_special' | 'happy_hour'
+type LabelTag = SpecialTag | string
 
 const SPECIAL_TAG_OPTIONS: Array<{ value: SpecialTag; label: string }> = [
   { value: 'must_try', label: '#MustTry' },
@@ -47,6 +48,8 @@ const isUploading = ref(false)
 const priceFromInput = ref('')
 const priceToInput = ref('')
 const formError = ref('')
+const newLabelInput = ref('')
+const newLabelError = ref('')
 const formCategoryOpen = ref(false)
 const categoryDropdownRef = ref<HTMLElement | null>(null)
 
@@ -121,7 +124,45 @@ function parseOptionalNumber(value: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined
 }
 
-function toggleTag(value: SpecialTag) {
+function normalizeTag(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s_-]/g, '')
+    .replace(/\s+/g, '_')
+}
+
+function formatTagAsLabel(tag: string): string {
+  const cleaned = String(tag || '').trim()
+  if (!cleaned) return '#Label'
+  const text = cleaned
+    .split('_')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('')
+  return `#${text || 'Label'}`
+}
+
+const labelOptions = computed<Array<{ value: LabelTag; label: string }>>(() => {
+  const map = new Map<string, { value: LabelTag; label: string }>()
+
+  SPECIAL_TAG_OPTIONS.forEach((item) => {
+    map.set(item.value, item)
+  })
+
+  ;(form.value.specialTags || []).forEach((tag) => {
+    const normalized = normalizeTag(String(tag || ''))
+    if (!normalized || map.has(normalized)) return
+    map.set(normalized, {
+      value: normalized,
+      label: formatTagAsLabel(normalized),
+    })
+  })
+
+  return Array.from(map.values())
+})
+
+function toggleTag(value: LabelTag) {
   const tags = new Set(form.value.specialTags || [])
   if (tags.has(value)) {
     tags.delete(value)
@@ -131,8 +172,27 @@ function toggleTag(value: SpecialTag) {
   form.value.specialTags = Array.from(tags)
 }
 
-function hasTag(value: SpecialTag) {
+function hasTag(value: LabelTag) {
   return (form.value.specialTags || []).includes(value)
+}
+
+function addCustomLabel() {
+  newLabelError.value = ''
+  const normalized = normalizeTag(newLabelInput.value)
+
+  if (!normalized) {
+    newLabelError.value = 'Please enter a label name'
+    return
+  }
+
+  const exists = (form.value.specialTags || []).includes(normalized)
+  if (exists) {
+    newLabelError.value = 'This label already exists'
+    return
+  }
+
+  form.value.specialTags = [...(form.value.specialTags || []), normalized]
+  newLabelInput.value = ''
 }
 
 function getPrimaryLabelClass(active: boolean) {
@@ -466,6 +526,23 @@ async function handleImageUpload(e: Event) {
       <!-- Labels -->
       <div>
         <label class="mb-2 block text-sm font-medium text-navy-700">Special Label</label>
+        <div class="mb-3 grid grid-cols-[1fr_auto] gap-2">
+          <input
+            v-model="newLabelInput"
+            type="text"
+            placeholder="Add new label..."
+            class="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-azure-400 focus:ring-2 focus:ring-azure-100"
+            @keydown.enter.prevent="addCustomLabel"
+          />
+          <button
+            type="button"
+            class="rounded-lg bg-surface-input px-4 py-2 text-sm font-semibold text-navy-700 transition-all hover:bg-surface-dim"
+            @click="addCustomLabel"
+          >
+            Add
+          </button>
+        </div>
+        <p v-if="newLabelError" class="mb-2 text-xs font-medium text-danger">{{ newLabelError }}</p>
         <div class="flex flex-wrap gap-3">
           <button
             type="button"
@@ -484,7 +561,7 @@ async function handleImageUpload(e: Event) {
             New
           </button>
           <button
-            v-for="tag in SPECIAL_TAG_OPTIONS"
+            v-for="tag in labelOptions"
             :key="tag.value"
             type="button"
             class="rounded-lg px-4 py-2 text-sm font-bold transition-all"

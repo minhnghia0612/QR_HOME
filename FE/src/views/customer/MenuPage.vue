@@ -639,6 +639,23 @@ function getBadgeClasses(key: string) {
   return BADGE_STYLE_MAP[key] || 'bg-primary-100 text-primary-600'
 }
 
+function getOceanBadgeClasses(key: string) {
+  if (key === 'best_seller') return 'bg-[#FDE68A] text-[#92400E]'
+  if (key === 'new_service') return 'bg-[#A5F3FC] text-[#155E75]'
+  if (key === 'must_try') return 'bg-[#A7F3D0] text-[#065F46]'
+  if (key === 'limited_edition') return 'bg-[#DDD6FE] text-[#5B21B6]'
+  if (key === 'summer_special') return 'bg-[#FED7AA] text-[#9A3412]'
+  if (key === 'happy_hour') return 'bg-[#FBCFE8] text-[#9D174D]'
+  if (key === 'more_labels') return 'bg-white/80 text-[#0C4A6E]'
+  return 'bg-[#E0F2FE] text-[#0C4A6E]'
+}
+
+function getOceanServiceLabelItems(item: any) {
+  const labels = getServiceLabelItems(item)
+  if (labels.length <= 2) return labels
+  return [...labels.slice(0, 2), { key: 'more_labels', label: `+${labels.length - 2}` }]
+}
+
 function getDetailVariantOptions(service: any) {
   if (!service?.hasVariants || !Array.isArray(service?.variantOptions)) return []
   return service.variantOptions
@@ -1030,6 +1047,15 @@ function handleImgError(e: Event) {
                 <div class="min-w-0 flex-1">
                   <p class="line-clamp-1 text-lg font-black text-white">{{ svc.name }}</p>
                   <p class="mt-1 line-clamp-2 text-xs font-medium text-white/60">{{ svc.shortDescription || svc.description || 'Premium service' }}</p>
+                  <div class="mt-2 flex flex-wrap gap-1.5">
+                    <span
+                      v-for="label in getServiceLabelItems(svc)"
+                      :key="`dark-label-${svc.id}-${label.key}`"
+                      :class="['rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider', getBadgeClasses(label.key)]"
+                    >
+                      {{ label.label }}
+                    </span>
+                  </div>
                   <p class="mt-2 text-sm font-black text-[#F57C00]">{{ getServiceDisplayPrice(svc) }}</p>
                 </div>
               </button>
@@ -1409,6 +1435,15 @@ function handleImgError(e: Event) {
                 </div>
                 <div class="p-3">
                   <p class="line-clamp-1 text-sm font-black text-text-primary">{{ svc.name }}</p>
+                  <div class="mt-2 flex flex-wrap gap-1.5">
+                    <span
+                      v-for="label in getServiceLabelItems(svc)"
+                      :key="`modern-left-label-${svc.id}-${label.key}`"
+                      :class="['rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider', getBadgeClasses(label.key)]"
+                    >
+                      {{ label.label }}
+                    </span>
+                  </div>
                   <p class="mt-1 text-xs font-semibold text-primary-700">{{ getServiceDisplayPrice(svc) }}</p>
                 </div>
               </button>
@@ -1426,6 +1461,15 @@ function handleImgError(e: Event) {
                 </div>
                 <div class="p-3">
                   <p class="line-clamp-1 text-sm font-black text-text-primary">{{ svc.name }}</p>
+                  <div class="mt-2 flex flex-wrap gap-1.5">
+                    <span
+                      v-for="label in getServiceLabelItems(svc)"
+                      :key="`modern-right-label-${svc.id}-${label.key}`"
+                      :class="['rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider', getBadgeClasses(label.key)]"
+                    >
+                      {{ label.label }}
+                    </span>
+                  </div>
                   <p class="mt-1 text-xs font-semibold text-primary-700">{{ getServiceDisplayPrice(svc) }}</p>
                 </div>
               </button>
@@ -1462,6 +1506,15 @@ function handleImgError(e: Event) {
                   <div class="absolute inset-x-0 bottom-0 p-4">
                     <p :class="[index % 5 === 0 ? 'text-[32px]' : 'text-lg', 'font-black leading-none text-white line-clamp-2']">{{ svc.name }}</p>
                     <p v-if="index % 5 === 0" class="mt-1 line-clamp-1 text-sm font-medium text-cyan-100/70">{{ svc.shortDescription || svc.description || 'Premium hyper-service' }}</p>
+                    <div class="mt-2 flex flex-wrap gap-1.5">
+                      <span
+                        v-for="label in getServiceLabelItems(svc)"
+                        :key="`neon-label-${svc.id}-${label.key}`"
+                        :class="['rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider backdrop-blur-sm', getBadgeClasses(label.key)]"
+                      >
+                        {{ label.label }}
+                      </span>
+                    </div>
                     <p :class="[index % 5 === 0 ? 'mt-3 text-lg' : 'mt-1 text-sm', 'font-black text-cyan-300']">{{ getServiceDisplayPrice(svc) }}</p>
                   </div>
                 </button>
@@ -1489,16 +1542,25 @@ function handleImgError(e: Event) {
                   <button
                     v-for="svc in group.services"
                     :key="`ocean-svc-${svc.id}`"
-                    class="ocean-service-card w-[178px] flex-shrink-0 snap-start text-left"
+                    class="ocean-service-card h-[244px] w-[178px] flex-shrink-0 snap-start text-left"
                     @click="openDetail(svc)"
                   >
                     <div class="ocean-service-media h-36 w-full overflow-hidden bg-surface-input">
                       <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                     </div>
 
-                    <div class="ocean-service-body px-3 py-2.5">
+                    <div class="ocean-service-body flex h-[100px] flex-col px-3 py-2.5">
                       <p class="line-clamp-2 text-[13px] font-black text-white">{{ svc.name }}</p>
-                      <p class="mt-1 text-sm font-black text-white/90">{{ getServiceDisplayPrice(svc) }}</p>
+                      <div v-if="getOceanServiceLabelItems(svc).length" class="mt-1.5 flex min-h-[20px] flex-wrap gap-1 overflow-hidden">
+                        <span
+                          v-for="label in getOceanServiceLabelItems(svc)"
+                          :key="`ocean-label-${svc.id}-${label.key}`"
+                          :class="['rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider', getOceanBadgeClasses(label.key)]"
+                        >
+                          {{ label.label }}
+                        </span>
+                      </div>
+                      <p class="mt-auto line-clamp-1 text-sm font-black text-white/90">{{ getServiceDisplayPrice(svc) }}</p>
                     </div>
                   </button>
                 </div>
@@ -1614,6 +1676,15 @@ function handleImgError(e: Event) {
 
                     <div class="vibrant-card-body">
                       <p class="line-clamp-1 text-[20px] font-black leading-tight text-text-primary">{{ svc.name }}</p>
+                      <div class="mt-2 flex flex-wrap gap-1.5">
+                        <span
+                          v-for="label in getServiceLabelItems(svc)"
+                          :key="`vibrant-label-${svc.id}-${label.key}`"
+                          :class="['rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider', getBadgeClasses(label.key)]"
+                        >
+                          {{ label.label }}
+                        </span>
+                      </div>
                       <p class="mt-1 text-lg font-black text-text-secondary">{{ getServiceDisplayPrice(svc) }}</p>
                     </div>
                   </button>
@@ -1784,38 +1855,41 @@ function handleImgError(e: Event) {
 
     <!-- Full Screen Detail Detail (Figma Accurate) -->
     <Teleport to="body">
-      <Transition name="slide-up">
+      <Transition name="modal-fade">
         <div
           v-if="showDetail && selectedService"
-          :class="[
-            'menu-detail-root fixed inset-0 z-50 overflow-y-auto bg-surface-page',
-            `theme-${themeId}`,
-            `menu-size-${menuSize}`,
-          ]"
-          :style="customerInterfaceStyle"
+          :class="['fixed inset-0 z-50 flex justify-center items-start bg-black/60 backdrop-blur-sm overflow-y-auto', `theme-${themeId}`]"
         >
-          <button
-            @click="closeDetail"
-            class="fixed right-5 top-5 z-[60] flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all active:scale-90"
+          <div
+            :class="[
+              'menu-detail-root relative w-full max-w-[800px] min-h-screen bg-surface-page shadow-2xl flex flex-col',
+              `menu-size-${menuSize}`,
+            ]"
+            :style="customerInterfaceStyle"
           >
-            <X class="h-5 w-5" />
-          </button>
+            <!-- Close Button -->
+            <button
+              @click="closeDetail"
+              class="absolute right-5 top-5 z-[60] flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all active:scale-90"
+            >
+              <X class="h-5 w-5" />
+            </button>
 
-          <!-- Full Width Hero Image -->
-          <div class="relative w-full overflow-hidden h-[360px] shadow-lg bg-surface-input">
-            <img
-              :src="selectedService.imageUrl || imgFallback"
-              :alt="selectedService.name"
-              class="h-full w-full object-cover"
-              @error="handleImgError"
-            />
-          </div>
+            <!-- Full Width Hero Image -->
+            <div class="relative w-full overflow-hidden h-[360px] shadow-lg bg-surface-input flex-shrink-0">
+              <img
+                :src="selectedService.imageUrl || imgFallback"
+                :alt="selectedService.name"
+                class="h-full w-full object-cover"
+                @error="handleImgError"
+              />
+            </div>
 
-          <!-- Content (Title and tags are no longer on image) -->
-          <div class="relative -mt-6 rounded-t-[28px] bg-surface-page px-6 pt-6 pb-20">
-            <h2 class="text-3xl font-black tracking-tight text-text-primary leading-tight">
-              {{ selectedService.name }}
-            </h2>
+            <!-- Content -->
+            <div class="relative -mt-6 rounded-t-[28px] bg-surface-page px-6 pt-6 pb-20 flex-1">
+              <h2 class="text-3xl font-black tracking-tight text-text-primary leading-tight">
+                {{ selectedService.name }}
+              </h2>
 
             <div v-if="getServiceLabelItems(selectedService).length" class="mt-4 flex flex-wrap gap-2">
               <span
@@ -1865,6 +1939,7 @@ function handleImgError(e: Event) {
             </div>
           </div>
         </div>
+        </div>
       </Transition>
     </Teleport>
   </div>
@@ -1884,10 +1959,28 @@ function handleImgError(e: Event) {
 .fade-enter-active, .fade-leave-active { transition: opacity 0.25s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
-/* Slide Up (Modal) */
-.slide-up-enter-active { transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.slide-up-leave-active { transition: transform 0.25s ease-in; }
-.slide-up-enter-from, .slide-up-leave-to { transform: translateY(100%); }
+/* Modal Transition (lighter than full slide-up to reduce web jank) */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.22s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-active .menu-detail-root,
+.modal-fade-leave-active .menu-detail-root {
+  transition: transform 0.24s cubic-bezier(0.22, 0.8, 0.22, 1), opacity 0.24s ease;
+  will-change: transform, opacity;
+}
+
+.modal-fade-enter-from .menu-detail-root,
+.modal-fade-leave-to .menu-detail-root {
+  transform: translateY(12px) scale(0.995);
+  opacity: 0.96;
+}
 
 /* Article Slide Transition */
 .slide-fade-enter-active, .slide-fade-leave-active {

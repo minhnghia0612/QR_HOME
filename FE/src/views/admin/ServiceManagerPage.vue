@@ -17,7 +17,7 @@ import { io, type Socket } from 'socket.io-client'
 import imgFallback from '@/assets/img_fallback.png'
 
 type SpecialTag = 'must_try' | 'limited_edition' | 'summer_special' | 'happy_hour'
-type LabelValue = 'best_seller' | 'new_service' | SpecialTag
+type LabelValue = 'best_seller' | 'new_service' | SpecialTag | string
 
 const SPECIAL_TAG_OPTIONS: Array<{ value: SpecialTag; label: string }> = [
   { value: 'must_try', label: 'Must Try' },
@@ -95,6 +95,8 @@ const fieldErrors = ref({
   variantOptions: '',
 })
 const formCategoryOpen = ref(false)
+const newLabelInput = ref('')
+const newLabelError = ref('')
 
 const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'danger' | 'warning' })
 const showConflictDialog = ref(false)
@@ -614,6 +616,8 @@ function openCreate() {
   priceFromInput.value = ''
   priceToInput.value = ''
   formError.value = ''
+  newLabelInput.value = ''
+  newLabelError.value = ''
   fieldErrors.value = { name: '', categoryId: '', price: '', imageUrl: '', variantOptions: '' }
   showForm.value = true
 }
@@ -621,6 +625,8 @@ function openCreate() {
 async function openEdit(svc: any) {
   editingService.value = svc
   formError.value = ''
+  newLabelInput.value = ''
+  newLabelError.value = ''
   fieldErrors.value = { name: '', categoryId: '', price: '', imageUrl: '', variantOptions: '' }
   formLoading.value = true
   showForm.value = true
@@ -666,6 +672,8 @@ function resetForm() {
   showForm.value = false
   editingService.value = null
   formError.value = ''
+  newLabelInput.value = ''
+  newLabelError.value = ''
   fieldErrors.value = { name: '', categoryId: '', price: '', imageUrl: '', variantOptions: '' }
   formLoading.value = false
 }
@@ -677,15 +685,60 @@ function parseOptionalNumber(value: string | number | null | undefined): number 
   return Number.isFinite(parsed) ? parsed : undefined
 }
 
-function toggleTag(value: SpecialTag) {
+function normalizeCustomTag(value: string): string {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s_-]/g, '')
+    .replace(/\s+/g, '_')
+}
+
+function toggleTag(value: string) {
   const tags = new Set(form.value.specialTags || [])
   if (tags.has(value)) tags.delete(value)
   else tags.add(value)
   form.value.specialTags = Array.from(tags)
 }
 
-function hasTag(value: SpecialTag) {
+function hasTag(value: string) {
   return (form.value.specialTags || []).includes(value)
+}
+
+const formLabelOptions = computed<Array<{ value: LabelValue; label: string }>>(() => {
+  const map = new Map<string, { value: LabelValue; label: string }>()
+
+  LABEL_OPTIONS.forEach((item) => {
+    map.set(String(item.value), item)
+  })
+
+  ;(form.value.specialTags || []).forEach((tag) => {
+    const normalized = normalizeCustomTag(tag)
+    if (!normalized || map.has(normalized)) return
+    map.set(normalized, {
+      value: normalized,
+      label: formatTagLabel(normalized),
+    })
+  })
+
+  return Array.from(map.values())
+})
+
+function addCustomLabel() {
+  newLabelError.value = ''
+  const normalized = normalizeCustomTag(newLabelInput.value)
+
+  if (!normalized) {
+    newLabelError.value = 'Please enter a label name'
+    return
+  }
+
+  if ((form.value.specialTags || []).includes(normalized)) {
+    newLabelError.value = 'This label already exists'
+    return
+  }
+
+  form.value.specialTags = [...(form.value.specialTags || []), normalized]
+  newLabelInput.value = ''
 }
 
 function toggleLabel(value: LabelValue) {
@@ -1314,9 +1367,26 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
             <!-- Special Label -->
             <div>
               <label class="mb-1.5 block text-sm font-medium text-text-secondary">Special Label</label>
+              <div class="mb-2 grid grid-cols-[1fr_auto] gap-2">
+                <input
+                  v-model="newLabelInput"
+                  type="text"
+                  placeholder="Add new label..."
+                  class="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-text-primary outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                  @keydown.enter.prevent="addCustomLabel"
+                />
+                <button
+                  type="button"
+                  class="rounded-lg border border-border bg-gradient-to-b from-primary-500 to-[#0048B5] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-surface-page"
+                  @click="addCustomLabel"
+                >
+                  Add
+                </button>
+              </div>
+              <p v-if="newLabelError" class="mb-2 text-xs font-medium text-danger">{{ newLabelError }}</p>
               <div class="mt-2 flex flex-wrap gap-2">
                 <button
-                  v-for="item in LABEL_OPTIONS"
+                  v-for="item in formLabelOptions"
                   :key="item.value"
                   type="button"
                   class="rounded-lg px-4 py-2 text-sm font-bold transition-all"
