@@ -102,6 +102,7 @@ const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'da
 const showConflictDialog = ref(false)
 const existingService = ref<any>(null)
 const uploadLoading = ref(false)
+const isDraggingImage = ref(false)
 
 const MAX_IMAGE_SIZE_MB = 5
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
@@ -779,20 +780,15 @@ function removeVariantOption(index: number) {
   form.value.variantOptions = list
 }
 
-async function handleUpload(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
-  if (!file) return
-
+async function processFile(file: File) {
   const isImage = String(file.type || '').startsWith('image/')
   if (!isImage) {
     showToast('Only image files are allowed (JPG, PNG, WEBP, ...).', 'danger')
-    ;(e.target as HTMLInputElement).value = ''
     return
   }
 
   if (file.size > MAX_IMAGE_SIZE_BYTES) {
     showToast(`Image is too large. Max size is ${MAX_IMAGE_SIZE_MB}MB.`, 'danger')
-    ;(e.target as HTMLInputElement).value = ''
     return
   }
 
@@ -814,8 +810,20 @@ async function handleUpload(e: Event) {
     showToast(String(message), 'danger')
   } finally {
     uploadLoading.value = false
-    ;(e.target as HTMLInputElement).value = ''
   }
+}
+
+async function handleUpload(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  await processFile(file)
+  ;(e.target as HTMLInputElement).value = ''
+}
+
+async function handleDrop(e: DragEvent) {
+  const file = e.dataTransfer?.files?.[0]
+  if (!file) return
+  await processFile(file)
 }
 
 function formatPrice(p: number) {
@@ -1455,11 +1463,20 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
                 <Image class="h-4 w-4" />
                 Service Image
               </div>
-              <label class="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface-input p-8 transition-colors hover:border-primary-600">
+              <label 
+                class="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 transition-colors"
+                :class="[
+                  uploadLoading ? 'opacity-70 pointer-events-none' : '',
+                  isDraggingImage ? 'border-primary-600 bg-primary-50/50' : 'border-border bg-surface-input hover:border-primary-600'
+                ]"
+                @dragover.prevent="isDraggingImage = true"
+                @dragleave.prevent="isDraggingImage = false"
+                @drop.prevent="e => { isDraggingImage = false; handleDrop(e) }"
+              >
                 <Upload class="mb-2 h-8 w-8 text-text-muted" />
                 <span class="text-sm font-bold text-text-primary">{{ uploadLoading ? 'Uploading image...' : 'Upload image or drag and drop' }}</span>
                 <span class="mt-1 text-xs text-text-muted">Recommended JPG/PNG/WEBP. Max size 5MB.</span>
-                <input type="file" accept="image/*" class="hidden" @change="handleUpload" />
+                <input type="file" accept="image/*" class="hidden" @change="handleUpload" :disabled="uploadLoading" />
               </label>
               <p v-if="fieldErrors.imageUrl" class="mt-1 text-xs font-medium text-danger">{{ fieldErrors.imageUrl }}</p>
               <div v-if="form.imageUrl && form.imageUrl !== imgFallback" class="mt-3 overflow-hidden rounded-xl">

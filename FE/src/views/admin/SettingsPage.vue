@@ -72,6 +72,8 @@ watch(config, (val) => {
 
 const toast = ref({ show: false, message: '', type: 'danger' as 'success' | 'danger' | 'warning' })
 const uploadLoading = ref<'spaLogo' | 'bannerUrl' | null>(null)
+const isDraggingLogo = ref(false)
+const isDraggingBanner = ref(false)
 
 const MAX_IMAGE_SIZE_MB = 5
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
@@ -157,21 +159,15 @@ const { mutate: saveConfig, isPending: saving } = useMutation({
   }
 })
 
-async function handleUpload(e: Event, field: 'spaLogo' | 'bannerUrl') {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-
+async function processFile(file: File, field: 'spaLogo' | 'bannerUrl') {
   const isImage = String(file.type || '').startsWith('image/')
   if (!isImage) {
     showToast('Only image files are allowed (JPG, PNG, WEBP, ...).', 'danger')
-    input.value = ''
     return
   }
 
   if (file.size > MAX_IMAGE_SIZE_BYTES) {
     showToast(`Image is too large. Max size is ${MAX_IMAGE_SIZE_MB}MB.`, 'danger')
-    input.value = ''
     return
   }
 
@@ -190,8 +186,21 @@ async function handleUpload(e: Event, field: 'spaLogo' | 'bannerUrl') {
     showToast(getApiErrorMessage(err, 'Image upload failed. Please try again.'), 'danger')
   } finally {
     uploadLoading.value = null
-    input.value = ''
   }
+}
+
+async function handleUpload(e: Event, field: 'spaLogo' | 'bannerUrl') {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  await processFile(file, field)
+  input.value = ''
+}
+
+async function handleDrop(e: DragEvent, field: 'spaLogo' | 'bannerUrl') {
+  const file = e.dataTransfer?.files?.[0]
+  if (!file) return
+  await processFile(file, field)
 }
 
 // No need for separate onMounted if we have watch(config)
@@ -234,7 +243,13 @@ async function handleUpload(e: Event, field: 'spaLogo' | 'bannerUrl') {
           <div class="space-y-6">
             <!-- Logo Section -->
             <div class="flex items-center gap-6">
-              <div class="relative h-20 w-20 overflow-hidden rounded-2xl bg-surface-input">
+              <div 
+                class="relative h-20 w-20 overflow-hidden rounded-2xl transition-all"
+                :class="[isDraggingLogo ? 'ring-2 ring-primary-600 bg-primary-50/50' : 'bg-surface-input']"
+                @dragover.prevent="isDraggingLogo = true"
+                @dragleave.prevent="isDraggingLogo = false"
+                @drop.prevent="e => { isDraggingLogo = false; handleDrop(e, 'spaLogo') }"
+              >
                 <img v-if="form.spaLogo" :src="form.spaLogo" class="h-full w-full object-cover" />
                 <div v-else class="flex h-full w-full items-center justify-center text-2xl">⠿</div>
                 <label class="absolute bottom-1 right-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-border hover:bg-surface-input">
@@ -335,7 +350,16 @@ async function handleUpload(e: Event, field: 'spaLogo' | 'bannerUrl') {
             <!-- Banner Upload -->
             <div>
               <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Banner</label>
-              <label class="flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface-input p-6 transition-colors hover:border-primary-600" :class="uploadLoading === 'bannerUrl' ? 'opacity-70 pointer-events-none' : ''">
+              <label 
+                class="flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 transition-colors" 
+                :class="[
+                  uploadLoading === 'bannerUrl' ? 'opacity-70 pointer-events-none' : '',
+                  isDraggingBanner ? 'border-primary-600 bg-primary-50/50' : 'border-border bg-surface-input hover:border-primary-600'
+                ]"
+                @dragover.prevent="isDraggingBanner = true"
+                @dragleave.prevent="isDraggingBanner = false"
+                @drop.prevent="e => { isDraggingBanner = false; handleDrop(e, 'bannerUrl') }"
+              >
                 <template v-if="!form.bannerUrl">
                   <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-600 mb-3">
                     <ImageIcon class="h-6 w-6" />
