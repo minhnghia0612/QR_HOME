@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { useAuthStore } from '@/stores/auth.store'
@@ -11,6 +12,7 @@ type CustomerUiSize = 'large' | 'normal' | 'compact'
 
 const authStore = useAuthStore()
 const queryClient = useQueryClient()
+const { t } = useI18n({ useScope: 'global' })
 
 const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'danger' | 'warning' })
 
@@ -127,12 +129,12 @@ const { mutate: saveTheme, isPending: saving } = useMutation({
     return data
   },
   onSuccess: () => {
-    showToast('Theme and customer interface applied successfully', 'success')
+    showToast(t('admin.theme.saved'), 'success')
     queryClient.invalidateQueries({ queryKey: ['qr-config'] })
     queryClient.invalidateQueries({ queryKey: ['public-config'] })
   },
   onError: (err: any) => {
-    showToast(err.message || 'Failed to save theme', 'danger')
+    showToast(err.message || t('admin.theme.saveFailed'), 'danger')
   }
 })
 
@@ -184,8 +186,8 @@ watch(
   <div class="flex min-h-[calc(100vh-64px)] flex-col overflow-y-auto px-4 py-6 sm:px-6 sm:py-8">
     <div class="mb-6 flex flex-shrink-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h2 class="text-3xl font-bold tracking-tight text-text-primary">Theme Settings</h2>
-        <p class="mt-1 text-sm text-text-secondary">Choose template and customer interface style</p>
+        <h2 class="text-3xl font-bold tracking-tight text-text-primary">{{ t('admin.theme.title') }}</h2>
+        <p class="mt-1 text-sm text-text-secondary">{{ t('admin.theme.subtitle') }}</p>
       </div>
       <button
         class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-primary-600 to-[#0048B5] px-6 py-3 text-sm font-extrabold text-white shadow-button transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 sm:w-auto"
@@ -194,7 +196,7 @@ watch(
       >
         <Save v-if="!saving" class="h-4 w-4" />
         <span v-else class="animate-spin text-sm">⏳</span>
-        {{ saving ? 'Saving...' : 'Apply Theme & Interface' }}
+        {{ saving ? t('admin.common.saving') : t('admin.theme.apply') }}
       </button>
     </div>
 
@@ -203,7 +205,7 @@ watch(
       <!-- Left: Theme Selection List -->
       <div class="w-full min-h-0 rounded-3xl bg-white shadow-sm ring-1 ring-border lg:w-1/2 lg:overflow-hidden">
         <div class="p-6 border-b border-border bg-surface-page/50 flex-shrink-0">
-          <h3 class="text-lg font-bold text-text-primary">Theme & Customer Interface</h3>
+          <h3 class="text-lg font-bold text-text-primary">{{ t('admin.theme.sectionTitle') }}</h3>
         </div>
         <div class="p-6 lg:flex-1 lg:overflow-y-auto">
           <div v-if="loadingConfig" class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -246,11 +248,11 @@ watch(
           </div>
 
           <div class="mt-8 border-t border-border pt-6">
-            <h4 class="text-sm font-bold uppercase tracking-wider text-text-secondary">Customer Interface</h4>
+            <h4 class="text-sm font-bold uppercase tracking-wider text-text-secondary">{{ t('admin.theme.customerInterface') }}</h4>
 
             <div class="mt-5 space-y-6">
               <div>
-                <p class="mb-2 text-xs font-bold text-text-muted">Primary Color</p>
+                <p class="mb-2 text-xs font-bold text-text-muted">{{ t('admin.theme.primaryColor') }}</p>
                 <div class="flex flex-wrap items-center gap-2.5">
                   <button
                     v-for="(color, i) in themeColorPresets.primary"
@@ -261,7 +263,7 @@ watch(
                     class="color-swatch"
                     :class="customerInterface.primaryColor === color ? 'color-swatch--active' : ''"
                   />
-                  <label class="relative cursor-pointer" title="Custom color">
+                  <label class="relative cursor-pointer" :title="t('admin.theme.customColor')">
                     <span
                       class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed border-border bg-white text-xs font-black text-text-muted hover:border-primary-400 transition-colors"
                     >+</span>
@@ -279,7 +281,7 @@ watch(
               </div>
 
               <div>
-                <p class="mb-2 text-xs font-bold text-text-muted">Secondary Color</p>
+                <p class="mb-2 text-xs font-bold text-text-muted">{{ t('admin.theme.secondaryColor') }}</p>
                 <div class="flex flex-wrap items-center gap-2.5">
                   <button
                     v-for="(color, i) in themeColorPresets.secondary"
@@ -290,7 +292,7 @@ watch(
                     class="color-swatch"
                     :class="customerInterface.secondaryColor === color ? 'color-swatch--active' : ''"
                   />
-                  <label class="relative cursor-pointer" title="Custom color">
+                  <label class="relative cursor-pointer" :title="t('admin.theme.customColor')">
                     <span
                       class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed border-border bg-white text-xs font-black text-text-muted hover:border-primary-400 transition-colors"
                     >+</span>
@@ -308,7 +310,7 @@ watch(
               </div>
 
               <div>
-                <p class="mb-3 text-xs font-bold text-text-muted">Font Family</p>
+                <p class="mb-3 text-xs font-bold text-text-muted">{{ t('admin.theme.fontFamily') }}</p>
                 <div class="relative" ref="fontDropdownRef">
                   <button
                     type="button"
@@ -336,7 +338,7 @@ watch(
               </div>
 
               <div>
-                <p class="mb-3 text-xs font-bold text-text-muted">Size</p>
+                <p class="mb-3 text-xs font-bold text-text-muted">{{ t('admin.theme.size') }}</p>
                 <div class="flex w-fit items-center gap-1.5 rounded-2xl bg-surface-input p-1.5 ring-1 ring-border">
                   <button
                     v-for="size in ['large', 'normal', 'compact']"
@@ -361,7 +363,7 @@ watch(
 
       <!-- Right: Live Preview Mockup -->
       <div class="w-full rounded-3xl bg-[#EEF2F6] p-4 shadow-inner ring-1 ring-border sm:p-6 lg:w-1/2">
-        <p class="mb-4 text-xs font-bold text-text-secondary uppercase tracking-widest text-center w-full">Live Preview</p>
+        <p class="mb-4 text-xs font-bold text-text-secondary uppercase tracking-widest text-center w-full">{{ t('admin.theme.livePreview') }}</p>
         
         <!-- Mockup Device Wrapper (Fixed viewport + responsive scale) -->
         <div class="mx-auto flex w-full justify-center overflow-hidden h-[540px] sm:h-[630px] md:h-[720px] lg:h-[760px] xl:h-[790px] items-start">
@@ -379,7 +381,7 @@ watch(
                 :key="previewFrameKey"
                 :src="previewUrl"
                 class="absolute inset-0 h-full w-full border-0"
-                title="Theme Preview"
+                :title="t('admin.theme.previewFrameTitle')"
               ></iframe>
             </div>
           </div>

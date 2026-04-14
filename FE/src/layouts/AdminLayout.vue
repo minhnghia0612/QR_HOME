@@ -6,10 +6,37 @@ import { useQuery } from '@tanstack/vue-query'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { categoriesApi } from '@/api/categories.api'
 import { servicesApi } from '@/api/services.api'
-import { LayoutDashboard, BookOpen, Settings, LogOut, Menu, X, Palette } from 'lucide-vue-next'
+import { LayoutDashboard, BookOpen, Settings, LogOut, Menu, X, Palette, Globe, ChevronDown } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+import { SUPPORTED_LOCALES, setLocale, type AppLocale } from '@/i18n'
+
+const { t, locale } = useI18n()
+const showLangMenu = ref(false)
+const langMenuRef = ref<HTMLElement | null>(null)
 
 const route = useRoute()
 const router = useRouter()
+
+const currentLangData = computed(() => {
+  if (locale.value === 'vi') return { label: 'Tiếng Việt', flag: 'vn' }
+  if (locale.value === 'de') return { label: 'Deutsch', flag: 'de' }
+  return { label: 'English', flag: 'us' }
+})
+
+function changeLanguage(lang: AppLocale) {
+  setLocale(lang)
+  showLangMenu.value = false
+}
+
+// Close lang menu on outside click
+if (typeof window !== 'undefined') {
+  window.addEventListener('click', (e) => {
+    if (langMenuRef.value && !langMenuRef.value.contains(e.target as Node)) {
+      showLangMenu.value = false
+    }
+  })
+}
+
 const authStore = useAuthStore()
 const sidebarOpen = ref(false)
 
@@ -63,11 +90,11 @@ const navLoading = computed(() => loadingConfig.value || loadingCats.value || lo
 // Dynamic Navigation (Simplified Order: Dashboard -> Categories -> Services -> Settings)
 const availableNavLinks = computed(() => {
   const allLinks = [
-    { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, visible: isStep3Complete.value },
-    { to: '/admin/categories', label: 'Categories', icon: BookOpen, visible: isStep1Complete.value },
-    { to: '/admin/services', label: 'Service Manager', icon: BookOpen, visible: isStep2Complete.value },
-    { to: '/admin/qr', label: 'Settings', icon: Settings, visible: true },
-    { to: '/admin/themes', label: 'Theme Settings', icon: Palette, visible: isStep3Complete.value },
+    { to: '/admin/dashboard', label: t('admin.common.nav.dashboard'), icon: LayoutDashboard, visible: isStep3Complete.value },
+    { to: '/admin/categories', label: t('admin.common.nav.categories'), icon: BookOpen, visible: isStep1Complete.value },
+    { to: '/admin/services', label: t('admin.common.nav.services'), icon: BookOpen, visible: isStep2Complete.value },
+    { to: '/admin/qr', label: t('admin.common.nav.settings'), icon: Settings, visible: true },
+    { to: '/admin/themes', label: t('admin.common.nav.themeSettings'), icon: Palette, visible: isStep3Complete.value },
   ]
   
   return allLinks.filter(link => link.visible)
@@ -96,10 +123,10 @@ async function logout() {
       <!-- Logo Area -->
       <div class="px-2 pb-8">
         <h1 class="text-lg font-black tracking-tight text-primary-700">
-          Admin Panel
+          {{ t('admin.common.layout.adminPanel') }}
         </h1>
         <p class="mt-0.5 text-xs font-medium text-text-muted opacity-70">
-          Service Management
+          {{ t('admin.common.layout.serviceManagement') }}
         </p>
       </div>
 
@@ -133,23 +160,23 @@ async function logout() {
         <div v-if="!navLoading && !isSetupComplete" class="mt-6 px-4 py-4 rounded-xl bg-primary-50/30 border border-primary-100/30">
           <p class="text-[15px] font-bold text-primary-800 uppercase tracking-widest mb-1.5 flex items-center gap-2">
             <span class="flex h-1.5 w-1.5 rounded-full bg-primary-500 animate-pulse"></span>
-            Setup Progress
+            {{ t('admin.common.nav.setupProgress') }}
           </p>
           <div class="space-y-2">
              <div class="flex items-center justify-between text-[12px] text-text-muted">
-               <span>Business Profile</span>
-               <span v-if="isStep1Complete" class="text-success-600 font-bold">Done</span>
-               <span v-else class="text-primary-400">Step 1</span>
+               <span>{{ t('admin.common.nav.businessProfile') }}</span>
+               <span v-if="isStep1Complete" class="text-success-600 font-bold">{{ t('admin.common.layout.done') }}</span>
+               <span v-else class="text-primary-400">{{ t('admin.common.layout.step') }} 1</span>
              </div>
              <div class="flex items-center justify-between text-[12px] text-text-muted">
-               <span>Categories</span>
-               <span v-if="isStep2Complete" class="text-success-600 font-bold">Done</span>
-               <span v-else class="text-primary-400">Step 2</span>
+               <span>{{ t('admin.common.nav.categories') }}</span>
+               <span v-if="isStep2Complete" class="text-success-600 font-bold">{{ t('admin.common.layout.done') }}</span>
+               <span v-else class="text-primary-400">{{ t('admin.common.layout.step') }} 2</span>
              </div>
              <div class="flex items-center justify-between text-[12px] text-text-muted">
-               <span>Services</span>
-               <span v-if="isStep3Complete" class="text-success-600 font-bold">Done</span>
-               <span v-else class="text-primary-400">Step 3</span>
+               <span>{{ t('admin.common.nav.services') }}</span>
+               <span v-if="isStep3Complete" class="text-success-600 font-bold">{{ t('admin.common.layout.done') }}</span>
+               <span v-else class="text-primary-400">{{ t('admin.common.layout.step') }} 3</span>
              </div>
           </div>
         </div>
@@ -162,7 +189,7 @@ async function logout() {
           @click="logout"
         >
           <LogOut class="h-[18px] w-[18px]" />
-          Logout
+          {{ t('admin.common.nav.logout') }}
         </button>
       </div>
     </aside>
@@ -187,10 +214,47 @@ async function logout() {
             <X v-else class="h-5 w-5" />
           </button>
           <span class="text-lg font-black uppercase tracking-tight text-primary-900">
-            QRHome Admin
+            {{ t('admin.common.layout.qrHomeAdmin') }}
           </span>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-6">
+          <!-- Language Switcher -->
+          <div class="relative" ref="langMenuRef">
+            <button 
+              @click="showLangMenu = !showLangMenu"
+              class="flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-bold text-text-primary transition-all hover:bg-surface-input active:scale-95"
+            >
+              <img 
+                :src="`https://flagcdn.com/w40/${currentLangData.flag}.png`" 
+                class="h-3 w-4.5 object-cover rounded-sm shadow-sm" 
+                alt="flag"
+              />
+              <span>{{ currentLangData.label }}</span>
+              <ChevronDown :class="['h-3 w-3 transition-transform', showLangMenu ? 'rotate-180' : '']" />
+            </button>
+            
+            <transition name="fade-down">
+              <div v-if="showLangMenu" class="absolute right-0 mt-2 w-44 overflow-hidden rounded-xl border border-border bg-white shadow-popup ring-1 ring-black/5">
+                <button 
+                  v-for="lang in SUPPORTED_LOCALES" 
+                  :key="lang"
+                  @click="changeLanguage(lang)"
+                  :class="[
+                    'flex w-full items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-surface-input',
+                    locale === lang ? 'bg-primary-50 font-bold text-primary-700' : 'text-text-primary'
+                  ]"
+                >
+                  <img 
+                    :src="`https://flagcdn.com/w40/${lang === 'en' ? 'us' : lang === 'vi' ? 'vn' : lang}.png`" 
+                    class="h-3.5 w-5 object-cover rounded-sm shadow-xs" 
+                    alt="flag"
+                  />
+                  <span>{{ lang === 'vi' ? 'Tiếng Việt' : lang === 'de' ? 'Deutsch' : 'English' }}</span>
+                </button>
+              </div>
+            </transition>
+          </div>
+
           <div class="flex items-center gap-2 text-sm text-text-secondary">
             <div v-if="authStore.admin" class="flex h-8 w-8 items-center justify-center rounded-full bg-surface-input text-xs font-bold text-primary-600">
               {{ authStore.admin?.username?.charAt(0)?.toUpperCase() || 'A' }}

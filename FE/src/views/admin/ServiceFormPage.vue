@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { servicesApi } from '@/api/services.api'
@@ -21,6 +22,7 @@ const SPECIAL_TAG_OPTIONS: Array<{ value: SpecialTag; label: string }> = [
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
+const { t } = useI18n({ useScope: 'global' })
 
 const isEditing = computed(() => !!route.params.id)
 const serviceId = computed(() => route.params.id as string)
@@ -62,9 +64,9 @@ const { data: categories } = useQuery({
 })
 
 const formCategoryLabel = computed(() => {
-  if (!form.value.categoryId) return 'Select category...'
+  if (!form.value.categoryId) return t('admin.serviceManager.selectCategory')
   const cat = categories.value?.find((c: any) => c.id === form.value.categoryId)
-  return cat?.name || 'Select category...'
+  return cat?.name || t('admin.serviceManager.selectCategory')
 })
 
 // Load existing service for edit
@@ -310,10 +312,10 @@ async function handleImageUpload(e: Event) {
       </button>
       <div>
         <h2 class="text-2xl font-bold text-navy-900">
-          {{ isEditing ? 'Edit Service' : 'Add New Service' }}
+          {{ isEditing ? t('admin.serviceManager.editService') : t('admin.serviceManager.newService') }}
         </h2>
         <p class="text-sm text-text-muted">
-          {{ isEditing ? 'Update service details' : 'Create a new service' }}
+          {{ isEditing ? t('admin.serviceForm.updateServiceDetails') : t('admin.serviceForm.createNewService') }}
         </p>
       </div>
     </div>
@@ -325,7 +327,7 @@ async function handleImageUpload(e: Event) {
     >
       <!-- Image upload -->
       <div>
-        <label class="mb-2 block text-sm font-medium text-navy-700">Service Image</label>
+        <label class="mb-2 block text-sm font-medium text-navy-700">{{ t('admin.services.columns.image') }}</label>
         <div class="flex items-center gap-4">
           <div
             class="flex h-28 w-28 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border bg-surface-dim"
@@ -341,16 +343,16 @@ async function handleImageUpload(e: Event) {
             <label
               class="cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium text-navy-700 hover:bg-navy-50"
             >
-              {{ isUploading ? 'Uploading...' : 'Choose Image' }}
+              {{ isUploading ? t('admin.settings.uploadingBanner') : t('admin.serviceForm.chooseImage') }}
               <input type="file" accept="image/*" class="hidden" @change="handleImageUpload" />
             </label>
-            <p class="mt-1 text-xs text-text-muted">JPG, PNG, WebP. Max 5MB.</p>
+            <p class="mt-1 text-xs text-text-muted">{{ t('admin.settings.bannerHint') }}</p>
           </div>
         </div>
       </div>
 
       <div>
-        <label class="mb-1 block text-sm font-medium text-navy-700">Category</label>
+        <label class="mb-1 block text-sm font-medium text-navy-700">{{ t('admin.services.columns.category') }}</label>
         <div class="relative" ref="categoryDropdownRef">
           <button 
             type="button" 
@@ -378,29 +380,29 @@ async function handleImageUpload(e: Event) {
 
       <!-- Name -->
       <div>
-        <label class="mb-1 block text-sm font-medium text-navy-700">Name</label>
+        <label class="mb-1 block text-sm font-medium text-navy-700">{{ t('admin.services.columns.name') }}</label>
         <input
           v-model="form.name"
           required
           class="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-azure-400 focus:ring-2 focus:ring-azure-100"
-          placeholder="e.g. Deep Tissue Massage"
+          :placeholder="t('admin.serviceForm.namePlaceholder')"
         />
       </div>
 
       <!-- Description + Time -->
       <div class="grid grid-cols-3 gap-4">
         <div class="col-span-2">
-          <label class="mb-1 block text-sm font-medium text-navy-700">Description</label>
+          <label class="mb-1 block text-sm font-medium text-navy-700">{{ t('menu.description') }}</label>
           <textarea
             v-model="form.description"
             required
             rows="4"
             class="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-azure-400 focus:ring-2 focus:ring-azure-100"
-            placeholder="Detailed description of the service"
+            :placeholder="t('admin.serviceManager.descriptionPlaceholder')"
           />
         </div>
         <div>
-          <label class="mb-1 block text-sm font-medium text-navy-700">Time (Mins)</label>
+          <label class="mb-1 block text-sm font-medium text-navy-700">{{ t('admin.serviceManager.timeMinutes') }}</label>
           <input
             v-model.number="form.durationMinutes"
             type="number"
@@ -417,7 +419,7 @@ async function handleImageUpload(e: Event) {
         <div class="mb-3 flex items-center justify-between rounded-xl border border-border px-4 py-3">
           <div>
             <p class="text-sm font-semibold text-navy-900">Product Variants</p>
-            <p class="text-xs text-text-muted">Enable if this service has different options (size/package)</p>
+            <p class="text-xs text-text-muted">{{ t('admin.serviceManager.variantHint') }}</p>
           </div>
           <button
             type="button"
@@ -435,7 +437,7 @@ async function handleImageUpload(e: Event) {
 
       <div v-if="!form.hasVariants" class="grid grid-cols-2 gap-4">
         <div>
-          <label class="mb-1 block text-sm font-medium text-navy-700">Price</label>
+          <label class="mb-1 block text-sm font-medium text-navy-700">{{ t('admin.services.columns.price') }}</label>
           <input
             v-model.number="form.price"
             type="number"
@@ -444,10 +446,10 @@ async function handleImageUpload(e: Event) {
             required
             class="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-azure-400 focus:ring-2 focus:ring-azure-100"
           />
-          <p class="mt-1 text-xs text-text-muted">Price must be greater than 0</p>
+          <p class="mt-1 text-xs text-text-muted">{{ t('admin.serviceForm.priceMustGreaterThanZero') }}</p>
         </div>
         <div>
-          <label class="mb-1 block text-sm font-medium text-navy-700">Currency</label>
+          <label class="mb-1 block text-sm font-medium text-navy-700">{{ t('admin.settings.currencyUnit') }}</label>
           <select
             v-model="form.currency"
             class="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-azure-400 focus:ring-2 focus:ring-azure-100"
@@ -460,7 +462,7 @@ async function handleImageUpload(e: Event) {
       </div>
 
       <div v-else class="space-y-3">
-        <label class="mb-1 block text-sm font-medium text-navy-700">Variant Options</label>
+        <label class="mb-1 block text-sm font-medium text-navy-700">{{ t('admin.serviceManager.variantOptions') }}</label>
 
         <div
           v-for="(opt, idx) in (form.variantOptions || [])"
@@ -470,7 +472,7 @@ async function handleImageUpload(e: Event) {
           <input
             v-model="opt.name"
             type="text"
-            placeholder="Option Name (e.g., Small, 60 mins)"
+            :placeholder="t('admin.serviceManager.optionNamePlaceholder')"
             class="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-azure-400 focus:ring-2 focus:ring-azure-100"
           />
           <input
@@ -495,20 +497,20 @@ async function handleImageUpload(e: Event) {
           @click="addVariantOption"
         >
           <Plus class="h-4 w-4" />
-          Add Option
+          {{ t('admin.serviceManager.addOption') }}
         </button>
       </div>
 
       <!-- Optional Price Range -->
       <div v-if="!form.hasVariants">
-        <label class="mb-1 block text-sm font-medium text-navy-700">Price Range (Optional)</label>
+        <label class="mb-1 block text-sm font-medium text-navy-700">{{ t('admin.serviceForm.priceRangeOptional') }}</label>
         <div class="grid grid-cols-2 gap-4">
           <input
             v-model="priceFromInput"
             type="number"
             min="0"
             step="0.01"
-            placeholder="From"
+            :placeholder="t('admin.serviceManager.priceFrom')"
             class="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-azure-400 focus:ring-2 focus:ring-azure-100"
           />
           <input
@@ -516,21 +518,21 @@ async function handleImageUpload(e: Event) {
             type="number"
             min="0"
             step="0.01"
-            placeholder="To (optional)"
+            :placeholder="t('admin.serviceManager.priceTo')"
             class="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-azure-400 focus:ring-2 focus:ring-azure-100"
           />
         </div>
-        <p class="mt-1 text-xs text-text-muted">If both fields are filled, From must be less than To</p>
+        <p class="mt-1 text-xs text-text-muted">{{ t('admin.serviceForm.fromMustLessThanTo') }}</p>
       </div>
 
       <!-- Labels -->
       <div>
-        <label class="mb-2 block text-sm font-medium text-navy-700">Special Label</label>
+        <label class="mb-2 block text-sm font-medium text-navy-700">{{ t('admin.serviceManager.specialLabel') }}</label>
         <div class="mb-3 grid grid-cols-[1fr_auto] gap-2">
           <input
             v-model="newLabelInput"
             type="text"
-            placeholder="Add new label..."
+            :placeholder="t('admin.serviceManager.newLabelPlaceholder')"
             class="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-azure-400 focus:ring-2 focus:ring-azure-100"
             @keydown.enter.prevent="addCustomLabel"
           />
@@ -539,7 +541,7 @@ async function handleImageUpload(e: Event) {
             class="rounded-lg bg-surface-input px-4 py-2 text-sm font-semibold text-navy-700 transition-all hover:bg-surface-dim"
             @click="addCustomLabel"
           >
-            Add
+            {{ t('admin.serviceManager.add') }}
           </button>
         </div>
         <p v-if="newLabelError" class="mb-2 text-xs font-medium text-danger">{{ newLabelError }}</p>
@@ -550,7 +552,7 @@ async function handleImageUpload(e: Event) {
             :class="getPrimaryLabelClass(!!form.isBestSeller)"
             @click="form.isBestSeller = !form.isBestSeller"
           >
-            Best Seller
+            {{ t('menu.badges.best_seller') }}
           </button>
           <button
             type="button"
@@ -558,7 +560,7 @@ async function handleImageUpload(e: Event) {
             :class="getPrimaryLabelClass(!!form.isNewService)"
             @click="form.isNewService = !form.isNewService"
           >
-            New
+            {{ t('menu.badges.new_service') }}
           </button>
           <button
             v-for="tag in labelOptions"
@@ -575,7 +577,7 @@ async function handleImageUpload(e: Event) {
 
       <!-- Status -->
       <div>
-        <label class="mb-2 block text-sm font-medium text-navy-700">Status</label>
+        <label class="mb-2 block text-sm font-medium text-navy-700">{{ t('admin.services.columns.status') }}</label>
         <div class="flex gap-3">
           <button
             type="button"
@@ -583,7 +585,7 @@ async function handleImageUpload(e: Event) {
             :class="form.isActive ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-300' : 'bg-surface-input text-text-muted'"
             @click="form.isActive = true"
           >
-            Active
+            {{ t('admin.common.active') }}
           </button>
           <button
             type="button"
@@ -591,14 +593,14 @@ async function handleImageUpload(e: Event) {
             :class="!form.isActive ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-300' : 'bg-surface-input text-text-muted'"
             @click="form.isActive = false"
           >
-            Inactive
+            {{ t('admin.common.inactive') }}
           </button>
         </div>
       </div>
 
       <!-- Sort order -->
       <div>
-        <label class="mb-1 block text-sm font-medium text-navy-700">Sort Order</label>
+        <label class="mb-1 block text-sm font-medium text-navy-700">{{ t('admin.serviceForm.sortOrder') }}</label>
         <input
           v-model.number="form.sortOrder"
           type="number"
@@ -614,14 +616,14 @@ async function handleImageUpload(e: Event) {
           class="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-navy-700 hover:bg-navy-50"
           @click="router.push('/admin/services')"
         >
-          Cancel
+          {{ t('admin.common.cancel') }}
         </button>
         <button
           type="submit"
           :disabled="saveMutation.isPending.value"
           class="flex-1 rounded-xl bg-navy-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-navy-800 disabled:opacity-50"
         >
-          {{ saveMutation.isPending.value ? 'Saving...' : isEditing ? 'Update Service' : 'Create Service' }}
+          {{ saveMutation.isPending.value ? t('admin.common.saving') : isEditing ? t('admin.serviceForm.updateService') : t('admin.serviceForm.createService') }}
         </button>
       </div>
 

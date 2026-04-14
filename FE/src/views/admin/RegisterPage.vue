@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth.store'
 import { Eye, EyeOff, UserPlus, ArrowRight } from 'lucide-vue-next'
 import { qrConfigApi } from '@/api/qr-config.api'
@@ -8,6 +9,7 @@ import { categoriesApi } from '@/api/categories.api'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { t } = useI18n({ useScope: 'global' })
 
 const form = ref({
   username: '',
@@ -24,11 +26,11 @@ const agreeToTerms = ref(false)
 
 async function handleRegister() {
   if (!form.value.username || !form.value.password || !form.value.fullName || !form.value.email) {
-    error.value = 'Please fill in all required fields'
+    error.value = t('admin.register.errors.required')
     return
   }
   if (!agreeToTerms.value) {
-    error.value = 'Please agree to the Terms & Conditions'
+    error.value = t('admin.register.errors.terms')
     return
   }
 
@@ -41,10 +43,10 @@ async function handleRegister() {
       // Redirect to settings since they just registered (and likely need to finish setup)
       router.push('/admin/qr')
     } else {
-      error.value = 'Registration failed. Username or email might be taken.'
+      error.value = t('admin.register.errors.failed')
     }
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Registration failed.'
+    error.value = err.response?.data?.message || t('admin.register.errors.failedShort')
     setTimeout(() => { error.value = '' }, 4000)
   } finally {
     loading.value = false
@@ -57,15 +59,15 @@ async function handleRegister() {
     <div class="w-full max-w-md">
       <!-- Header -->
       <div class="mb-10 text-center">
-        <h2 class="text-xs font-black uppercase tracking-[0.2em] text-text-muted">Elixir Spa</h2>
-        <p class="mt-2 text-xs font-medium text-text-muted">Elevate your wellness management</p>
+        <h2 class="text-xs font-black uppercase tracking-[0.2em] text-text-muted">{{ t('admin.register.brand') }}</h2>
+        <p class="mt-2 text-xs font-medium text-text-muted">{{ t('admin.register.brandTagline') }}</p>
       </div>
 
       <!-- Card -->
       <div class="rounded-[40px] bg-white p-10 shadow-[0_20px_50px_rgba(0,0,0,0.04)]">
         <div class="mb-8">
-          <h1 class="text-2xl font-black tracking-tight text-text-primary">Create Account</h1>
-          <p class="mt-2 text-sm font-medium text-text-muted">Join the network of premium wellness providers.</p>
+          <h1 class="text-2xl font-black tracking-tight text-text-primary">{{ t('admin.register.title') }}</h1>
+          <p class="mt-2 text-sm font-medium text-text-muted">{{ t('admin.register.subtitle') }}</p>
         </div>
 
         <form @submit.prevent="handleRegister" class="space-y-6">
@@ -93,7 +95,7 @@ async function handleRegister() {
 
           <!-- Full Name -->
           <div>
-            <label class="mb-2 block text-[10px] font-black uppercase tracking-wider text-text-muted">Full Name</label>
+            <label class="mb-2 block text-[10px] font-black uppercase tracking-wider text-text-muted">{{ t('admin.common.fullName') }}</label>
             <div class="relative">
               <span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -103,7 +105,7 @@ async function handleRegister() {
               <input
                 v-model="form.fullName"
                 type="text"
-                placeholder="Alexander Wright"
+                :placeholder="t('admin.register.fullNamePlaceholder')"
                 class="w-full rounded-2xl border-0 bg-[#F1F5F9] py-4 pl-12 pr-4 text-sm font-bold text-text-primary outline-none transition-all focus:bg-white focus:ring-2 focus:ring-primary-600"
               />
             </div>
@@ -111,7 +113,7 @@ async function handleRegister() {
 
           <!-- Spa Name -->
           <div>
-            <label class="mb-2 block text-[10px] font-black uppercase tracking-wider text-text-muted">Spa Name</label>
+            <label class="mb-2 block text-[10px] font-black uppercase tracking-wider text-text-muted">{{ t('admin.common.spaName') }}</label>
             <div class="relative">
               <span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -121,7 +123,7 @@ async function handleRegister() {
               <input
                 v-model="form.spaName"
                 type="text"
-                placeholder="Lumière Wellness Center"
+                :placeholder="t('admin.register.spaNamePlaceholder')"
                 class="w-full rounded-2xl border-0 bg-[#F1F5F9] py-4 pl-12 pr-4 text-sm font-bold text-text-primary outline-none transition-all focus:bg-white focus:ring-2 focus:ring-primary-600"
               />
             </div>
@@ -139,7 +141,7 @@ async function handleRegister() {
               <input
                 v-model="form.username"
                 type="text"
-                placeholder="alex_wright"
+                :placeholder="t('admin.register.usernamePlaceholder')"
                 class="w-full rounded-2xl border-0 bg-[#F1F5F9] py-4 pl-12 pr-4 text-sm font-bold text-text-primary outline-none transition-all focus:bg-white focus:ring-2 focus:ring-primary-600"
               />
             </div>
@@ -147,7 +149,7 @@ async function handleRegister() {
 
           <!-- Email -->
           <div>
-            <label class="mb-2 block text-[10px] font-black uppercase tracking-wider text-text-muted">Work Email</label>
+            <label class="mb-2 block text-[10px] font-black uppercase tracking-wider text-text-muted">{{ t('admin.common.email') }}</label>
             <div class="relative">
               <span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -157,7 +159,7 @@ async function handleRegister() {
               <input
                 v-model="form.email"
                 type="email"
-                placeholder="alex@elixirspa.com"
+                :placeholder="t('admin.register.emailPlaceholder')"
                 class="w-full rounded-2xl border-0 bg-[#F1F5F9] py-4 pl-12 pr-4 text-sm font-bold text-text-primary outline-none transition-all focus:bg-white focus:ring-2 focus:ring-primary-600"
               />
             </div>
@@ -165,7 +167,7 @@ async function handleRegister() {
 
           <!-- Password -->
           <div>
-            <label class="mb-2 block text-[10px] font-black uppercase tracking-wider text-text-muted">Create Password</label>
+            <label class="mb-2 block text-[10px] font-black uppercase tracking-wider text-text-muted">{{ t('admin.register.createPassword') }}</label>
             <div class="relative">
               <span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -198,7 +200,7 @@ async function handleRegister() {
               class="mt-1 h-4 w-4 rounded border-0 bg-[#F1F5F9] text-primary-600 transition-all focus:ring-primary-600"
             />
             <label for="terms" class="text-xs font-medium leading-relaxed text-text-muted">
-              I agree to the <a href="#" class="font-bold text-primary-600 hover:underline">Terms & Conditions</a> and <a href="#" class="font-bold text-primary-600 hover:underline">Privacy Policy</a> of Elixir Spa.
+              {{ t('admin.register.agreePrefix') }} <a href="#" class="font-bold text-primary-600 hover:underline">{{ t('admin.register.terms') }}</a> {{ t('admin.register.and') }} <a href="#" class="font-bold text-primary-600 hover:underline">{{ t('admin.register.privacy') }}</a> {{ t('admin.register.agreeSuffix') }}
             </label>
           </div>
 
@@ -209,24 +211,24 @@ async function handleRegister() {
             class="flex w-full items-center justify-center gap-3 rounded-[20px] bg-primary-600 py-4 text-sm font-black text-white shadow-[0_10px_20px_rgba(37,99,235,0.2)] transition-all hover:bg-primary-700 active:scale-[0.98] disabled:opacity-70 disabled:cursor-wait"
           >
             <template v-if="!loading">
-              {{ 'Create Account' }}
+              {{ t('admin.register.createAccount') }}
               <ArrowRight class="h-4 w-4" />
             </template>
             <template v-else>
               <div class="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
-              Creating Account...
+              {{ t('admin.register.creating') }}
             </template>
           </button>
         </form>
 
         <div class="mt-8 text-center text-sm font-medium">
-          <span class="text-text-muted">Already have an account? </span>
-          <RouterLink to="/admin/login" class="font-black text-primary-600 hover:underline">Log in</RouterLink>
+          <span class="text-text-muted">{{ t('admin.register.haveAccount') }} </span>
+          <RouterLink to="/admin/login" class="font-black text-primary-600 hover:underline">{{ t('admin.register.logIn') }}</RouterLink>
         </div>
       </div>
 
       <div class="mt-12 text-center">
-        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted opacity-30">Digital Concierge</p>
+        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted opacity-30">{{ t('admin.register.footerTagline') }}</p>
       </div>
     </div>
   </div>

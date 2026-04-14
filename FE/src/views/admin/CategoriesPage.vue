@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { categoriesApi } from '@/api/categories.api'
 import { Plus, Pencil, Trash2, X, FolderOpen, ArrowRight } from 'lucide-vue-next'
@@ -8,6 +9,7 @@ import Toast from '@/components/Toast.vue'
 
 const router = useRouter()
 const queryClient = useQueryClient()
+const { t } = useI18n({ useScope: 'global' })
 const showForm = ref(false)
 const editingCategory = ref<any>(null)
 const form = ref({ name: '', isActive: true })
@@ -46,7 +48,7 @@ const { mutate: saveCategory, isPending: saving } = useMutation({
     // const hadNoCategoryBefore = (categories.value?.length || 0) === 0
 
     await queryClient.invalidateQueries({ queryKey: ['categories'] })
-    showToast('Category saved successfully', 'success')
+    showToast(t('admin.categories.saved'), 'success')
     resetForm()
 
     // Onboarding flow: Chuyển sang service nếu đây là danh mục đầu tiên
@@ -64,7 +66,7 @@ const { mutate: saveCategory, isPending: saving } = useMutation({
       showConflictDialog.value = true
       return
     }
-    const message = errorData?.message || err.message || 'Failed to save category'
+    const message = errorData?.message || err.message || t('admin.categories.saveFailed')
     showToast(message, 'danger')
   },
 })
@@ -109,15 +111,15 @@ function resetForm() {
     <!-- Header -->
     <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h2 class="text-4xl font-bold tracking-tight text-text-primary">Categories</h2>
-        <p class="mt-1 text-sm text-text-secondary">Organize your services by category</p>
+        <h2 class="text-4xl font-bold tracking-tight text-text-primary">{{ t('admin.categories.title') }}</h2>
+        <p class="mt-1 text-sm text-text-secondary">{{ t('admin.categories.subtitle') }}</p>
       </div>
       <button
         class="flex items-center gap-2 rounded-xl bg-gradient-to-b from-primary-600 to-[#0048B5] px-5 py-3 text-sm font-extrabold text-white shadow-button transition-all hover:brightness-110 active:scale-95"
         @click="openCreate"
       >
         <Plus class="h-4 w-4" />
-        Add Category
+        {{ t('admin.categories.addCategory') }}
       </button>
     </div>
 
@@ -161,8 +163,8 @@ function resetForm() {
     </div>
     <div v-else-if="!categories?.length" class="rounded-3xl bg-white p-16 text-center shadow-card">
       <FolderOpen class="mx-auto h-12 w-12 text-text-muted" />
-      <p class="mt-4 text-sm font-medium text-text-secondary">No categories yet</p>
-      <p class="mt-1 text-xs text-text-muted">Click "Add Category" to create your first category</p>
+      <p class="mt-4 text-sm font-medium text-text-secondary">{{ t('admin.categories.emptyTitle') }}</p>
+      <p class="mt-1 text-xs text-text-muted">{{ t('admin.categories.emptyHint') }}</p>
     </div>
 
     <!-- Form Dialog -->
@@ -175,7 +177,7 @@ function resetForm() {
           <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-popup" @click.stop>
             <div class="mb-6 flex items-center justify-between">
               <h3 class="text-lg font-bold text-text-primary">
-                {{ editingCategory ? 'Edit Category' : 'New Category' }}
+                {{ editingCategory ? t('admin.categories.editCategory') : t('admin.categories.newCategory') }}
               </h3>
               <button class="rounded-lg p-1.5 text-text-muted hover:bg-surface-input" @click="resetForm">
                 <X class="h-5 w-5" />
@@ -184,11 +186,11 @@ function resetForm() {
 
             <div class="space-y-4">
               <div>
-                <label class="mb-1.5 block text-sm font-medium text-text-secondary">Name</label>
+                <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('admin.common.name') }}</label>
                 <input
                   v-model="form.name"
                   type="text"
-                  placeholder="e.g., Massage, Skincare"
+                  :placeholder="t('admin.categories.namePlaceholder')"
                   class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent placeholder:text-text-muted focus:ring-2 focus:ring-primary-600"
                   @keyup.enter="saveCategory()"
                 />
@@ -202,13 +204,13 @@ function resetForm() {
                 :disabled="saving || !form.name"
                 @click="saveCategory()"
               >
-                {{ saving ? 'Saving...' : 'Save' }}
+                {{ saving ? t('admin.common.saving') : t('admin.common.save') }}
               </button>
               <button
                 class="flex-1 rounded-xl bg-surface-secondary py-3 text-sm font-bold text-text-dim transition-all hover:bg-surface-input"
                 @click="resetForm"
               >
-                Cancel
+                {{ t('admin.common.cancel') }}
               </button>
             </div>
           </div>
@@ -227,21 +229,21 @@ function resetForm() {
             <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-warning/10 text-warning">
               <FolderOpen class="h-8 w-8" />
             </div>
-            <h3 class="mb-2 text-xl font-bold text-text-primary">Categories is exist</h3>
-            <p class="mb-8 text-sm text-text-secondary">Do you want to change it?</p>
+            <h3 class="mb-2 text-xl font-bold text-text-primary">{{ t('admin.categories.existsTitle') }}</h3>
+            <p class="mb-8 text-sm text-text-secondary">{{ t('admin.categories.existsHint') }}</p>
             
             <div class="flex gap-3">
               <button
                 class="flex-1 rounded-2xl bg-gradient-to-b from-primary-600 to-[#0048B5] py-3 text-sm font-extrabold text-white shadow-button transition-all hover:brightness-110"
                 @click="handleConflictYes"
               >
-                Yes, edit it
+                {{ t('admin.categories.yesEdit') }}
               </button>
               <button
                 class="flex-1 rounded-2xl bg-surface-secondary py-3 text-sm font-bold text-text-dim transition-all hover:bg-surface-input"
                 @click="handleConflictNo"
               >
-                No, cancel
+                {{ t('admin.categories.noCancel') }}
               </button>
             </div>
           </div>

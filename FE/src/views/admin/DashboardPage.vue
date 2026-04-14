@@ -6,12 +6,14 @@ import { qrConfigApi } from '@/api/qr-config.api'
 import { categoriesApi } from '@/api/categories.api'
 import { servicesApi } from '@/api/services.api'
 import { computed, onBeforeUnmount, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { io, type Socket } from 'socket.io-client'
 import { useAuthStore } from '@/stores/auth.store'
 import imgFallback from '@/assets/img_fallback.png'
 
 const queryClient = useQueryClient()
 const authStore = useAuthStore()
+const { t } = useI18n({ useScope: 'global' })
 let dashboardSocket: Socket | null = null
 
 const { data: dashboard, isLoading: loadingDashboard } = useQuery({
@@ -171,7 +173,7 @@ async function downloadQr() {
     if (url) {
       const a = document.createElement('a')
       a.href = url
-      a.download = 'qr-code.png'
+      a.download = t('admin.dashboard.qrFilename')
       a.click()
     }
   } catch { /* skip */ }
@@ -199,7 +201,7 @@ async function downloadQr() {
         @click="downloadQr"
       >
         <Download class="h-4 w-4" />
-        Download QR
+        {{ t('admin.dashboard.downloadQr') }}
       </button>
     </div>
 
@@ -208,8 +210,8 @@ async function downloadQr() {
       <!-- Traffic View Card (Always visible) -->
       <div class="flex-1 rounded-4xl bg-white p-8 shadow-card">
         <div class="mb-6 flex items-center justify-between">
-          <h3 class="text-2xl font-bold tracking-tight text-text-primary">Traffic View</h3>
-          <span v-if="weeklyWithData.length" class="text-[10px] font-black uppercase tracking-widest text-primary-600">Last 7 Days</span>
+          <h3 class="text-2xl font-bold tracking-tight text-text-primary">{{ t('admin.dashboard.trafficView') }}</h3>
+          <span v-if="weeklyWithData.length" class="text-[10px] font-black uppercase tracking-widest text-primary-600">{{ t('admin.dashboard.last7Days') }}</span>
         </div>
 
         <div v-if="loadingDashboard" class="grid h-[220px] grid-cols-7 items-end gap-4 px-2 sm:px-4">
@@ -247,14 +249,14 @@ async function downloadQr() {
           <div class="rounded-full bg-surface-input p-6">
             <BarChart3 class="h-10 w-10 opacity-20" />
           </div>
-          <p class="text-sm font-bold uppercase tracking-widest opacity-60">No traffic data in the last 7 days</p>
+          <p class="text-sm font-bold uppercase tracking-widest opacity-60">{{ t('admin.dashboard.noTraffic7Days') }}</p>
         </div>
       </div>
 
       <!-- QR Status Card -->
       <div class="w-full rounded-4xl bg-white p-8 shadow-card lg:w-80">
         <p class="text-xs font-bold uppercase tracking-widest text-text-secondary">
-          QR Code Status
+          {{ t('admin.dashboard.qrStatus') }}
         </p>
         
         <div v-if="loadingQrConfig || !qrConfig" class="mt-4 flex items-center gap-3">
@@ -264,7 +266,7 @@ async function downloadQr() {
         <div v-else class="mt-4 flex items-center gap-3">
           <span :class="['inline-block h-4 w-4 rounded-full', qrConfig?.status === 'active' ? 'bg-success' : 'bg-danger']" />
           <span class="text-2xl font-bold text-text-primary">
-            {{ qrConfig?.status === 'active' ? 'Active' : (qrConfig?.status === 'paused' ? 'Paused' : 'Inactive') }}
+            {{ qrConfig?.status === 'active' ? t('admin.common.active') : (qrConfig?.status === 'paused' ? t('admin.common.paused') : t('admin.common.inactive')) }}
           </span>
         </div>
 
@@ -289,12 +291,12 @@ async function downloadQr() {
           class="mt-6 w-full rounded-xl py-3 text-sm font-bold transition-all"
           :class="qrConfig?.status === 'active' ? 'bg-danger/10 text-danger hover:bg-danger/20' : 'bg-success/10 text-success hover:bg-success/20'"
         >
-          {{ qrConfig?.status === 'active' ? 'Pause Service' : 'Resume Service' }}
+          {{ qrConfig?.status === 'active' ? t('admin.dashboard.pauseService') : t('admin.dashboard.resumeService') }}
         </button>
         <div v-else-if="loadingQrConfig" class="mt-6 h-11 w-full rounded-xl bg-surface-input animate-pulse"></div>
 
         <p v-if="!loadingQrConfig" class="mt-4 text-center text-[10px] text-text-muted">
-          Last updated: {{ qrConfig?.updatedAt ? formatLastUpdated(qrConfig.updatedAt) : '—' }}
+          {{ t('admin.dashboard.lastUpdated') }}: {{ qrConfig?.updatedAt ? formatLastUpdated(qrConfig.updatedAt) : '—' }}
         </p>
         <div v-else class="mx-auto mt-4 h-3 w-36 rounded bg-surface-input animate-pulse"></div>
       </div>
@@ -303,7 +305,7 @@ async function downloadQr() {
     <!-- Top 5 Most Viewed Services -->
     <div>
       <h3 class="mb-6 text-xl font-bold tracking-tight text-text-primary">
-        Top 5 Most Viewed Services
+        {{ t('admin.dashboard.top5') }}
       </h3>
 
       <div v-if="loadingDashboard" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -328,12 +330,12 @@ async function downloadQr() {
           </div>
           <div class="p-3">
             <h4 class="truncate text-sm font-bold text-text-primary">{{ svc.serviceName }}</h4>
-            <p class="mt-1 text-xs text-text-secondary">{{ svc.viewCount?.toLocaleString() }} views</p>
+            <p class="mt-1 text-xs text-text-secondary">{{ svc.viewCount?.toLocaleString() }} {{ t('admin.dashboard.views') }}</p>
           </div>
         </div>
       </div>
       <div v-else class="col-span-full rounded-3xl bg-white p-12 text-center text-text-muted shadow-card">
-        No traffic data yet. Views will appear here once customers visit.
+        {{ t('admin.dashboard.noTrafficYet') }}
       </div>
     </div>
   </div>

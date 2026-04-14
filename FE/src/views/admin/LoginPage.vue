@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth.store'
 import { Eye, EyeOff, LogIn } from 'lucide-vue-next'
 import { qrConfigApi } from '@/api/qr-config.api'
@@ -8,6 +9,7 @@ import { categoriesApi } from '@/api/categories.api'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { t } = useI18n({ useScope: 'global' })
 
 const username = ref('')
 const password = ref('')
@@ -17,7 +19,7 @@ const error = ref('')
 
 async function handleLogin() {
   if (!username.value || !password.value) {
-    error.value = 'Please enter username and password'
+    error.value = t('admin.login.errors.required')
     return
   }
   loading.value = true
@@ -40,7 +42,7 @@ async function handleLogin() {
       router.push('/admin/dashboard')
     }
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Login failed. Please check your credentials.'
+    error.value = err.response?.data?.message || t('admin.login.errors.invalid')
     setTimeout(() => { error.value = '' }, 4000)
   } finally {
     loading.value = false
@@ -56,8 +58,8 @@ async function handleLogin() {
         <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-b from-primary-600 to-[#0048B5] shadow-button">
           <span class="text-2xl font-black text-white">Q</span>
         </div>
-        <h1 class="text-2xl font-extrabold tracking-tight text-text-primary">QRHome Admin</h1>
-        <p class="mt-1 text-sm text-text-secondary">Sign in to manage your spa</p>
+        <h1 class="text-2xl font-extrabold tracking-tight text-text-primary">{{ t('admin.login.title') }}</h1>
+        <p class="mt-1 text-sm text-text-secondary">{{ t('admin.login.subtitle') }}</p>
       </div>
 
       <!-- Card -->
@@ -87,11 +89,11 @@ async function handleLogin() {
 
           <!-- Username -->
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-text-secondary">Username</label>
+            <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('admin.common.username') }}</label>
             <input
               v-model="username"
               type="text"
-              placeholder="admin"
+              :placeholder="t('admin.login.usernamePlaceholder')"
               autocomplete="username"
               class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent placeholder:text-text-muted focus:ring-2 focus:ring-primary-600"
             />
@@ -99,7 +101,7 @@ async function handleLogin() {
 
           <!-- Password -->
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-text-secondary">Password</label>
+            <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('admin.common.password') }}</label>
             <div class="relative">
               <input
                 v-model="password"
@@ -127,23 +129,23 @@ async function handleLogin() {
           >
             <template v-if="!loading">
               <LogIn class="h-4 w-4" />
-              Sign In
+              {{ t('admin.login.signIn') }}
             </template>
             <template v-else>
               <div class="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
-              Signing in...
+              {{ t('admin.login.signingIn') }}
             </template>
           </button>
         </form>
 
         <div class="mt-8 text-center text-sm font-medium">
-          <span class="text-text-muted">Don't have an account? </span>
-          <RouterLink to="/admin/register" class="font-black text-primary-600 hover:underline">Create Account</RouterLink>
+          <span class="text-text-muted">{{ t('admin.login.noAccount') }} </span>
+          <RouterLink to="/admin/register" class="font-black text-primary-600 hover:underline">{{ t('admin.login.createAccount') }}</RouterLink>
         </div>
       </div>
 
       <p class="mt-6 text-center text-xs text-text-muted">
-        © 2026 QRHome · Premium Wellness Platform
+        {{ t('admin.common.footer') }}
       </p>
     </div>
   </div>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { uploadApi } from '@/api/upload.api'
@@ -10,6 +11,7 @@ import Toast from '@/components/Toast.vue'
 type CurrencyUnit = 'VND' | 'USD' | 'EUR'
 
 const router = useRouter()
+const { t } = useI18n({ useScope: 'global' })
 
 const queryClient = useQueryClient()
 
@@ -30,7 +32,7 @@ const validatePhone = () => {
   const value = form.value.spaPhone.trim()
 
   if (!value) {
-    phoneError.value = 'Phone number is required'
+    phoneError.value = t('admin.settings.errors.phoneRequired')
     return
   }
 
@@ -39,7 +41,7 @@ const validatePhone = () => {
 
   if (!phoneRegex.test(value)) {
     phoneError.value =
-      'Phone number must be in the format 0987654321 or 098 765 4321'
+      t('admin.settings.errors.phoneFormat')
     return
   }
 
@@ -128,16 +130,16 @@ const { mutate: saveConfig, isPending: saving } = useMutation({
     }
 
     // All fields are required and whitespace-only values are invalid.
-    if (!payload.spaName) throw new Error('Store Name is required')
-    if (!payload.spaAddress) throw new Error('Address is required')
-    if (!payload.spaPhone) throw new Error('Phone Number is required')
-    if (!payload.spaEmail) throw new Error('Contact Email is required')
-    if (!isValidEmail(payload.spaEmail)) throw new Error('Contact Email is invalid')
-    if (!payload.spaLogo) throw new Error('Logo is required')
-    if (!payload.bannerUrl) throw new Error('Banner is required')
-    if (!payload.welcomeMessage) throw new Error('Welcome Message is required')
-    if (!payload.currencyUnit) throw new Error('Currency Unit is required')
-    if (!payload.status) throw new Error('Status is required')
+    if (!payload.spaName) throw new Error(t('admin.settings.errors.storeNameRequired'))
+    if (!payload.spaAddress) throw new Error(t('admin.settings.errors.addressRequired'))
+    if (!payload.spaPhone) throw new Error(t('admin.settings.errors.phoneRequired'))
+    if (!payload.spaEmail) throw new Error(t('admin.settings.errors.emailRequired'))
+    if (!isValidEmail(payload.spaEmail)) throw new Error(t('admin.settings.errors.emailInvalid'))
+    if (!payload.spaLogo) throw new Error(t('admin.settings.errors.logoRequired'))
+    if (!payload.bannerUrl) throw new Error(t('admin.settings.errors.bannerRequired'))
+    if (!payload.welcomeMessage) throw new Error(t('admin.settings.errors.welcomeRequired'))
+    if (!payload.currencyUnit) throw new Error(t('admin.settings.errors.currencyRequired'))
+    if (!payload.status) throw new Error(t('admin.settings.errors.statusRequired'))
 
     // Reflect normalized values back to UI so users see cleaned content.
     form.value = { ...payload }
@@ -146,7 +148,7 @@ const { mutate: saveConfig, isPending: saving } = useMutation({
     return data
   },
   onSuccess: async () => {
-    showToast('Settings saved successfully', 'success')
+    showToast(t('admin.settings.saved'), 'success')
     queryClient.invalidateQueries({ queryKey: ['qr-config'] })
     
     // Auto-redirect to next step in onboarding: Categories
@@ -155,19 +157,19 @@ const { mutate: saveConfig, isPending: saving } = useMutation({
     }, 1500)
   },
   onError: (err: any) => {
-    showToast(getApiErrorMessage(err, 'Failed to save settings'), 'danger')
+    showToast(getApiErrorMessage(err, t('admin.settings.saveFailed')), 'danger')
   }
 })
 
 async function processFile(file: File, field: 'spaLogo' | 'bannerUrl') {
   const isImage = String(file.type || '').startsWith('image/')
   if (!isImage) {
-    showToast('Only image files are allowed (JPG, PNG, WEBP, ...).', 'danger')
+    showToast(t('admin.settings.errors.imageOnly'), 'danger')
     return
   }
 
   if (file.size > MAX_IMAGE_SIZE_BYTES) {
-    showToast(`Image is too large. Max size is ${MAX_IMAGE_SIZE_MB}MB.`, 'danger')
+    showToast(t('admin.settings.errors.imageTooLarge', { size: MAX_IMAGE_SIZE_MB }), 'danger')
     return
   }
 
@@ -177,13 +179,13 @@ async function processFile(file: File, field: 'spaLogo' | 'bannerUrl') {
     const { data } = await uploadApi.upload(file)
     const imageUrl = data.data?.url || ''
     if (!imageUrl) {
-      showToast('Upload failed: server did not return an image URL.', 'danger')
+      showToast(t('admin.settings.errors.uploadNoUrl'), 'danger')
       return
     }
     form.value[field] = imageUrl
-    showToast(field === 'spaLogo' ? 'Logo uploaded successfully.' : 'Banner uploaded successfully.', 'success')
+    showToast(field === 'spaLogo' ? t('admin.settings.logoUploaded') : t('admin.settings.bannerUploaded'), 'success')
   } catch (err: any) {
-    showToast(getApiErrorMessage(err, 'Image upload failed. Please try again.'), 'danger')
+    showToast(getApiErrorMessage(err, t('admin.settings.errors.uploadFailed')), 'danger')
   } finally {
     uploadLoading.value = null
   }
@@ -210,7 +212,7 @@ async function handleDrop(e: DragEvent, field: 'spaLogo' | 'bannerUrl') {
 <template>
   <div class="p-6">
     <div class="mb-8">
-      <h2 class="text-4xl font-bold tracking-tight text-text-primary">Settings</h2>
+      <h2 class="text-4xl font-bold tracking-tight text-text-primary">{{ t('admin.settings.title') }}</h2>
     </div>
 
     <div v-if="loadingConfig" class="grid grid-cols-1 gap-8">
@@ -237,7 +239,7 @@ async function handleDrop(e: DragEvent, field: 'spaLogo' | 'bannerUrl') {
             <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
               <SettingsIcon class="h-5 w-5" />
             </div>
-            <h3 class="text-lg font-bold text-text-primary">Basic Information</h3>
+            <h3 class="text-lg font-bold text-text-primary">{{ t('admin.settings.basicInfo') }}</h3>
           </div>
 
           <div class="space-y-6">
@@ -258,36 +260,36 @@ async function handleDrop(e: DragEvent, field: 'spaLogo' | 'bannerUrl') {
                 </label>
               </div>
               <div>
-                <p class="font-bold text-text-primary text-sm">Logo</p>
-                <p class="text-xs text-text-muted mt-1">{{ uploadLoading === 'spaLogo' ? 'Uploading logo...' : 'Recommended 512×512px (PNG, JPG)' }}</p>
+                <p class="font-bold text-text-primary text-sm">{{ t('admin.settings.logo') }}</p>
+                <p class="text-xs text-text-muted mt-1">{{ uploadLoading === 'spaLogo' ? t('admin.settings.uploadingLogo') : t('admin.settings.logoHint') }}</p>
               </div>
             </div>
 
             <!-- Name -->
             <div>
-              <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Store Name</label>
+              <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">{{ t('admin.settings.storeName') }}</label>
               <input
                 v-model="form.spaName"
                 type="text"
-                placeholder="Azure Wellness Center"
+                :placeholder="t('admin.settings.storeNamePlaceholder')"
                 class="w-full rounded-xl border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary-600"
               />
             </div>
 
             <!-- Address -->
             <div>
-              <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Address</label>
+              <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">{{ t('admin.common.address') }}</label>
               <input
                 v-model="form.spaAddress"
                 type="text"
-                placeholder="123 Street Address..."
+                :placeholder="t('admin.settings.addressPlaceholder')"
                 class="w-full rounded-xl border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary-600"
               />
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div class="relative">
-                <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Phone Number</label>
+                <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">{{ t('admin.common.phone') }}</label>
                 <div class="relative">
                   <input
                     v-model="form.spaPhone"
@@ -317,18 +319,18 @@ async function handleDrop(e: DragEvent, field: 'spaLogo' | 'bannerUrl') {
                 </Transition>
               </div>
               <div>
-                <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Contact Email</label>
+                <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">{{ t('admin.common.email') }}</label>
                 <input
                   v-model="form.spaEmail"
                   type="text"
-                  placeholder="contact@azurewellness.vn"
+                  :placeholder="t('admin.settings.emailPlaceholder')"
                   class="w-full rounded-xl border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary-600"
                 />
               </div>
             </div>
 
             <div>
-              <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Currency Unit</label>
+              <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">{{ t('admin.settings.currencyUnit') }}</label>
               <div class="flex w-fit items-center gap-1.5 rounded-2xl bg-surface-input p-1.5 ring-1 ring-border">
                 <button
                   v-for="unit in ['VND', 'USD', 'EUR']"
@@ -349,7 +351,7 @@ async function handleDrop(e: DragEvent, field: 'spaLogo' | 'bannerUrl') {
 
             <!-- Banner Upload -->
             <div>
-              <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Banner</label>
+              <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">{{ t('admin.settings.banner') }}</label>
               <label 
                 class="flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 transition-colors" 
                 :class="[
@@ -364,8 +366,8 @@ async function handleDrop(e: DragEvent, field: 'spaLogo' | 'bannerUrl') {
                   <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-600 mb-3">
                     <ImageIcon class="h-6 w-6" />
                   </div>
-                  <p class="text-sm font-bold text-text-primary">{{ uploadLoading === 'bannerUrl' ? 'Uploading banner...' : 'Upload image or drag and drop' }}</p>
-                  <p class="mt-1 text-xs text-text-muted">Recommended JPG or PNG. Max size 5MB.</p>
+                  <p class="text-sm font-bold text-text-primary">{{ uploadLoading === 'bannerUrl' ? t('admin.settings.uploadingBanner') : t('admin.settings.uploadHint') }}</p>
+                  <p class="mt-1 text-xs text-text-muted">{{ t('admin.settings.bannerHint') }}</p>
                 </template>
                 <img v-else :src="form.bannerUrl" class="max-h-32 rounded-lg object-contain" />
                 <input type="file" accept="image/*" class="hidden" :disabled="uploadLoading === 'bannerUrl'" @change="e => handleUpload(e, 'bannerUrl')" />
@@ -374,12 +376,12 @@ async function handleDrop(e: DragEvent, field: 'spaLogo' | 'bannerUrl') {
 
             <!-- Welcome Message -->
             <div>
-              <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">Welcome Message</label>
+              <label class="mb-1.5 block text-xs font-bold text-text-secondary uppercase tracking-wider">{{ t('admin.settings.welcomeMessage') }}</label>
               <div class="rounded-2xl bg-surface-input p-4">
                 <textarea
                   v-model="form.welcomeMessage"
                   rows="4"
-                  placeholder="Welcome to your store..."
+                  :placeholder="t('admin.settings.welcomePlaceholder')"
                   class="w-full resize-none border-0 bg-transparent p-0 text-sm text-text-secondary outline-none placeholder:text-text-muted"
                 />
               </div>
@@ -405,7 +407,7 @@ async function handleDrop(e: DragEvent, field: 'spaLogo' | 'bannerUrl') {
           status: config.status || 'active'
         })"
       >
-        Cancel Changes
+        {{ t('admin.common.cancelChanges') }}
       </button>
       <button
         class="flex items-center gap-2 rounded-xl bg-[#0048B5] px-10 py-3 text-sm font-extrabold text-white shadow-button transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
@@ -414,7 +416,7 @@ async function handleDrop(e: DragEvent, field: 'spaLogo' | 'bannerUrl') {
       >
         <Save v-if="!saving" class="h-4 w-4" />
         <span v-else class="animate-spin text-sm">⏳</span>
-        {{ saving ? 'Saving...' : 'Save All Changes' }}
+        {{ saving ? t('admin.common.saving') : t('admin.common.saveAllChanges') }}
       </button>
     </div>
     

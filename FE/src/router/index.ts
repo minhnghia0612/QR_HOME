@@ -74,6 +74,7 @@ const router = createRouter({
     },
     {
       path: '/admin/qr',
+      alias: '/admin/settings',
       name: 'admin-settings',
       component: () => import('@/views/admin/SettingsPage.vue'),
       meta: { layout: 'admin', requiresAuth: true },

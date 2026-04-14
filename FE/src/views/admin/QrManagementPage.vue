@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { qrConfigApi } from '@/api/qr-config.api'
 import type { QrStatus } from '@/types/qr-config.types'
 import { QrCode, Play, Pause, Download, AlertCircle, CheckCircle2 } from 'lucide-vue-next'
 
 const queryClient = useQueryClient()
+const { t } = useI18n({ useScope: 'global' })
 
 const { data: config, isLoading } = useQuery({
   queryKey: ['qr-config'],
@@ -41,12 +43,12 @@ async function downloadQr() {
     // Create download link
     const link = document.createElement('a')
     link.href = dataUrl
-    link.download = 'qr-home-menu.png'
+    link.download = t('admin.dashboard.qrFilename')
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
   } catch (err: any) {
-    alert(err.response?.data?.message || 'Failed to download QR')
+    alert(err.response?.data?.message || t('admin.qr.errors.downloadFailed'))
   }
 }
 </script>
@@ -54,12 +56,12 @@ async function downloadQr() {
 <template>
   <div class="mx-auto max-w-2xl space-y-6">
     <div>
-      <h2 class="text-2xl font-bold text-navy-900">QR Code Management</h2>
-      <p class="text-sm text-text-muted">Generate and manage the QR code for your spa menu</p>
+      <h2 class="text-2xl font-bold text-navy-900">{{ t('admin.qr.title') }}</h2>
+      <p class="text-sm text-text-muted">{{ t('admin.qr.subtitle') }}</p>
     </div>
 
     <div v-if="isLoading" class="flex h-48 items-center justify-center text-text-muted">
-      Loading QR configuration...
+      {{ t('admin.qr.loading') }}
     </div>
 
     <div v-else class="space-y-6">
@@ -67,7 +69,7 @@ async function downloadQr() {
       <div class="rounded-xl border border-border bg-white p-6 shadow-card">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-text-muted">Current Status</p>
+            <p class="text-sm text-text-muted">{{ t('admin.qr.currentStatus') }}</p>
             <div class="mt-1 flex items-center gap-2">
               <div
                 :class="['h-2.5 w-2.5 rounded-full', statusColor.dot]"
@@ -75,7 +77,7 @@ async function downloadQr() {
               <span
                 :class="['text-lg font-semibold capitalize', statusColor.text]"
               >
-                {{ config?.status || 'inactive' }}
+                {{ config?.status || t('admin.common.inactive') }}
               </span>
             </div>
           </div>
@@ -91,14 +93,14 @@ async function downloadQr() {
 
         <!-- URL -->
         <div v-if="config?.qrUrl" class="mt-4 rounded-lg bg-surface-dim px-4 py-3">
-          <p class="text-xs text-text-muted">QR URL</p>
+          <p class="text-xs text-text-muted">{{ t('admin.qr.qrUrl') }}</p>
           <p class="mt-0.5 break-all font-mono text-sm text-navy-700">{{ config.qrUrl }}</p>
         </div>
 
         <!-- Dates -->
         <div v-if="config?.generatedAt" class="mt-3 flex gap-6 text-xs text-text-muted">
-          <span>Generated: {{ new Date(config.generatedAt).toLocaleString() }}</span>
-          <span v-if="config.updatedAt">Updated: {{ new Date(config.updatedAt).toLocaleString() }}</span>
+          <span>{{ t('admin.qr.generated') }}: {{ new Date(config.generatedAt).toLocaleString() }}</span>
+          <span v-if="config.updatedAt">{{ t('admin.qr.updated') }}: {{ new Date(config.updatedAt).toLocaleString() }}</span>
         </div>
       </div>
 
@@ -111,7 +113,7 @@ async function downloadQr() {
           @click="generateMutation.mutate()"
         >
           <QrCode class="h-4 w-4" />
-          {{ config?.generatedAt ? 'Re-Generate QR' : 'Generate QR' }}
+          {{ config?.generatedAt ? t('admin.qr.regenerate') : t('admin.qr.generate') }}
         </button>
 
         <!-- Pause / Resume -->
@@ -121,7 +123,7 @@ async function downloadQr() {
           @click="statusMutation.mutate('paused')"
         >
           <Pause class="h-4 w-4" />
-          Pause QR
+          {{ t('admin.qr.pause') }}
         </button>
         <button
           v-else-if="config?.status === 'paused'"
@@ -129,7 +131,7 @@ async function downloadQr() {
           @click="statusMutation.mutate('active')"
         >
           <Play class="h-4 w-4" />
-          Resume QR
+          {{ t('admin.qr.resume') }}
         </button>
 
         <!-- Download -->
@@ -139,7 +141,7 @@ async function downloadQr() {
           @click="downloadQr"
         >
           <Download class="h-4 w-4" />
-          Download QR Image
+          {{ t('admin.qr.downloadImage') }}
         </button>
       </div>
 
@@ -149,7 +151,7 @@ async function downloadQr() {
         class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
       >
         <AlertCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
-        {{ (generateMutation.error.value as any)?.response?.data?.message || 'Failed to generate QR' }}
+        {{ (generateMutation.error.value as any)?.response?.data?.message || t('admin.qr.errors.generateFailed') }}
       </div>
 
       <div
@@ -157,7 +159,7 @@ async function downloadQr() {
         class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
       >
         <AlertCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
-        {{ (statusMutation.error.value as any)?.response?.data?.message || 'Failed to update status' }}
+        {{ (statusMutation.error.value as any)?.response?.data?.message || t('admin.qr.errors.statusFailed') }}
       </div>
 
       <!-- Info -->
@@ -166,11 +168,11 @@ async function downloadQr() {
       >
         <CheckCircle2 class="mt-0.5 h-4 w-4 flex-shrink-0" />
         <div>
-          <p class="font-medium">How it works:</p>
+          <p class="font-medium">{{ t('admin.qr.howItWorks') }}</p>
           <ul class="mt-1 list-inside list-disc space-y-0.5 text-azure-600">
-            <li>Generate creates a QR code linking to your menu page</li>
-            <li>Pause temporarily disables the QR link without deleting it</li>
-            <li>At least one active service is required to generate or activate QR</li>
+            <li>{{ t('admin.qr.steps.generate') }}</li>
+            <li>{{ t('admin.qr.steps.pause') }}</li>
+            <li>{{ t('admin.qr.steps.requirement') }}</li>
           </ul>
         </div>
       </div>

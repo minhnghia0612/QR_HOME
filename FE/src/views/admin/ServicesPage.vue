@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useRouter } from 'vue-router'
 import { servicesApi } from '@/api/services.api'
@@ -10,6 +11,7 @@ import { Plus, Search, Pencil, Trash2, Image, ArrowRight } from 'lucide-vue-next
 
 const router = useRouter()
 const queryClient = useQueryClient()
+const { t } = useI18n({ useScope: 'global' })
 
 const search = ref('')
 const categoryFilter = ref('')
@@ -48,7 +50,7 @@ const deleteMutation = useMutation({
 })
 
 function confirmDelete(id: string) {
-  if (confirm('Delete this service?')) {
+  if (confirm(t('admin.services.confirmDelete'))) {
     deleteMutation.mutate(id)
   }
 }
@@ -59,15 +61,15 @@ function confirmDelete(id: string) {
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h2 class="text-2xl font-bold text-navy-900">Services</h2>
-        <p class="text-sm text-text-muted">Manage your service offerings</p>
+        <h2 class="text-2xl font-bold text-navy-900">{{ t('admin.services.title') }}</h2>
+        <p class="text-sm text-text-muted">{{ t('admin.services.subtitle') }}</p>
       </div>
       <button
         class="flex items-center gap-2 rounded-xl bg-navy-900 px-4 py-2.5 text-sm font-medium text-white shadow-card transition-all hover:bg-navy-800"
         @click="router.push('/admin/services/new')"
       >
         <Plus class="h-4 w-4" />
-        Add Service
+        {{ t('admin.services.addService') }}
       </button>
     </div>
 
@@ -78,7 +80,7 @@ function confirmDelete(id: string) {
         <input
           v-model="search"
           type="text"
-          placeholder="Search services..."
+          :placeholder="t('admin.services.searchPlaceholder')"
           class="w-full rounded-xl border border-border bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-azure-400 focus:ring-2 focus:ring-azure-100"
         />
       </div>
@@ -86,7 +88,7 @@ function confirmDelete(id: string) {
         v-model="categoryFilter"
         class="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-azure-400"
       >
-        <option value="">All Categories</option>
+        <option value="">{{ t('admin.services.allCategories') }}</option>
         <option v-for="cat in categories" :key="cat.id" :value="cat.id">
           {{ cat.name }}
         </option>
@@ -95,27 +97,27 @@ function confirmDelete(id: string) {
         v-model="statusFilter"
         class="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-azure-400"
       >
-        <option value="">All Status</option>
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
+        <option value="">{{ t('admin.services.allStatus') }}</option>
+        <option value="active">{{ t('admin.common.active') }}</option>
+        <option value="inactive">{{ t('admin.common.inactive') }}</option>
       </select>
     </div>
 
     <!-- Table -->
     <div class="overflow-hidden overflow-x-auto rounded-xl border border-border bg-white shadow-card">
       <div v-if="isLoading" class="flex h-48 items-center justify-center text-text-muted">
-        Loading services...
+        {{ t('admin.services.loading') }}
       </div>
       <table v-else class="w-full min-w-[700px] text-left text-sm">
         <thead class="border-b border-border bg-surface-dim">
           <tr>
-            <th class="px-4 py-3 font-medium text-text-muted">Image</th>
-            <th class="px-4 py-3 font-medium text-text-muted">Name</th>
-            <th class="px-4 py-3 font-medium text-text-muted">Category</th>
-            <th class="px-4 py-3 font-medium text-text-muted">Price</th>
-            <th class="px-4 py-3 font-medium text-text-muted">Labels</th>
-            <th class="px-4 py-3 font-medium text-text-muted">Status</th>
-            <th class="px-4 py-3 text-right font-medium text-text-muted">Actions</th>
+            <th class="px-4 py-3 font-medium text-text-muted">{{ t('admin.services.columns.image') }}</th>
+            <th class="px-4 py-3 font-medium text-text-muted">{{ t('admin.services.columns.name') }}</th>
+            <th class="px-4 py-3 font-medium text-text-muted">{{ t('admin.services.columns.category') }}</th>
+            <th class="px-4 py-3 font-medium text-text-muted">{{ t('admin.services.columns.price') }}</th>
+            <th class="px-4 py-3 font-medium text-text-muted">{{ t('admin.services.columns.labels') }}</th>
+            <th class="px-4 py-3 font-medium text-text-muted">{{ t('admin.services.columns.status') }}</th>
+            <th class="px-4 py-3 text-right font-medium text-text-muted">{{ t('admin.services.columns.actions') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border">
@@ -153,13 +155,13 @@ function confirmDelete(id: string) {
                   v-if="svc.isBestSeller"
                   class="rounded-full bg-gold-100 px-2 py-0.5 text-xs font-medium text-gold-700"
                 >
-                  Best Seller
+                  {{ t('menu.badges.best_seller') }}
                 </span>
                 <span
                   v-if="svc.isNewService"
                   class="rounded-full bg-azure-100 px-2 py-0.5 text-xs font-medium text-azure-700"
                 >
-                  New
+                  {{ t('menu.badges.new_service') }}
                 </span>
                 <span
                   v-if="svc.isCombo"
@@ -178,7 +180,7 @@ function confirmDelete(id: string) {
                     : 'bg-red-50 text-red-700',
                 ]"
               >
-                {{ svc.isActive ? 'Active' : 'Inactive' }}
+                {{ svc.isActive ? t('admin.common.active') : t('admin.common.inactive') }}
               </span>
             </td>
             <td class="px-4 py-3 text-right">
@@ -200,7 +202,7 @@ function confirmDelete(id: string) {
           </tr>
           <tr v-if="!servicesData?.items?.length">
             <td colspan="7" class="px-4 py-12 text-center text-text-muted">
-              No services found. Click "Add Service" to create one.
+              {{ t('admin.services.empty') }}
             </td>
           </tr>
         </tbody>
@@ -223,14 +225,14 @@ function confirmDelete(id: string) {
           class="rounded-lg border border-border px-3 py-1.5 hover:bg-navy-50 disabled:opacity-50"
           @click="page--"
         >
-          Previous
+          {{ t('admin.services.previous') }}
         </button>
         <button
           :disabled="page >= servicesData.totalPages"
           class="rounded-lg border border-border px-3 py-1.5 hover:bg-navy-50 disabled:opacity-50"
           @click="page++"
         >
-          Next
+          {{ t('admin.services.next') }}
         </button>
       </div>
     </div>
@@ -240,7 +242,7 @@ function confirmDelete(id: string) {
         @click="router.push('/admin/dashboard')"
         class="flex items-center gap-3 rounded-2xl bg-[#0048B5] px-10 py-5 text-base font-black text-white shadow-button transition-all hover:brightness-110 active:scale-95"
       >
-        Finish Setup & View Dashboard
+        {{ t('admin.services.finishSetup') }}
         <ArrowRight class="h-5 w-5" />
       </button>
     </div>

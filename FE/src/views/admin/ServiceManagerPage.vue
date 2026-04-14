@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { servicesApi } from '@/api/services.api'
@@ -19,18 +20,18 @@ import imgFallback from '@/assets/img_fallback.png'
 type SpecialTag = 'must_try' | 'limited_edition' | 'summer_special' | 'happy_hour'
 type LabelValue = 'best_seller' | 'new_service' | SpecialTag | string
 
-const SPECIAL_TAG_OPTIONS: Array<{ value: SpecialTag; label: string }> = [
-  { value: 'must_try', label: 'Must Try' },
-  { value: 'limited_edition', label: 'Limited Edition' },
-  { value: 'summer_special', label: 'Summer Special' },
-  { value: 'happy_hour', label: 'Happy Hour' },
-]
+const SPECIAL_TAG_OPTIONS = computed(() => [
+  { value: 'must_try', label: t('menu.badges.must_try') },
+  { value: 'limited_edition', label: t('menu.badges.limited_edition') },
+  { value: 'summer_special', label: t('menu.badges.summer_special') },
+  { value: 'happy_hour', label: t('menu.badges.happy_hour') },
+])
 
-const LABEL_OPTIONS: Array<{ value: LabelValue; label: string }> = [
-  { value: 'best_seller', label: 'Best Seller' },
-  { value: 'new_service', label: 'New Service' },
-  ...SPECIAL_TAG_OPTIONS,
-]
+const LABEL_OPTIONS = computed(() => [
+  { value: 'best_seller', label: t('menu.badges.best_seller') },
+  { value: 'new_service', label: t('menu.badges.new_service') },
+  ...SPECIAL_TAG_OPTIONS.value,
+])
 
 const LABEL_STYLE_MAP: Record<string, { chipActive: string; chipInactive: string; badge: string }> = {
   best_seller: {
@@ -68,6 +69,7 @@ const LABEL_STYLE_MAP: Record<string, { chipActive: string; chipInactive: string
 const router = useRouter()
 import Toast from '@/components/Toast.vue'
 const authStore = useAuthStore()
+const { t } = useI18n({ useScope: 'global' })
 
 const queryClient = useQueryClient()
 let trafficSocket: Socket | null = null
@@ -149,23 +151,23 @@ watch(selectedSort, () => {
 })
 
 const statusLabel = computed(() => {
-  if (selectedStatus.value === 'true') return 'Active'
-  if (selectedStatus.value === 'false') return 'Inactive'
-  return 'All Status'
+  if (selectedStatus.value === 'true') return t('admin.common.active')
+  if (selectedStatus.value === 'false') return t('admin.common.inactive')
+  return t('admin.services.allStatus')
 })
 
 const categoryLabel = computed(() => {
-  if (!selectedCategory.value) return 'All Categories'
+  if (!selectedCategory.value) return t('admin.services.allCategories')
   const category = categories.value?.find((c: any) => c.id === selectedCategory.value)
-  return category?.name || 'All Categories'
+  return category?.name || t('admin.services.allCategories')
 })
 
-const sortLabel = computed(() => (selectedSort.value === 'oldest' ? 'Oldest First' : 'Newest First'))
+const sortLabel = computed(() => (selectedSort.value === 'oldest' ? t('admin.serviceManager.sortOldest') : t('admin.serviceManager.sortNewest')))
 
 const formCategoryLabel = computed(() => {
-  if (!form.value.categoryId) return 'Select Category'
+  if (!form.value.categoryId) return t('admin.serviceManager.selectCategory')
   const cat = categories.value?.find((c: any) => c.id === form.value.categoryId)
-  return cat?.name || 'Select Category'
+  return cat?.name || t('admin.serviceManager.selectCategory')
 })
 
 function toggleFilter(name: 'status' | 'category' | 'sort') {
@@ -708,7 +710,7 @@ function hasTag(value: string) {
 const formLabelOptions = computed<Array<{ value: LabelValue; label: string }>>(() => {
   const map = new Map<string, { value: LabelValue; label: string }>()
 
-  LABEL_OPTIONS.forEach((item) => {
+  LABEL_OPTIONS.value.forEach((item) => {
     map.set(String(item.value), item)
   })
 
@@ -879,8 +881,8 @@ function formatTagLabel(tag: string) {
 
 function getServiceLabelItems(svc: any) {
   const labels: Array<{ key: string; label: string }> = []
-  if (svc?.isBestSeller) labels.push({ key: 'best_seller', label: 'Best Seller' })
-  if (svc?.isNewService) labels.push({ key: 'new_service', label: 'New Service' })
+  if (svc?.isBestSeller) labels.push({ key: 'best_seller', label: t('menu.badges.best_seller') })
+  if (svc?.isNewService) labels.push({ key: 'new_service', label: t('menu.badges.new_service') })
   if (Array.isArray(svc?.specialTags)) {
     svc.specialTags.forEach((tag: string) => {
       const normalizedTag = String(tag || '').trim()
@@ -920,8 +922,8 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
     <!-- Header -->
     <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h2 class="text-4xl font-bold tracking-tight text-text-primary">Service Management</h2>
-        <p class="mt-1 text-sm text-text-secondary">Organize, edit, and optimize customer experience through your digital service catalog.</p>
+        <h2 class="text-4xl font-bold tracking-tight text-text-primary">{{ t('admin.serviceManager.title') }}</h2>
+        <p class="mt-1 text-sm text-text-secondary">{{ t('admin.serviceManager.subtitle') }}</p>
       </div>
       <div class="flex items-center gap-3">
         <RouterLink
@@ -930,14 +932,14 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
           class="flex items-center gap-2 rounded-xl border border-border bg-white px-5 py-3 text-sm font-extrabold text-text-primary shadow-sm transition-all hover:bg-surface-input active:scale-95"
         >
           <Eye class="h-4 w-4" />
-          Preview
+          {{ t('admin.serviceManager.preview') }}
         </RouterLink>
         <button
           class="flex items-center gap-2 rounded-xl bg-gradient-to-b from-primary-600 to-[#0048B5] px-5 py-3 text-sm font-extrabold text-white shadow-button transition-all hover:brightness-110 active:scale-95"
           @click="openCreate"
         >
           <Plus class="h-4 w-4" />
-          Add New Service
+          {{ t('admin.serviceManager.addNewService') }}
         </button>
       </div>
     </div>
@@ -960,7 +962,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
           </svg>
         </div>
         <div>
-          <p class="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Total Services</p>
+          <p class="text-[11px] font-bold uppercase tracking-wider text-text-secondary">{{ t('admin.serviceManager.totalServices') }}</p>
           <p class="text-3xl font-black text-text-primary">{{ servicesView.total || 0 }}</p>
         </div>
       </div>
@@ -974,7 +976,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
           </svg>
         </div>
         <div>
-          <p class="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Today Service Views</p>
+          <p class="text-[11px] font-bold uppercase tracking-wider text-text-secondary">{{ t('admin.serviceManager.todayViews') }}</p>
           <p class="text-3xl font-black text-text-primary">{{ ((trafficData as any)?.todayServiceViews ?? 0).toLocaleString() }}</p>
         </div>
       </div>
@@ -988,7 +990,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
           </svg>
         </div>
         <div>
-          <p class="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Growth</p>
+          <p class="text-[11px] font-bold uppercase tracking-wider text-text-secondary">{{ t('admin.serviceManager.growth') }}</p>
           <p :class="['text-3xl font-black', formattedGrowth.class]">{{ formattedGrowth.text }}</p>
         </div>
       </div>
@@ -996,14 +998,14 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
 
     <!-- Current Service List Header -->
     <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <h3 class="text-xl font-bold flex-shrink-0 text-text-primary">Current Service List</h3>
+      <h3 class="text-xl font-bold flex-shrink-0 text-text-primary">{{ t('admin.serviceManager.currentList') }}</h3>
       <div ref="filterPanelRef" class="grid  grid-cols-1 gap-3 sm:grid-cols-[minmax(240px,1fr)_120px_160px_160px] sm:items-center sm:gap-4">
         <div class="relative min-w-0">
           <Search class="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
           <input
             v-model="searchInput"
             type="text"
-            placeholder="Search services..."
+            :placeholder="t('admin.services.searchPlaceholder')"
             class="w-full rounded-full border border-border bg-white py-2.5 pl-11 pr-4 text-sm font-medium text-text-primary shadow-sm outline-none placeholder:text-text-muted focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
           />
         </div>
@@ -1014,9 +1016,9 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
           </button>
           <Transition name="fade-down">
             <div v-if="openFilter === 'status'" class="filter-menu">
-              <button type="button" :class="['filter-option', !selectedStatus ? 'filter-option-active' : '']" @click="setStatusFilter('')">All Status</button>
-              <button type="button" :class="['filter-option', selectedStatus === 'true' ? 'filter-option-active' : '']" @click="setStatusFilter('true')">Active</button>
-              <button type="button" :class="['filter-option', selectedStatus === 'false' ? 'filter-option-active' : '']" @click="setStatusFilter('false')">Inactive</button>
+              <button type="button" :class="['filter-option', !selectedStatus ? 'filter-option-active' : '']" @click="setStatusFilter('')">{{ t('admin.services.allStatus') }}</button>
+              <button type="button" :class="['filter-option', selectedStatus === 'true' ? 'filter-option-active' : '']" @click="setStatusFilter('true')">{{ t('admin.common.active') }}</button>
+              <button type="button" :class="['filter-option', selectedStatus === 'false' ? 'filter-option-active' : '']" @click="setStatusFilter('false')">{{ t('admin.common.inactive') }}</button>
             </div>
           </Transition>
         </div>
@@ -1027,7 +1029,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
           </button>
           <Transition name="fade-down">
             <div v-if="openFilter === 'category'" class="filter-menu">
-              <button type="button" :class="['filter-option', !selectedCategory ? 'filter-option-active' : '']" @click="setCategoryFilter('')">All Categories</button>
+              <button type="button" :class="['filter-option', !selectedCategory ? 'filter-option-active' : '']" @click="setCategoryFilter('')">{{ t('admin.services.allCategories') }}</button>
               <button v-for="cat in categories" :key="cat.id" type="button" :class="['filter-option', selectedCategory === cat.id ? 'filter-option-active' : '']" @click="setCategoryFilter(cat.id)">{{ cat.name }}</button>
             </div>
           </Transition>
@@ -1039,8 +1041,8 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
           </button>
           <Transition name="fade-down">
             <div v-if="openFilter === 'sort'" class="filter-menu">
-              <button type="button" :class="['filter-option', selectedSort === 'newest' ? 'filter-option-active' : '']" @click="setSortFilter('newest')">Newest First</button>
-              <button type="button" :class="['filter-option', selectedSort === 'oldest' ? 'filter-option-active' : '']" @click="setSortFilter('oldest')">Oldest First</button>
+              <button type="button" :class="['filter-option', selectedSort === 'newest' ? 'filter-option-active' : '']" @click="setSortFilter('newest')">{{ t('admin.serviceManager.sortNewest') }}</button>
+              <button type="button" :class="['filter-option', selectedSort === 'oldest' ? 'filter-option-active' : '']" @click="setSortFilter('oldest')">{{ t('admin.serviceManager.sortOldest') }}</button>
             </div>
           </Transition>
         </div>
@@ -1066,8 +1068,8 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
     </div>
     <div v-else-if="!servicesView.items.length" class="flex flex-col items-center justify-center rounded-3xl bg-white py-20 text-center shadow-card">
       <div class="mb-4 text-5xl opacity-50">💇‍♀️</div>
-      <p class="text-lg font-bold text-text-primary">No services found</p>
-      <p class="mt-1 text-sm text-text-muted">Adjust your filters or add a new service.</p>
+      <p class="text-lg font-bold text-text-primary">{{ t('menu.noServicesFound') }}</p>
+      <p class="mt-1 text-sm text-text-muted">{{ t('admin.serviceManager.emptyHint') }}</p>
     </div>
     <div v-else class="grid grid-cols-1 gap-6 xl:grid-cols-2">
       <div
@@ -1086,7 +1088,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
           
           <!-- Inactive Overlay -->
           <div v-if="!svc.isActive" class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-            <span class="rounded-full bg-white/20 px-2 py-0.5 text-[8px] font-black uppercase text-white backdrop-blur-md">Inactive</span>
+            <span class="rounded-full bg-white/20 px-2 py-0.5 text-[8px] font-black uppercase text-white backdrop-blur-md">{{ t('admin.common.inactive') }}</span>
           </div>
         </div>
 
@@ -1107,7 +1109,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
             </div>
 
             <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-text-secondary">
-              {{ svc.shortDescription || svc.description || 'No description provided.' }}
+              {{ svc.shortDescription || svc.description || t('admin.serviceManager.noDescription') }}
             </p>
           </div>
           
@@ -1137,14 +1139,14 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
            <button
             @click="openEdit(svc)"
             class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-text-primary shadow-sm ring-1 ring-border hover:bg-surface-input"
-            title="Edit"
+              :title="t('admin.serviceManager.edit')"
           >
             <Pencil class="h-3.5 w-3.5" />
           </button>
           <button
             @click="deleteService(svc.id)"
             class="flex h-8 w-8 items-center justify-center rounded-full bg-danger/10 text-danger shadow-sm ring-1 ring-danger/20 hover:bg-danger/20"
-            title="Delete"
+              :title="t('admin.serviceManager.delete')"
           >
             <Trash2 class="h-3.5 w-3.5" />
           </button>
@@ -1219,7 +1221,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
           <!-- Header -->
           <div class="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-white px-6 py-4">
             <h3 class="text-lg font-bold text-text-primary">
-              {{ editingService ? 'Edit Service' : 'New Service' }}
+              {{ editingService ? t('admin.serviceManager.editService') : t('admin.serviceManager.newService') }}
             </h3>
             <button class="rounded-lg p-1.5 text-text-muted hover:bg-surface-input" @click="resetForm">
               <X class="h-5 w-5" />
@@ -1237,11 +1239,11 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
           <div v-else class="space-y-6 p-6">
             <!-- Service Name -->
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Service Name</label>
+              <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('admin.serviceManager.serviceName') }}</label>
               <input
                 v-model="form.name"
                 type="text"
-                placeholder="e.g., Hot Stone Massage 60 mins"
+                :placeholder="t('admin.serviceManager.serviceNamePlaceholder')"
                 class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent placeholder:text-text-muted focus:ring-2 focus:ring-primary-600"
               />
               <p v-if="fieldErrors.name" class="mt-1 text-xs font-medium text-danger">{{ fieldErrors.name }}</p>
@@ -1249,7 +1251,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
 
             <!-- Category -->
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Category</label>
+              <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('admin.services.columns.category') }}</label>
               <div class="relative">
                 <button 
                   type="button" 
@@ -1294,7 +1296,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm font-semibold text-text-primary">Product Variants</p>
-                  <p class="text-xs text-text-muted">Enable if this service has different options</p>
+                  <p class="text-xs text-text-muted">{{ t('admin.serviceManager.variantHint') }}</p>
                 </div>
                 <button
                   type="button"
@@ -1311,14 +1313,14 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
             </div>
 
             <div v-if="!form.hasVariants">
-              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Price</label>
+              <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('admin.services.columns.price') }}</label>
               <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                 <input
                   v-model="priceFromInput"
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder="Price from"
+                  :placeholder="t('admin.serviceManager.priceFrom')"
                   class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent focus:ring-2 focus:ring-primary-600"
                 />
                 <span class="text-base font-bold text-text-secondary">-</span>
@@ -1327,7 +1329,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder="Price to (optional)"
+                  :placeholder="t('admin.serviceManager.priceTo')"
                   class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent focus:ring-2 focus:ring-primary-600"
                 />
               </div>
@@ -1335,7 +1337,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
             </div>
 
             <div v-else class="space-y-3">
-              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Variant Options</label>
+              <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('admin.serviceManager.variantOptions') }}</label>
               <div
                 v-for="(opt, idx) in form.variantOptions"
                 :key="idx"
@@ -1344,7 +1346,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
                 <input
                   v-model="opt.name"
                   type="text"
-                  placeholder="Option Name (e.g., 60 mins)"
+                  :placeholder="t('admin.serviceManager.optionNamePlaceholder')"
                   class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent focus:ring-2 focus:ring-primary-600"
                 />
                 <input
@@ -1367,19 +1369,19 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
                 class="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface-input py-2.5 text-sm font-semibold text-text-primary hover:bg-surface-page"
                 @click="addVariantOption"
               >
-                <Plus class="h-4 w-4" /> Add Option
+                <Plus class="h-4 w-4" /> {{ t('admin.serviceManager.addOption') }}
               </button>
               <p v-if="fieldErrors.variantOptions" class="text-xs font-medium text-danger">{{ fieldErrors.variantOptions }}</p>
             </div>
 
             <!-- Special Label -->
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Special Label</label>
+              <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('admin.serviceManager.specialLabel') }}</label>
               <div class="mb-2 grid grid-cols-[1fr_auto] gap-2">
                 <input
                   v-model="newLabelInput"
                   type="text"
-                  placeholder="Add new label..."
+                  :placeholder="t('admin.serviceManager.newLabelPlaceholder')"
                   class="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-text-primary outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                   @keydown.enter.prevent="addCustomLabel"
                 />
@@ -1388,7 +1390,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
                   class="rounded-lg border border-border bg-gradient-to-b from-primary-500 to-[#0048B5] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-surface-page"
                   @click="addCustomLabel"
                 >
-                  Add
+                  {{ t('admin.serviceManager.add') }}
                 </button>
               </div>
               <p v-if="newLabelError" class="mb-2 text-xs font-medium text-danger">{{ newLabelError }}</p>
@@ -1408,29 +1410,29 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
 
             <!-- Short Description -->
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Short Description</label>
+              <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('admin.serviceManager.shortDescription') }}</label>
               <textarea
                 v-model="form.shortDescription"
                 rows="2"
-                placeholder="Short summary shown on service card..."
+                :placeholder="t('admin.serviceManager.shortDescriptionPlaceholder')"
                 class="w-full resize-none rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent placeholder:text-text-muted focus:ring-2 focus:ring-primary-600"
               />
             </div>
 
             <!-- Description -->
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Description</label>
+              <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('menu.description') }}</label>
               <textarea
                 v-model="form.description"
                 rows="3"
-                placeholder="Describe the treatment benefits and process..."
+                :placeholder="t('admin.serviceManager.descriptionPlaceholder')"
                 class="w-full resize-none rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent placeholder:text-text-muted focus:ring-2 focus:ring-primary-600"
               />
             </div>
 
             <!-- Duration -->
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Time (Minutes)</label>
+              <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('admin.serviceManager.timeMinutes') }}</label>
               <div class="relative">
                 <input
                   v-model.number="form.durationMinutes"
@@ -1444,16 +1446,16 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
 
             <!-- Status -->
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-text-secondary">Status</label>
+              <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('admin.services.columns.status') }}</label>
               <div class="flex gap-3">
                 <button
                   :class="['rounded-lg px-4 py-2 text-sm font-bold transition-all', form.isActive ? 'bg-success/10 text-success ring-2 ring-success' : 'bg-surface-input text-text-muted']"
                   @click="form.isActive = true"
-                >Active</button>
+                >{{ t('admin.common.active') }}</button>
                 <button
                   :class="['rounded-lg px-4 py-2 text-sm font-bold transition-all', !form.isActive ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-300' : 'bg-surface-input text-text-muted']"
                   @click="form.isActive = false"
-                >Inactive</button>
+                >{{ t('admin.common.inactive') }}</button>
               </div>
             </div>
 
@@ -1474,8 +1476,8 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
                 @drop.prevent="e => { isDraggingImage = false; handleDrop(e) }"
               >
                 <Upload class="mb-2 h-8 w-8 text-text-muted" />
-                <span class="text-sm font-bold text-text-primary">{{ uploadLoading ? 'Uploading image...' : 'Upload image or drag and drop' }}</span>
-                <span class="mt-1 text-xs text-text-muted">Recommended JPG/PNG/WEBP. Max size 5MB.</span>
+                <span class="text-sm font-bold text-text-primary">{{ uploadLoading ? t('admin.settings.uploadingBanner') : t('admin.settings.uploadHint') }}</span>
+                <span class="mt-1 text-xs text-text-muted">{{ t('admin.settings.bannerHint') }}</span>
                 <input type="file" accept="image/*" class="hidden" @change="handleUpload" :disabled="uploadLoading" />
               </label>
               <p v-if="fieldErrors.imageUrl" class="mt-1 text-xs font-medium text-danger">{{ fieldErrors.imageUrl }}</p>
@@ -1492,13 +1494,13 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
               :disabled="saving || formLoading || !form.name"
               @click="saveService()"
             >
-              {{ saving ? 'Saving...' : 'Save Service' }}
+              {{ saving ? t('admin.common.saving') : t('admin.serviceManager.saveService') }}
             </button>
             <button
               class="flex-1 rounded-xl bg-surface-secondary py-3 text-sm font-bold text-text-dim transition-all hover:bg-surface-input"
               @click="resetForm"
             >
-              Cancel
+              {{ t('admin.common.cancel') }}
             </button>
           </div>
           <p v-if="formError" class="px-6 pb-5 text-sm font-medium text-danger">{{ formError }}</p>
@@ -1529,20 +1531,20 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
               </svg>
             </div>
             <h3 class="mb-2 text-xl font-bold text-text-primary">Service {{ form.name }} is exist</h3>
-            <p class="mb-8 text-sm text-text-secondary">Do you want to change it?</p>
+            <p class="mb-8 text-sm text-text-secondary">{{ t('admin.categories.existsHint') }}</p>
             
             <div class="flex gap-3">
               <button
                 class="flex-1 rounded-2xl bg-gradient-to-b from-primary-600 to-[#0048B5] py-3 text-sm font-extrabold text-white shadow-button transition-all hover:brightness-110"
                 @click="handleConflictYes"
               >
-                Yes, edit it
+                {{ t('admin.categories.yesEdit') }}
               </button>
               <button
                 class="flex-1 rounded-2xl bg-surface-secondary py-3 text-sm font-bold text-text-dim transition-all hover:bg-surface-input"
                 @click="handleConflictNo"
               >
-                No, cancel
+                {{ t('admin.categories.noCancel') }}
               </button>
             </div>
           </div>

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { Hammer } from 'lucide-vue-next'
 import { onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n({ useScope: 'global' })
 
 defineProps<{
   spaName?: string
@@ -32,14 +35,13 @@ onUnmounted(() => {
       <!-- Content -->
       <div class="space-y-4">
         <p class="text-sm font-semibold uppercase tracking-[0.2em] text-[#0253CD]">
-          Scheduled Maintenance
+          {{ t('maintenance.badge') }}
         </p>
         <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight text-[#2C2F32] leading-[1.1]">
-          We'll be back soon
+          {{ t('maintenance.title') }}
         </h1>
         <p class="mt-8 text-lg md:text-lg font-medium text-[#595C5E] leading-relaxed mx-auto max-w-lg">
-          We’re making some improvements to serve you better.<br />
-          Thanks for your patience 💙
+          {{ t('maintenance.description') }}
         </p>
       </div>
     </div>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useMutation } from '@tanstack/vue-query'
 import { categoriesApi } from '@/api/categories.api'
 import { servicesApi } from '@/api/services.api'
@@ -15,6 +16,7 @@ import MaintenanceState from './components/MaintenanceState.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const { t, te, locale } = useI18n({ useScope: 'global' })
 const adminId = computed(() => route.params.id as string)
 const publicCategoriesQueryKey = computed(() => ['public-categories', adminId.value])
 const publicConfigQueryKey = computed(() => ['public-config', adminId.value])
@@ -545,8 +547,8 @@ const BADGE_STYLE_MAP: Record<string, string> = {
 }
 
 function formatNumber(price: number) {
-  const locale = currencyUnit.value === 'VND' ? 'vi-VN' : 'en-US'
-  return new Intl.NumberFormat(locale).format(price)
+  const numberLocale = locale.value === 'vi' ? 'vi-VN' : locale.value === 'de' ? 'de-DE' : 'en-US'
+  return new Intl.NumberFormat(numberLocale).format(price)
 }
 
 function formatCurrencySingle(value: number) {
@@ -608,6 +610,8 @@ function closeDetail() {
 }
 
 function formatTagLabel(tag: string) {
+  const key = `menu.badges.${tag}`
+  if (te(key)) return t(key)
   return tag
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -616,8 +620,8 @@ function formatTagLabel(tag: string) {
 
 function getServiceLabelItems(item: any) {
   const labels: Array<{ key: string; label: string }> = []
-  if (item?.isBestSeller) labels.push({ key: 'best_seller', label: 'Best Seller' })
-  if (item?.isNewService) labels.push({ key: 'new_service', label: 'New Service' })
+  if (item?.isBestSeller) labels.push({ key: 'best_seller', label: t('menu.badges.best_seller') })
+  if (item?.isNewService) labels.push({ key: 'new_service', label: t('menu.badges.new_service') })
   if (Array.isArray(item?.specialTags)) {
     item.specialTags.forEach((tag: string) => {
       const normalizedTag = String(tag || '').trim()
@@ -723,10 +727,10 @@ function handleImgError(e: Event) {
         </div>
         <div v-else class="t-hero-meta mt-5 w-full">
           <h1 class="t-spa-name text-[28px] font-black uppercase tracking-tight text-text-primary">
-            {{ spaConfig.spaName || 'QR Home Spa' }}
+            {{ spaConfig.spaName || t('menu.defaultSpaName') }}
           </h1>
           <p v-if="spaConfig.welcomeMessage || String(themeId) === 'stitch'" class="t-hero-welcome mt-1 text-[13px] font-bold text-text-secondary">
-            {{ spaConfig.welcomeMessage || 'Please select a category' }}
+            {{ spaConfig.welcomeMessage || t('menu.defaultWelcome') }}
           </p>
 
           <!-- Address Pill -->
@@ -751,8 +755,8 @@ function handleImgError(e: Event) {
     <!-- 1. Article Slide: New Services (Dynamic Carousel) -->
     <div v-if="newServices.length > 0 || loadingServices" class="t-featured-section mt-8 mb-8 overflow-hidden px-6">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-black tracking-tight text-text-primary">Featured Services</h2>
-        <span class="text-[10px] font-bold uppercase tracking-widest text-primary-600">New Arrivals</span>
+        <h2 class="text-xl font-black tracking-tight text-text-primary">{{ t('menu.featuredServices') }}</h2>
+        <span class="text-[10px] font-bold uppercase tracking-widest text-primary-600">{{ t('menu.newArrivals') }}</span>
       </div>
       
       <div
@@ -816,7 +820,7 @@ function handleImgError(e: Event) {
             ]"
             @click="selectedCategoryId = null"
           >
-            All
+            {{ t('menu.all') }}
           </button>
           <button
             v-for="cat in categories"
@@ -841,7 +845,7 @@ function handleImgError(e: Event) {
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search services..."
+            :placeholder="t('menu.searchServices')"
             class="w-full rounded-xl border-0 bg-surface py-3 pl-11 pr-4 text-sm font-medium text-text-primary shadow-card outline-none ring-1 ring-border placeholder:text-text-muted focus:ring-2 focus:ring-primary-600"
           />
         </div>
@@ -852,7 +856,7 @@ function handleImgError(e: Event) {
     <div class="t-service-section space-y-8 px-6 pb-24">
       <div v-if="isStitchTheme && stitchCategoryViewOpen" class="sticky top-0 z-30 -mx-6 mb-3 bg-surface-page/95 px-6 py-3 backdrop-blur-lg">
         <button class="inline-flex items-center gap-2 text-sm font-bold text-text-secondary" @click="closeStitchCategoryView">
-          <ArrowLeft class="h-4 w-4" /> Back to categories
+          <ArrowLeft class="h-4 w-4" /> {{ t('menu.backToCategories') }}
         </button>
       </div>
 
@@ -907,7 +911,7 @@ function handleImgError(e: Event) {
             <div class="t-card-info flex flex-1 flex-col justify-between py-1 pr-2">
               <div>
                 <h3 class="t-card-name text-[15px] font-bold text-text-primary leading-tight line-clamp-1">{{ svc.name }}</h3>
-                <p class="mt-1 text-xs text-text-secondary leading-normal line-clamp-2">{{ svc.shortDescription || svc.description || 'Premium service' }}</p>
+                <p class="mt-1 text-xs text-text-secondary leading-normal line-clamp-2">{{ svc.shortDescription || svc.description || t('menu.premiumService') }}</p>
                 
                 <!-- Badge (Inside Info) -->
                 <div class="mt-2 flex flex-wrap gap-1.5">
@@ -932,7 +936,7 @@ function handleImgError(e: Event) {
       <!-- Empty State -->
       <div v-if="!filteredServices.length" class="flex flex-col items-center py-16 text-text-muted">
         <span class="text-5xl">🔍</span>
-        <p class="mt-4 text-sm font-medium">No services found</p>
+        <p class="mt-4 text-sm font-medium">{{ t('menu.noServicesFound') }}</p>
       </div>
     </div>
     </template>
@@ -951,7 +955,7 @@ function handleImgError(e: Event) {
                 </div>
 
                 <div class="min-w-0 flex-1">
-                  <p class="line-clamp-1 text-3xl font-black text-white">{{ spaConfig.spaName || 'QR Home Spa' }}</p>
+                  <p class="line-clamp-1 text-3xl font-black text-white">{{ spaConfig.spaName || t('menu.defaultSpaName') }}</p>
                   <p v-if="spaConfig.welcomeMessage" class="mt-1 line-clamp-2 text-sm font-medium text-white/70">{{ spaConfig.welcomeMessage }}</p>
                 </div>
               </div>
@@ -959,14 +963,14 @@ function handleImgError(e: Event) {
               <div class="mt-5 grid gap-2 text-sm text-white/80 sm:grid-cols-2">
                 <div class="rounded-xl px-3 py-2 flex items-start gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin-house-icon lucide-map-pin-house"><path d="M15 22a1 1 0 0 1-1-1v-4a1 1 0 0 1 .445-.832l3-2a1 1 0 0 1 1.11 0l3 2A1 1 0 0 1 22 17v4a1 1 0 0 1-1 1z"/><path d="M18 10a8 8 0 0 0-16 0c0 4.993 5.539 10.193 7.399 11.799a1 1 0 0 0 .601.2"/><path d="M18 22v-3"/><circle cx="10" cy="10" r="3"/></svg>
-                  <p class="line-clamp-2 font-semibold">{{ spaConfig.spaAddress || 'Updating address' }}</p>
+                  <p class="line-clamp-2 font-semibold">{{ spaConfig.spaAddress || t('menu.updatingAddress') }}</p>
                 </div>
                 <div class="rounded-xl px-3 py-2 flex items-start gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone-icon lucide-phone"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>                  <p class="line-clamp-1 font-semibold">{{ spaConfig.spaPhone || 'Updating phone' }}</p>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone-icon lucide-phone"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>                  <p class="line-clamp-1 font-semibold">{{ spaConfig.spaPhone || t('menu.updatingPhone') }}</p>
                 </div>
                 <div class="rounded-xl px-3 py-2 flex items-start gap-2 sm:col-span-2">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail-icon lucide-mail"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
-                  <p class="line-clamp-1 font-semibold">{{ spaConfig.spaEmail || 'Updating email' }}</p>
+                  <p class="line-clamp-1 font-semibold">{{ spaConfig.spaEmail || t('menu.updatingEmail') }}</p>
                 </div>
               </div>
             </div>
@@ -1020,14 +1024,14 @@ function handleImgError(e: Event) {
           <template v-else>
             <div class="sticky top-0 z-20 -mx-6 border-b border-white/10 bg-black/95 px-6 py-4 backdrop-blur-lg">
               <button class="mb-3 inline-flex items-center gap-2 text-sm font-bold text-white/80" @click="closeDarkCategoryView">
-                <ArrowLeft class="h-4 w-4" /> Back
+                <ArrowLeft class="h-4 w-4" /> {{ t('menu.back') }}
               </button>
               <div class="relative rounded-2xl">
                 <Search class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55" />
                 <input
                   v-model="searchQuery"
                   type="text"
-                  placeholder="Search in selected category..."
+                  :placeholder="t('menu.searchInCategory')"
                   class="w-full rounded-none border border-white/20 bg-[#1D1F24] py-3 pl-11 pr-4 text-sm font-semibold text-white outline-none placeholder:text-white/45 focus:border-[#F57C00]"
                   style="border-radius: 20px;"
                 />
@@ -1046,7 +1050,7 @@ function handleImgError(e: Event) {
                 </div>
                 <div class="min-w-0 flex-1">
                   <p class="line-clamp-1 text-lg font-black text-white">{{ svc.name }}</p>
-                  <p class="mt-1 line-clamp-2 text-xs font-medium text-white/60">{{ svc.shortDescription || svc.description || 'Premium service' }}</p>
+                  <p class="mt-1 line-clamp-2 text-xs font-medium text-white/60">{{ svc.shortDescription || svc.description || t('menu.premiumService') }}</p>
                   <div class="mt-2 flex flex-wrap gap-1.5">
                     <span
                       v-for="label in getServiceLabelItems(svc)"
@@ -1062,7 +1066,7 @@ function handleImgError(e: Event) {
             </div>
 
             <div v-if="!darkSelectedServices.length" class="mt-10 border border-white/10 bg-[#1B1D23] py-12 text-center text-white/60">
-              <p class="text-base font-semibold">No services in this category</p>
+              <p class="text-base font-semibold">{{ t('menu.noServicesInCategory') }}</p>
             </div>
           </template>
         </div>
@@ -1076,9 +1080,9 @@ function handleImgError(e: Event) {
           <div class="neon-hero-card rounded-[30px] p-5 sm:p-6">
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0 flex-1">
-                <p class="line-clamp-1 text-3xl font-black text-white">{{ spaConfig.spaName || 'Neon Lounge' }}</p>
+                <p class="line-clamp-1 text-3xl font-black text-white">{{ spaConfig.spaName || t('menu.defaultNeonSpaName') }}</p>
                 <p class="mt-1 line-clamp-2 text-sm font-semibold text-cyan-100/85">
-                  {{ spaConfig.welcomeMessage || 'Tactical care mode engaged' }}
+                  {{ spaConfig.welcomeMessage || t('menu.defaultNeonWelcome') }}
                 </p>
               </div>
               <div class="neon-hero-logo h-16 w-16 flex-shrink-0 overflow-hidden rounded-2xl">
@@ -1116,7 +1120,7 @@ function handleImgError(e: Event) {
               </div>
 
               <div class="min-w-0 flex-1">
-                <p class="line-clamp-1 text-2xl font-black text-white">{{ spaConfig.spaName || 'QR Home' }}</p>
+                <p class="line-clamp-1 text-2xl font-black text-white">{{ spaConfig.spaName || t('menu.defaultQrHome') }}</p>
                 <p v-if="spaConfig.welcomeMessage" class="line-clamp-2 mt-1 text-sm font-semibold text-white/80">{{ spaConfig.welcomeMessage }}</p>
               </div>
 
@@ -1148,7 +1152,7 @@ function handleImgError(e: Event) {
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0 flex-1">
                 <p class="mt-2 text-3xl font-black leading-tight text-text-primary line-clamp-1">
-                  {{ spaConfig.spaName || 'QR Home' }}
+                  {{ spaConfig.spaName || t('menu.defaultQrHome') }}
                 </p>
                 <p v-if="spaConfig.welcomeMessage" class="mt-2 text-sm font-medium text-text-secondary line-clamp-2">
                   {{ spaConfig.welcomeMessage }}
@@ -1222,7 +1226,7 @@ function handleImgError(e: Event) {
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search cyber services..."
+            :placeholder="t('menu.searchCyberServices')"
             class="w-full rounded-[20px] border border-cyan-500/30 bg-slate-900/60 py-3.5 pl-12 pr-4 text-sm font-bold text-white shadow-inner outline-none placeholder:text-cyan-100/50 focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-500/50"
           />
         </div>
@@ -1235,7 +1239,7 @@ function handleImgError(e: Event) {
               :class="['neon-mode-tab flex-shrink-0 flex flex-col items-center justify-center p-2 rounded-2xl transition-all min-w-[72px]', !selectedCategoryId ? 'bg-cyan-500/20 text-cyan-50 ring-1 ring-cyan-400/50' : 'text-slate-400 hover:text-cyan-200']"
               @click="selectedCategoryId = null"
             >
-              <span class="text-[10px] font-black uppercase tracking-wider">All</span>
+              <span class="text-[10px] font-black uppercase tracking-wider">{{ t('menu.all') }}</span>
             </button>
 
             <button
@@ -1316,7 +1320,7 @@ function handleImgError(e: Event) {
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Find your service"
+                :placeholder="t('menu.findYourService')"
                 class="w-full rounded-xl border-0 bg-white py-2.5 pl-10 pr-3 text-sm font-semibold text-text-primary ring-1 ring-border outline-none focus:ring-2 focus:ring-primary-600"
               />
             </div>
@@ -1329,7 +1333,7 @@ function handleImgError(e: Event) {
                 ]"
                 @click="selectedCategoryId = null"
               >
-                All
+                {{ t('menu.all') }}
               </button>
               <button
                 v-for="cat in categories"
@@ -1356,7 +1360,7 @@ function handleImgError(e: Event) {
                 ]"
                 @click="selectedCategoryId = null"
               >
-                All Menu
+                {{ t('menu.allMenu') }}
               </button>
               <button
                 v-for="cat in categories"
@@ -1376,7 +1380,7 @@ function handleImgError(e: Event) {
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Find your service"
+                :placeholder="t('menu.findYourService')"
                 class="w-full rounded-xl border-0 bg-white py-2.5 pl-10 pr-3 text-sm font-semibold text-text-primary ring-1 ring-border outline-none focus:ring-2 focus:ring-primary-600"
               />
             </div>
@@ -1395,7 +1399,7 @@ function handleImgError(e: Event) {
                 ]"
                 @click="selectedCategoryId = null"
               >
-                All Menu
+                {{ t('menu.allMenu') }}
               </button>
               <button
                 v-for="cat in categories"
@@ -1478,7 +1482,7 @@ function handleImgError(e: Event) {
 
           <div v-if="!filteredServices.length" class="rounded-3xl bg-white py-14 text-center text-text-muted shadow-card ring-1 ring-border">
             <p class="text-3xl">🍽️</p>
-            <p class="mt-3 text-sm font-semibold">No matching services</p>
+            <p class="mt-3 text-sm font-semibold">{{ t('menu.noMatchingServices') }}</p>
           </div>
         </template>
 
@@ -1505,7 +1509,7 @@ function handleImgError(e: Event) {
                   
                   <div class="absolute inset-x-0 bottom-0 p-4">
                     <p :class="[index % 5 === 0 ? 'text-[32px]' : 'text-lg', 'font-black leading-none text-white line-clamp-2']">{{ svc.name }}</p>
-                    <p v-if="index % 5 === 0" class="mt-1 line-clamp-1 text-sm font-medium text-cyan-100/70">{{ svc.shortDescription || svc.description || 'Premium hyper-service' }}</p>
+                    <p v-if="index % 5 === 0" class="mt-1 line-clamp-1 text-sm font-medium text-cyan-100/70">{{ svc.shortDescription || svc.description || t('menu.defaultHyperService') }}</p>
                     <div class="mt-2 flex flex-wrap gap-1.5">
                       <span
                         v-for="label in getServiceLabelItems(svc)"
@@ -1521,7 +1525,7 @@ function handleImgError(e: Event) {
               </div>
 
               <div v-if="!filteredServices.length" class="mt-6 rounded-3xl border border-cyan-300/25 bg-slate-900/45 py-12 text-center text-cyan-100/75">
-                <p class="text-base font-semibold">No services in this mode</p>
+                <p class="text-base font-semibold">{{ t('menu.noServicesInMode') }}</p>
               </div>
             </div>
           </template>
@@ -1573,7 +1577,7 @@ function handleImgError(e: Event) {
               <div class="vibrant-header-top flex items-start justify-between gap-3">
                 <div class="min-w-0">
                   <p class="line-clamp-1 text-2xl font-black text-white">
-                    {{ spaConfig.spaName || 'QR Home Spa' }}
+                    {{ spaConfig.spaName || t('menu.defaultSpaName') }}
                   </p>
                   <p v-if="spaConfig.welcomeMessage" class="mt-1 line-clamp-2 text-sm font-semibold text-white/80">
                     {{ spaConfig.welcomeMessage }}
@@ -1637,15 +1641,15 @@ function handleImgError(e: Event) {
                 <aside class="vibrant-category-rail no-scrollbar">
                   <button
                     type="button"
-                    title="All"
-                    aria-label="All"
+                    :title="t('menu.all')"
+                    :aria-label="t('menu.all')"
                     :class="[
                       'vibrant-cat-pill',
                       !selectedCategoryId ? 'is-active' : ''
                     ]"
                     @click="selectedCategoryId = null"
                   >
-                    <span class="vibrant-cat-pill-text">All</span>
+                    <span class="vibrant-cat-pill-text">{{ t('menu.all') }}</span>
                   </button>
                   <button
                     v-for="cat in categories"
@@ -1690,7 +1694,7 @@ function handleImgError(e: Event) {
                   </button>
 
                   <div v-if="!filteredServices.length" class="vibrant-empty rounded-3xl py-12 text-center">
-                    <p class="text-base font-semibold text-white/80">No services in this category</p>
+                    <p class="text-base font-semibold text-white/80">{{ t('menu.noServicesInCategory') }}</p>
                   </div>
                 </div>
               </div>
@@ -1707,8 +1711,8 @@ function handleImgError(e: Event) {
                     type="button"
                     class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-surface text-text-muted ring-1 ring-border transition-all hover:bg-surface-input"
                     @click="openRoseCategory(group.category?.id)"
-                    aria-label="Open full category menu"
-                    title="Open full category menu"
+                    :aria-label="t('menu.openFullCategoryMenu')"
+                    :title="t('menu.openFullCategoryMenu')"
                   >
                     <ChevronRight class="h-3.5 w-3.5" />
                   </button>
@@ -1727,7 +1731,7 @@ function handleImgError(e: Event) {
 
                     <div class="rose-slide-info mt-3">
                       <p class="line-clamp-1 text-[18px] font-black text-text-primary">{{ svc.name }}</p>
-                      <p class="mt-1 line-clamp-1 text-xs font-medium text-text-secondary">{{ svc.shortDescription || svc.description || 'Premium service' }}</p>
+                      <p class="mt-1 line-clamp-1 text-xs font-medium text-text-secondary">{{ svc.shortDescription || svc.description || t('menu.premiumService') }}</p>
                       <div class="mt-2 flex flex-wrap gap-1.5">
                         <span
                           v-for="label in getServiceLabelItems(svc)"
@@ -1747,14 +1751,14 @@ function handleImgError(e: Event) {
             <template v-else>
               <div class="sticky top-0 z-20 -mx-6 border-b border-border bg-surface-page/95 px-6 py-4 backdrop-blur-lg">
                 <button class="mb-3 inline-flex items-center gap-2 text-sm font-bold text-text-secondary" @click="closeRoseCategoryView">
-                  <ArrowLeft class="h-4 w-4" /> Back
+                  <ArrowLeft class="h-4 w-4" /> {{ t('menu.back') }}
                 </button>
                 <div class="relative rounded-2xl">
                   <Search class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
                   <input
                     v-model="searchQuery"
                     type="text"
-                    placeholder="Search in selected category..."
+                    :placeholder="t('menu.searchInCategory')"
                     class="w-full rounded-xl border border-border bg-white py-3 pl-11 pr-4 text-sm font-semibold text-text-primary outline-none placeholder:text-text-muted focus:border-primary-500"
                   />
                 </div>
@@ -1762,14 +1766,14 @@ function handleImgError(e: Event) {
 
               <div class="space-y-3">
                 <div class="flex items-center gap-3">
-                  <h3 class="nl-group-title text-lg font-black uppercase tracking-tight text-text-primary">{{ categories.find((c: any) => c.id === selectedCategoryId)?.name || 'Category' }}</h3>
+                  <h3 class="nl-group-title text-lg font-black uppercase tracking-tight text-text-primary">{{ categories.find((c: any) => c.id === selectedCategoryId)?.name || t('menu.category') }}</h3>
                   <span class="h-px flex-1 bg-border"></span>
                   <button
                     type="button"
                     class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-surface text-text-muted ring-1 ring-border transition-all hover:bg-surface-input"
                     @click="switchToAllTab"
-                    aria-label="View all menu"
-                    title="View all menu"
+                    :aria-label="t('menu.viewAllMenu')"
+                    :title="t('menu.viewAllMenu')"
                   >
                     <ChevronRight class="h-3.5 w-3.5" />
                   </button>
@@ -1789,7 +1793,7 @@ function handleImgError(e: Event) {
                     <div class="nl-service-info flex min-w-0 flex-1 flex-col justify-between py-1">
                       <div>
                         <p class="line-clamp-1 text-[15px] font-black text-text-primary">{{ svc.name }}</p>
-                        <p class="mt-1 line-clamp-2 text-xs font-medium text-text-secondary">{{ svc.shortDescription || svc.description || 'Premium service' }}</p>
+                        <p class="mt-1 line-clamp-2 text-xs font-medium text-text-secondary">{{ svc.shortDescription || svc.description || t('menu.premiumService') }}</p>
                         <div class="mt-2 flex flex-wrap gap-1.5">
                           <span
                             v-for="label in getServiceLabelItems(svc)"
@@ -1828,7 +1832,7 @@ function handleImgError(e: Event) {
                 <div class="nl-service-info flex min-w-0 flex-1 flex-col justify-between py-1">
                   <div>
                     <p class="line-clamp-1 text-[15px] font-black text-text-primary">{{ svc.name }}</p>
-                    <p class="mt-1 line-clamp-2 text-xs font-medium text-text-secondary">{{ svc.shortDescription || svc.description || 'Premium service' }}</p>
+                    <p class="mt-1 line-clamp-2 text-xs font-medium text-text-secondary">{{ svc.shortDescription || svc.description || t('menu.premiumService') }}</p>
                     <div class="mt-2 flex flex-wrap gap-1.5">
                       <span
                         v-for="label in getServiceLabelItems(svc)"
@@ -1847,7 +1851,7 @@ function handleImgError(e: Event) {
 
           <div v-if="!filteredServices.length" class="rounded-3xl bg-white py-14 text-center text-text-muted shadow-card ring-1 ring-border">
             <p class="text-3xl">🍽️</p>
-            <p class="mt-3 text-sm font-semibold">No matching services</p>
+            <p class="mt-3 text-sm font-semibold">{{ t('menu.noMatchingServices') }}</p>
           </div>
         </template>
       </section>
@@ -1905,7 +1909,7 @@ function handleImgError(e: Event) {
             <div class="mt-6 flex flex-wrap gap-3">
               <div class="flex items-center gap-2 rounded-2xl bg-surface-input px-5 py-3.5">
                 <Clock class="h-4 w-4 text-primary-600" />
-                <span class="text-sm font-black text-text-primary">{{ selectedService.duration || 60 }} mins</span>
+                <span class="text-sm font-black text-text-primary">{{ selectedService.duration || 60 }} {{ t('menu.minutes') }}</span>
               </div>
               <div v-if="getServiceDisplayPrice(selectedService)" class="flex items-center gap-2 rounded-2xl bg-surface-input px-5 py-3.5">
                 <div class="flex h-5 w-5 items-center justify-center rounded-md bg-badge-bestseller-bg/20 text-[#B44CFF]">
@@ -1917,15 +1921,15 @@ function handleImgError(e: Event) {
 
             <!-- Description Section -->
             <div class="mt-10">
-              <h3 class="mb-5 text-xs font-black uppercase tracking-[0.2em] text-text-muted">Description</h3>
+              <h3 class="mb-5 text-xs font-black uppercase tracking-[0.2em] text-text-muted">{{ t('menu.description') }}</h3>
               <p class="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-text-secondary font-medium">
-                {{ selectedService.description || 'Our premium service is designed to provide you with the ultimate relaxation and wellness experience.' }}
+                {{ selectedService.description || t('menu.premiumExperience') }}
               </p>
             </div>
 
             <!-- Options Section -->
             <div v-if="getDetailVariantOptions(selectedService).length" class="mt-8">
-              <h3 class="mb-4 text-xs font-black uppercase tracking-[0.2em] text-text-muted">Options</h3>
+              <h3 class="mb-4 text-xs font-black uppercase tracking-[0.2em] text-text-muted">{{ t('menu.options') }}</h3>
               <div class="space-y-2">
                 <div
                   v-for="(opt, index) in getDetailVariantOptions(selectedService)"
@@ -1933,7 +1937,7 @@ function handleImgError(e: Event) {
                   class="flex items-center justify-between rounded-xl bg-surface-input px-4 py-3"
                 >
                   <span class="text-sm font-bold text-text-primary">{{ opt.name }}</span>
-                  <span class="text-sm font-black text-primary-700">{{ formatNumber(opt.price) }} đ</span>
+                  <span class="text-sm font-black text-primary-700">{{ formatCurrencySingle(opt.price) }}</span>
                 </div>
               </div>
             </div>
