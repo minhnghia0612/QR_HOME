@@ -1,18 +1,60 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { categoriesApi } from '@/api/categories.api'
 import { Plus, Pencil, Trash2, X, FolderOpen, ArrowRight } from 'lucide-vue-next'
 import Toast from '@/components/Toast.vue'
+import { SUPPORTED_LOCALES, type AppLocale } from '@/i18n'
+import { useCategoryLocale } from '@/composables/useCategoryLocale'
 
 const router = useRouter()
 const queryClient = useQueryClient()
 const { t } = useI18n({ useScope: 'global' })
+const { getCategoryName } = useCategoryLocale()
 const showForm = ref(false)
 const editingCategory = ref<any>(null)
-const form = ref({ name: '', isActive: true })
+
+// Form state
+const form = ref({ 
+  name: '', 
+  isActive: true,
+  locales: {} as Record<string, { name: string }>
+})
+
+// Active language tab
+const formLocaleLang = ref<AppLocale>('en')
+
+const activeLocaleName = computed({
+  get: () => {
+    if (formLocaleLang.value === 'en') return form.value.name
+    return form.value.locales?.[formLocaleLang.value]?.name ?? ''
+  },
+  set: (val: string) => {
+    if (formLocaleLang.value === 'en') {
+      form.value.name = val
+      return
+    }
+    const locales = { ...form.value.locales }
+    if (!locales[formLocaleLang.value]) {
+      locales[formLocaleLang.value] = { name: '' }
+    }
+    locales[formLocaleLang.value].name = val
+    form.value.locales = locales
+  },
+})
+
+const LOCALE_FLAG: Record<AppLocale, string> = {
+  en: '🇬🇧',
+  vi: '🇻🇳',
+  de: '🇩🇪',
+}
+
+function hasLocaleContent(loc: AppLocale): boolean {
+  if (loc === 'en') return !!form.value.name?.trim()
+  return !!form.value.locales?.[loc]?.name?.trim()
+}
 
 const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'danger' | 'warning' })
 const showConflictDialog = ref(false)
@@ -33,7 +75,21 @@ const { data: categories, isLoading } = useQuery({
 
 const { mutate: saveCategory, isPending: saving } = useMutation({
   mutationFn: async () => {
-    const payload = { ...form.value }
+    // Clean locales: only keep non-English locales that have a name
+    const cleanLocales: Record<string, { name: string }> = {}
+    for (const loc of SUPPORTED_LOCALES) {
+      if (loc === 'en') continue
+      const entry = form.value.locales?.[loc]
+      if (entry?.name?.trim()) {
+        cleanLocales[loc] = { name: entry.name.trim() }
+      }
+    }
+
+    const payload = { 
+      ...form.value,
+      name: form.value.name.trim(),
+      locales: cleanLocales
+    }
 
     if (editingCategory.value) {
       const { data } = await categoriesApi.update(editingCategory.value.id, payload)
@@ -44,20 +100,9 @@ const { mutate: saveCategory, isPending: saving } = useMutation({
     }
   },
   onSuccess: async () => {
-    // const isCreating = !editingCategory.value
-    // const hadNoCategoryBefore = (categories.value?.length || 0) === 0
-
     await queryClient.invalidateQueries({ queryKey: ['categories'] })
     showToast(t('admin.categories.saved'), 'success')
     resetForm()
-
-    // Onboarding flow: Chuyển sang service nếu đây là danh mục đầu tiên
-    // Dùng hadNoCategoryBefore (tính TRƯỚC invalidate) để tránh race condition
-    // if (isCreating && hadNoCategoryBefore) {
-    //   setTimeout(() => {
-    //     router.push('/admin/services')
-    //   }, 800)
-    // }
   },
   onError: (err: any) => {
     const errorData = err.response?.data
@@ -80,7 +125,6 @@ function handleConflictYes() {
 
 function handleConflictNo() {
   showConflictDialog.value = false
-  // Stay in create mode, maybe clear the name or let user change it
 }
 
 const { mutate: deleteCategory } = useMutation({
@@ -90,13 +134,19 @@ const { mutate: deleteCategory } = useMutation({
 
 function openCreate() {
   editingCategory.value = null
-  form.value = { name: '', isActive: true }
+  form.value = { name: '', isActive: true, locales: {} }
+  formLocaleLang.value = 'en'
   showForm.value = true
 }
 
 function openEdit(cat: any) {
   editingCategory.value = cat
-  form.value = { name: cat.name || '', isActive: cat.isActive !== undefined ? cat.isActive : true }
+  form.value = { 
+    name: cat.name || '', 
+    isActive: cat.isActive !== undefined ? cat.isActive : true,
+    locales: cat.locales || {}
+  }
+  formLocaleLang.value = 'en'
   showForm.value = true
 }
 
@@ -136,7 +186,7 @@ function resetForm() {
               <FolderOpen class="h-5 w-5" />
             </div>
             <div>
-              <h3 class="text-base font-bold text-text-primary">{{ cat.name }}</h3>
+              <h3 class="text-base font-bold text-text-primary">{{ getCategoryName(cat) }}</h3>
 
             </div>
           </div>
@@ -185,17 +235,41 @@ function resetForm() {
             </div>
 
             <div class="space-y-4">
+              <!-- Language Tabs -->
+              <div class="flex overflow-hidden rounded-xl border border-border bg-surface-input">
+                <button
+                  v-for="loc in SUPPORTED_LOCALES"
+                  :key="loc"
+                  type="button"
+                  @click="formLocaleLang = loc"
+                  :class="[
+                    'relative flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-bold transition-all',
+                    formLocaleLang === loc
+                      ? 'bg-white text-primary-700 shadow-sm'
+                      : 'text-text-muted hover:text-text-primary',
+                  ]"
+                >
+                  <span>{{ t(`common.languages.${loc}`) }}</span>
+                  <span
+                    v-if="hasLocaleContent(loc)"
+                    :class="[
+                      'absolute right-2 top-2 h-1.5 w-1.5 rounded-full',
+                      formLocaleLang === loc ? 'bg-primary-500' : 'bg-emerald-400',
+                    ]"
+                  />
+                </button>
+              </div>
+
               <div>
                 <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('admin.common.name') }}</label>
                 <input
-                  v-model="form.name"
+                  v-model="activeLocaleName"
                   type="text"
                   :placeholder="t('admin.categories.namePlaceholder')"
                   class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent placeholder:text-text-muted focus:ring-2 focus:ring-primary-600"
                   @keyup.enter="saveCategory()"
                 />
               </div>
-
             </div>
 
             <div class="mt-6 flex gap-3">

@@ -248,6 +248,9 @@ export default {
       descriptionPlaceholder: 'Mô tả lợi ích và quy trình dịch vụ...',
       timeMinutes: 'Thời gian (phút)',
       saveService: 'Lưu dịch vụ',
+      contentLanguages: 'Ngôn ngữ nội dung',
+      contentLangHint: 'Nhập tên và mô tả dịch vụ theo từng ngôn ngữ. Nếu không có bản dịch sẽ dùng ngôn ngữ mặc định.',
+      productVariants: 'Biến thể sản phẩm',
     },
     serviceForm: {
       updateServiceDetails: 'Cập nhật thông tin dịch vụ',
@@ -260,6 +263,18 @@ export default {
       chooseImage: 'Chọn hình ảnh',
       updateService: 'Cập nhật dịch vụ',
       createService: 'Tạo dịch vụ',
+      errors: {
+        nameRequired: 'Tên dịch vụ là bắt buộc',
+        categoryRequired: 'Vui lòng chọn danh mục',
+        labelExists: 'Nhãn này đã tồn tại',
+        labelNameRequired: 'Vui lòng nhập tên nhãn',
+        variantRequired: 'Vui lòng thêm ít nhất một tùy chọn biến thể',
+        variantNameRequired: 'Tên tùy chọn biến thể là bắt buộc',
+        variantPriceRequired: 'Giá tùy chọn biến thể phải lớn hơn 0',
+        priceRequired: 'Giá là bắt buộc',
+        priceMin: 'Giá phải lớn hơn 0',
+        priceFromToOrder: 'Giá từ phải nhỏ hơn giá đến',
+      },
     },
     settings: {
       title: 'Cài đặt',

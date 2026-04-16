@@ -13,11 +13,13 @@ import { Search, Clock, X, ChevronDown, ChevronLeft, ChevronRight, Phone, Mail, 
 import heroImg from '@/assets/hero_customer.png'
 import imgFallback from '@/assets/img_fallback.png'
 import MaintenanceState from './components/MaintenanceState.vue'
+import { useServiceLocale } from '@/composables/useServiceLocale'
 
 const route = useRoute()
 const authStore = useAuthStore()
 const { t, te, locale } = useI18n({ useScope: 'global' })
 const adminId = computed(() => route.params.id as string)
+const { getServiceName, getServiceDescription, getServiceShortDescription, getServiceSpecialTags, getVariantName } = useServiceLocale()
 const publicCategoriesQueryKey = computed(() => ['public-categories', adminId.value])
 const publicConfigQueryKey = computed(() => ['public-config', adminId.value])
 const publicServicesQueryKey = computed(() => ['public-services', adminId.value])
@@ -622,8 +624,9 @@ function getServiceLabelItems(item: any) {
   const labels: Array<{ key: string; label: string }> = []
   if (item?.isBestSeller) labels.push({ key: 'best_seller', label: t('menu.badges.best_seller') })
   if (item?.isNewService) labels.push({ key: 'new_service', label: t('menu.badges.new_service') })
-  if (Array.isArray(item?.specialTags)) {
-    item.specialTags.forEach((tag: string) => {
+  const tags = getServiceSpecialTags(item)
+  if (tags.length > 0) {
+    tags.forEach((tag: string) => {
       const normalizedTag = String(tag || '').trim()
       if (normalizedTag) labels.push({ key: normalizedTag, label: formatTagLabel(normalizedTag) })
     })
@@ -663,8 +666,8 @@ function getOceanServiceLabelItems(item: any) {
 function getDetailVariantOptions(service: any) {
   if (!service?.hasVariants || !Array.isArray(service?.variantOptions)) return []
   return service.variantOptions
-    .map((opt: any) => ({
-      name: String(opt?.name || '').trim(),
+    .map((opt: any, index: number) => ({
+      name: getVariantName(service, index),
       price: Number(opt?.price),
     }))
     .filter((opt: any) => opt.name && Number.isFinite(opt.price) && opt.price > 0)
@@ -783,7 +786,7 @@ function handleImgError(e: Event) {
 
                 <!-- Content Overlay -->
                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-5">
-                  <h3 class="text-white font-bold text-lg leading-tight">{{ svc.name }}</h3>
+                  <h3 class="text-white font-bold text-lg leading-tight">{{ getServiceName(svc) }}</h3>
                   <div class="mt-1 flex items-center justify-between">
                     <span v-if="getServiceDisplayPrice(svc)" class="text-sm font-medium text-white/90">{{ getServiceDisplayPrice(svc) }}</span>
                     <div class="flex gap-1.5">
@@ -910,8 +913,8 @@ function handleImgError(e: Event) {
             <!-- Info -->
             <div class="t-card-info flex flex-1 flex-col justify-between py-1 pr-2">
               <div>
-                <h3 class="t-card-name text-[15px] font-bold text-text-primary leading-tight line-clamp-1">{{ svc.name }}</h3>
-                <p class="mt-1 text-xs text-text-secondary leading-normal line-clamp-2">{{ svc.shortDescription || svc.description || t('menu.premiumService') }}</p>
+                <h3 class="t-card-name text-[15px] font-bold text-text-primary leading-tight line-clamp-1">{{ getServiceName(svc) }}</h3>
+                <p class="mt-1 text-xs text-text-secondary leading-normal line-clamp-2">{{ getServiceShortDescription(svc) }}</p>
                 
                 <!-- Badge (Inside Info) -->
                 <div class="mt-2 flex flex-wrap gap-1.5">
@@ -992,7 +995,7 @@ function handleImgError(e: Event) {
                     <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover opacity-80" @error="handleImgError" />
                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent"></div>
                     <div class="absolute bottom-0 left-0 right-0 p-4">
-                      <p class="line-clamp-1 text-xl font-black text-white">{{ svc.name }}</p>
+                      <p class="line-clamp-1 text-xl font-black text-white">{{ getServiceName(svc) }}</p>
                       <p class="text-sm font-semibold text-white/80">{{ getServiceDisplayPrice(svc) }}</p>
                     </div>
                   </button>
@@ -1049,8 +1052,8 @@ function handleImgError(e: Event) {
                   <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover rounded-2xl" @error="handleImgError" />
                 </div>
                 <div class="min-w-0 flex-1">
-                  <p class="line-clamp-1 text-lg font-black text-white">{{ svc.name }}</p>
-                  <p class="mt-1 line-clamp-2 text-xs font-medium text-white/60">{{ svc.shortDescription || svc.description || t('menu.premiumService') }}</p>
+                  <p class="line-clamp-1 text-lg font-black text-white">{{ getServiceName(svc) }}</p>
+                  <p class="mt-1 line-clamp-2 text-xs font-medium text-white/60">{{ getServiceShortDescription(svc) }}</p>
                   <div class="mt-2 flex flex-wrap gap-1.5">
                     <span
                       v-for="label in getServiceLabelItems(svc)"
@@ -1202,7 +1205,7 @@ function handleImgError(e: Event) {
                 <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/30 to-transparent"></div>
                 <div class="absolute bottom-0 left-0 right-0 p-4">
-                  <p class="line-clamp-1 text-2xl font-black text-white">{{ svc.name }}</p>
+                  <p class="line-clamp-1 text-2xl font-black text-white">{{ getServiceName(svc) }}</p>
                   <p class="text-sm font-semibold text-cyan-100/90">{{ getServiceDisplayPrice(svc) }}</p>
                 </div>
               </button>
@@ -1278,7 +1281,7 @@ function handleImgError(e: Event) {
                 <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                 <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
                 <div class="absolute bottom-0 left-0 right-0 p-4">
-                  <p class="line-clamp-1 text-2xl font-black text-white">{{ svc.name }}</p>
+                  <p class="line-clamp-1 text-2xl font-black text-white">{{ getServiceName(svc) }}</p>
                   <p class="text-base font-bold text-white/90">{{ getServiceDisplayPrice(svc) }}</p>
                 </div>
               </button>
@@ -1304,7 +1307,7 @@ function handleImgError(e: Event) {
               <div class="absolute inset-0 bg-gradient-to-r from-black/65 to-transparent"></div>
               <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-28 w-full object-cover" @error="handleImgError" />
               <div class="absolute inset-0 flex flex-col justify-end p-3">
-                <p class="line-clamp-1 text-sm font-black text-white">{{ svc.name }}</p>
+                <p class="line-clamp-1 text-sm font-black text-white">{{ getServiceName(svc) }}</p>
                 <p class="text-xs font-bold text-white/90">{{ getServiceDisplayPrice(svc) }}</p>
               </div>
             </button>
@@ -1438,7 +1441,7 @@ function handleImgError(e: Event) {
                   <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                 </div>
                 <div class="p-3">
-                  <p class="line-clamp-1 text-sm font-black text-text-primary">{{ svc.name }}</p>
+                  <p class="line-clamp-1 text-sm font-black text-text-primary">{{ getServiceName(svc) }}</p>
                   <div class="mt-2 flex flex-wrap gap-1.5">
                     <span
                       v-for="label in getServiceLabelItems(svc)"
@@ -1464,7 +1467,7 @@ function handleImgError(e: Event) {
                   <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                 </div>
                 <div class="p-3">
-                  <p class="line-clamp-1 text-sm font-black text-text-primary">{{ svc.name }}</p>
+                  <p class="line-clamp-1 text-sm font-black text-text-primary">{{ getServiceName(svc) }}</p>
                   <div class="mt-2 flex flex-wrap gap-1.5">
                     <span
                       v-for="label in getServiceLabelItems(svc)"
@@ -1508,7 +1511,7 @@ function handleImgError(e: Event) {
                   <div :class="['absolute inset-0 bg-gradient-to-t rounded-[24px]', index % 5 === 0 ? 'from-slate-950 via-slate-900/60 to-transparent' : 'from-slate-950 to-transparent']"></div>
                   
                   <div class="absolute inset-x-0 bottom-0 p-4">
-                    <p :class="[index % 5 === 0 ? 'text-[32px]' : 'text-lg', 'font-black leading-none text-white line-clamp-2']">{{ svc.name }}</p>
+                    <p :class="[index % 5 === 0 ? 'text-[32px]' : 'text-lg', 'font-black leading-none text-white line-clamp-2']">{{ getServiceName(svc) }}</p>
                     <p v-if="index % 5 === 0" class="mt-1 line-clamp-1 text-sm font-medium text-cyan-100/70">{{ svc.shortDescription || svc.description || t('menu.defaultHyperService') }}</p>
                     <div class="mt-2 flex flex-wrap gap-1.5">
                       <span
@@ -1554,7 +1557,7 @@ function handleImgError(e: Event) {
                     </div>
 
                     <div class="ocean-service-body flex h-[100px] flex-col px-3 py-2.5">
-                      <p class="line-clamp-2 text-[13px] font-black text-white">{{ svc.name }}</p>
+                      <p class="line-clamp-2 text-[13px] font-black text-white">{{ getServiceName(svc) }}</p>
                       <div v-if="getOceanServiceLabelItems(svc).length" class="mt-1.5 flex min-h-[20px] flex-wrap gap-1 overflow-hidden">
                         <span
                           v-for="label in getOceanServiceLabelItems(svc)"
@@ -1619,7 +1622,7 @@ function handleImgError(e: Event) {
                     <img :src="svc.imageUrl || imgFallback" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
                     <div class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"></div>
                     <div class="absolute bottom-0 left-0 right-0 p-3">
-                      <p class="line-clamp-1 text-lg font-black text-white">{{ svc.name }}</p>
+                      <p class="line-clamp-1 text-lg font-black text-white">{{ getServiceName(svc) }}</p>
                       <p class="text-sm font-bold text-white/90">{{ getServiceDisplayPrice(svc) }}</p>
                     </div>
                   </button>
@@ -1679,7 +1682,7 @@ function handleImgError(e: Event) {
                     </div>
 
                     <div class="vibrant-card-body">
-                      <p class="line-clamp-1 text-[20px] font-black leading-tight text-text-primary">{{ svc.name }}</p>
+                      <p class="line-clamp-1 text-[20px] font-black leading-tight text-text-primary">{{ getServiceName(svc) }}</p>
                       <div class="mt-2 flex flex-wrap gap-1.5">
                         <span
                           v-for="label in getServiceLabelItems(svc)"
@@ -1730,8 +1733,8 @@ function handleImgError(e: Event) {
                     </div>
 
                     <div class="rose-slide-info mt-3">
-                      <p class="line-clamp-1 text-[18px] font-black text-text-primary">{{ svc.name }}</p>
-                      <p class="mt-1 line-clamp-1 text-xs font-medium text-text-secondary">{{ svc.shortDescription || svc.description || t('menu.premiumService') }}</p>
+                      <p class="line-clamp-1 text-[18px] font-black text-text-primary">{{ getServiceName(svc) }}</p>
+                      <p class="mt-1 line-clamp-1 text-xs font-medium text-text-secondary">{{ getServiceShortDescription(svc) }}</p>
                       <div class="mt-2 flex flex-wrap gap-1.5">
                         <span
                           v-for="label in getServiceLabelItems(svc)"
@@ -1792,8 +1795,8 @@ function handleImgError(e: Event) {
 
                     <div class="nl-service-info flex min-w-0 flex-1 flex-col justify-between py-1">
                       <div>
-                        <p class="line-clamp-1 text-[15px] font-black text-text-primary">{{ svc.name }}</p>
-                        <p class="mt-1 line-clamp-2 text-xs font-medium text-text-secondary">{{ svc.shortDescription || svc.description || t('menu.premiumService') }}</p>
+                        <p class="line-clamp-1 text-[15px] font-black text-text-primary">{{ getServiceName(svc) }}</p>
+                        <p class="mt-1 line-clamp-2 text-xs font-medium text-text-secondary">{{ getServiceShortDescription(svc) }}</p>
                         <div class="mt-2 flex flex-wrap gap-1.5">
                           <span
                             v-for="label in getServiceLabelItems(svc)"
@@ -1831,8 +1834,8 @@ function handleImgError(e: Event) {
 
                 <div class="nl-service-info flex min-w-0 flex-1 flex-col justify-between py-1">
                   <div>
-                    <p class="line-clamp-1 text-[15px] font-black text-text-primary">{{ svc.name }}</p>
-                    <p class="mt-1 line-clamp-2 text-xs font-medium text-text-secondary">{{ svc.shortDescription || svc.description || t('menu.premiumService') }}</p>
+                    <p class="line-clamp-1 text-[15px] font-black text-text-primary">{{ getServiceName(svc) }}</p>
+                    <p class="mt-1 line-clamp-2 text-xs font-medium text-text-secondary">{{ getServiceShortDescription(svc) }}</p>
                     <div class="mt-2 flex flex-wrap gap-1.5">
                       <span
                         v-for="label in getServiceLabelItems(svc)"
@@ -1892,7 +1895,7 @@ function handleImgError(e: Event) {
             <!-- Content -->
             <div class="relative -mt-6 rounded-t-[28px] bg-surface-page px-6 pt-6 pb-20 flex-1">
               <h2 class="text-3xl font-black tracking-tight text-text-primary leading-tight">
-                {{ selectedService.name }}
+                {{ getServiceName(selectedService) }}
               </h2>
 
             <div v-if="getServiceLabelItems(selectedService).length" class="mt-4 flex flex-wrap gap-2">
@@ -1923,7 +1926,7 @@ function handleImgError(e: Event) {
             <div class="mt-10">
               <h3 class="mb-5 text-xs font-black uppercase tracking-[0.2em] text-text-muted">{{ t('menu.description') }}</h3>
               <p class="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-text-secondary font-medium">
-                {{ selectedService.description || t('menu.premiumExperience') }}
+                {{ getServiceDescription(selectedService) }}
               </p>
             </div>
 

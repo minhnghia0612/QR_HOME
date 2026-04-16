@@ -248,6 +248,9 @@ export default {
       descriptionPlaceholder: 'Beschreiben Sie Vorteile und Ablauf der Behandlung...',
       timeMinutes: 'Zeit (Minuten)',
       saveService: 'Service speichern',
+      contentLanguages: 'Inhaltssprachen',
+      contentLangHint: 'Service-Name und Beschreibung in jeder Sprache eingeben. Fehlt eine Übersetzung, wird die Standardsprache verwendet.',
+      productVariants: 'Produktvarianten',
     },
     serviceForm: {
       updateServiceDetails: 'Service-Details aktualisieren',
@@ -260,6 +263,18 @@ export default {
       chooseImage: 'Bild auswaehlen',
       updateService: 'Service aktualisieren',
       createService: 'Service erstellen',
+      errors: {
+        nameRequired: 'Service-Name ist erforderlich',
+        categoryRequired: 'Bitte Kategorie waehlen',
+        labelExists: 'Dieses Label existiert bereits',
+        labelNameRequired: 'Bitte Label-Namen eingeben',
+        variantRequired: 'Bitte mindestens eine Variante hinzufuegen',
+        variantNameRequired: 'Variantenname ist erforderlich',
+        variantPriceRequired: 'Variantenpreis muss groesser als 0 sein',
+        priceRequired: 'Preis ist erforderlich',
+        priceMin: 'Preis muss groesser als 0 sein',
+        priceFromToOrder: 'Von-Preis muss kleiner als Bis-Preis sein',
+      },
     },
     settings: {
       title: 'Einstellungen',

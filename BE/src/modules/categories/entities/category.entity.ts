@@ -25,6 +25,9 @@ export class Category {
   @Column({ type: 'boolean', default: true, name: 'is_active' })
   isActive: boolean;
 
+  // Virtual field populated from translation table at runtime.
+  locales?: Record<string, { name: string }>;
+
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt: Date;
 

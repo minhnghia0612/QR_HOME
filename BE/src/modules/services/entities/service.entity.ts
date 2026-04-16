@@ -64,6 +64,7 @@ export class Service {
   @Column({ type: 'simple-array', nullable: true, name: 'special_tags' })
   specialTags?: string[] | null;
 
+
   @Column({ type: 'boolean', default: true, name: 'is_active' })
   isActive: boolean;
 

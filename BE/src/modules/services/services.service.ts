@@ -1,7 +1,8 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { Repository, SelectQueryBuilder, In } from 'typeorm';
 import { Service } from './entities/service.entity';
+import { Translation } from '../translation/entities/translation.entity';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { QueryServiceDto } from './dto/query-service.dto';
@@ -11,6 +12,8 @@ export class ServicesService {
   constructor(
     @InjectRepository(Service)
     private readonly serviceRepo: Repository<Service>,
+    @InjectRepository(Translation)
+    private readonly translationRepo: Repository<Translation>,
   ) {}
 
   async findAll(query: QueryServiceDto, adminId?: string): Promise<{
@@ -80,6 +83,26 @@ export class ServicesService {
       .take(limit);
 
     const [items, total] = await qb.getManyAndCount();
+
+    // Attach translations
+    if (items.length > 0) {
+      const itemIds = items.map((i) => i.id);
+      const translations = await this.translationRepo.find({
+        where: { entityType: 'SERVICE', entityId: In(itemIds) },
+      });
+
+      for (const item of items) {
+        const itemTranslations = translations.filter((t) => t.entityId === item.id);
+        const locales: Record<string, any> = {};
+        for (const t of itemTranslations) {
+          if (t.key === 'content') {
+            try { locales[t.lang] = JSON.parse(t.value); } catch {}
+          }
+        }
+        (item as any).locales = locales;
+      }
+    }
+
     return {
       items,
       total,
@@ -111,6 +134,19 @@ export class ServicesService {
     if (!service) {
       throw new NotFoundException(`Service with id ${id} not found`);
     }
+
+    // Load translations
+    const translations = await this.translationRepo.find({
+      where: { entityType: 'SERVICE', entityId: service.id },
+    });
+    const locales: Record<string, any> = {};
+    for (const t of translations) {
+      if (t.key === 'content') {
+        try { locales[t.lang] = JSON.parse(t.value); } catch {}
+      }
+    }
+    (service as any).locales = locales;
+
     return service;
   }
 
@@ -161,8 +197,9 @@ export class ServicesService {
       throw new BadRequestException('Price must be greater than 0');
     }
 
+    const { locales, ...dtoWithoutLocales } = dto;
     const payload: Partial<Service> = {
-      ...dto,
+      ...dtoWithoutLocales,
       hasVariants,
       variantOptions: hasVariants ? normalizedVariants : null,
       price: nextPrice,
@@ -211,7 +248,11 @@ export class ServicesService {
       ...(payload as Partial<Service>),
       adminId,
     } as Partial<Service>);
-    return this.serviceRepo.save(service);
+    
+    const saved = await this.serviceRepo.save(service);
+    await this.saveTranslations(saved.id, dto.locales);
+    
+    return this.findOne(saved.id, adminId);
   }
 
   async update(id: string, dto: UpdateServiceDto, adminId: string): Promise<Service> {
@@ -254,7 +295,35 @@ export class ServicesService {
     }
 
     Object.assign(service, payload);
-    return this.serviceRepo.save(service);
+    const saved = await this.serviceRepo.save(service);
+    await this.saveTranslations(id, dto.locales);
+
+    return this.findOne(id, adminId);
+  }
+
+  private async saveTranslations(entityId: string, localesData?: Record<string, any>) {
+    if (!localesData) return;
+    
+    // Clear old locales for this service (replace all strategy)
+    await this.translationRepo.delete({ entityType: 'SERVICE', entityId });
+
+    const newTranslations: Translation[] = [];
+    for (const [lang, data] of Object.entries(localesData)) {
+      if (!data) continue;
+      
+      const t = this.translationRepo.create({
+        entityType: 'SERVICE',
+        entityId,
+        lang,
+        key: 'content',
+        value: JSON.stringify(data),
+      });
+      newTranslations.push(t);
+    }
+
+    if (newTranslations.length > 0) {
+      await this.translationRepo.save(newTranslations);
+    }
   }
 
   async remove(id: string, adminId: string): Promise<void> {

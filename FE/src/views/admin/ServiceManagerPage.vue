@@ -7,6 +7,11 @@ import { servicesApi } from '@/api/services.api'
 import { categoriesApi } from '@/api/categories.api'
 import { uploadApi } from '@/api/upload.api'
 import { trafficApi } from '@/api/traffic.api'
+
+import { useServiceLocale } from '@/composables/useServiceLocale'
+import { useCategoryLocale } from '@/composables/useCategoryLocale'
+import { SUPPORTED_LOCALES, type AppLocale } from '@/i18n'
+import type { ServiceLocales } from '@/types/service.types'
 import { 
   Plus, Search, Image, X, Upload, Pencil, Trash2, Eye, ChevronDown,
   ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight 
@@ -72,6 +77,8 @@ const authStore = useAuthStore()
 const { t } = useI18n({ useScope: 'global' })
 
 const queryClient = useQueryClient()
+const { getServiceName, getServiceShortDescription, getServiceDescription, getServiceSpecialTags } = useServiceLocale()
+const { getCategoryName: getLocaleCategoryName } = useCategoryLocale()
 let trafficSocket: Socket | null = null
 
 const showForm = ref(false)
@@ -159,7 +166,7 @@ const statusLabel = computed(() => {
 const categoryLabel = computed(() => {
   if (!selectedCategory.value) return t('admin.services.allCategories')
   const category = categories.value?.find((c: any) => c.id === selectedCategory.value)
-  return category?.name || t('admin.services.allCategories')
+  return category ? getLocaleCategoryName(category) : t('admin.services.allCategories')
 })
 
 const sortLabel = computed(() => (selectedSort.value === 'oldest' ? t('admin.serviceManager.sortOldest') : t('admin.serviceManager.sortNewest')))
@@ -167,7 +174,7 @@ const sortLabel = computed(() => (selectedSort.value === 'oldest' ? t('admin.ser
 const formCategoryLabel = computed(() => {
   if (!form.value.categoryId) return t('admin.serviceManager.selectCategory')
   const cat = categories.value?.find((c: any) => c.id === form.value.categoryId)
-  return cat?.name || t('admin.serviceManager.selectCategory')
+  return cat ? getLocaleCategoryName(cat) : t('admin.serviceManager.selectCategory')
 })
 
 function toggleFilter(name: 'status' | 'category' | 'sort') {
@@ -218,7 +225,181 @@ const form = ref({
   isCombo: false,
   specialTags: [] as string[],
   isActive: true,
+  locales: {} as ServiceLocales,
 })
+
+// Active language tab in the content-translation section.
+// 'en' is the default — its values live in the root form fields (form.name / form.description / form.shortDescription).
+// Other locales store their values in form.locales[loc].
+const formLocaleLang = ref<AppLocale>('en')
+
+// Service name editable for the active locale
+const activeLocaleName = computed({
+  get: () => {
+    if (formLocaleLang.value === 'en') return form.value.name
+    return form.value.locales?.[formLocaleLang.value]?.name ?? ''
+  },
+  set: (val: string) => {
+    if (formLocaleLang.value === 'en') {
+      form.value.name = val
+      return
+    }
+    const entry = { ...(form.value.locales?.[formLocaleLang.value] || { name: '' }) }
+    entry.name = val
+    form.value.locales = { ...form.value.locales, [formLocaleLang.value]: entry }
+  },
+})
+
+// Short description editable for the active locale
+const activeLocaleShortDesc = computed({
+  get: () => {
+    if (formLocaleLang.value === 'en') return form.value.shortDescription ?? ''
+    return form.value.locales?.[formLocaleLang.value]?.shortDescription ?? ''
+  },
+  set: (val: string) => {
+    if (formLocaleLang.value === 'en') {
+      form.value.shortDescription = val
+      return
+    }
+    const entry = { ...(form.value.locales?.[formLocaleLang.value] || { name: '' }) }
+    entry.shortDescription = val
+    form.value.locales = { ...form.value.locales, [formLocaleLang.value]: entry }
+  },
+})
+
+// Long description editable for the active locale
+const activeLocaleDescription = computed({
+  get: () => {
+    if (formLocaleLang.value === 'en') return form.value.description
+    return form.value.locales?.[formLocaleLang.value]?.description ?? ''
+  },
+  set: (val: string) => {
+    if (formLocaleLang.value === 'en') {
+      form.value.description = val
+      return
+    }
+    const entry = { ...(form.value.locales?.[formLocaleLang.value] || { name: '' }) }
+    entry.description = val
+    form.value.locales = { ...form.value.locales, [formLocaleLang.value]: entry }
+  },
+})
+
+// Special Tags editable for the active locale
+const activeLocaleSpecialTags = computed({
+  get: () => {
+    if (formLocaleLang.value === 'en') return form.value.specialTags || []
+    return form.value.locales?.[formLocaleLang.value]?.specialTags || []
+  },
+  set: (val: string[]) => {
+    if (formLocaleLang.value === 'en') {
+      form.value.specialTags = val
+      return
+    }
+    if (!form.value.locales) form.value.locales = {}
+    const entry = { ...(form.value.locales![formLocaleLang.value] || { name: form.value.name || '' }) }
+    entry.specialTags = val
+    form.value.locales = { ...form.value.locales, [formLocaleLang.value]: entry }
+  },
+})
+
+function getVariantName(idx: number): string {
+  if (formLocaleLang.value === 'en') return form.value.variantOptions?.[idx]?.name || ''
+  return form.value.locales?.[formLocaleLang.value]?.variantOptions?.[idx]?.name || form.value.variantOptions?.[idx]?.name || ''
+}
+
+function setVariantName(idx: number, val: string) {
+  if (formLocaleLang.value === 'en') {
+    if (form.value.variantOptions?.[idx]) {
+      form.value.variantOptions[idx].name = val
+    }
+  } else {
+    if (!form.value.locales) form.value.locales = {}
+    if (!form.value.locales[formLocaleLang.value]) form.value.locales[formLocaleLang.value] = { name: form.value.name || '' }
+    
+    // Initialize variant array if missing (copy structure from english)
+    if (!form.value.locales[formLocaleLang.value]!.variantOptions) {
+      form.value.locales[formLocaleLang.value]!.variantOptions = (form.value.variantOptions || []).map(o => ({ ...o }))
+    }
+    
+    const target = form.value.locales[formLocaleLang.value]!.variantOptions!
+    if (!target[idx]) target[idx] = { name: '', price: 0 }
+    target[idx].name = val
+  }
+}
+
+function addVariantOption() {
+  if (!form.value.variantOptions) form.value.variantOptions = []
+  form.value.variantOptions.push({ name: '', price: 0 })
+  // Sync length across all existing locale variants
+  if (form.value.locales) {
+    for (const lang of Object.keys(form.value.locales)) {
+      if (form.value.locales[lang as AppLocale]?.variantOptions) {
+        form.value.locales[lang as AppLocale]!.variantOptions!.push({ name: '', price: 0 })
+      }
+    }
+  }
+}
+
+function removeVariantOption(idx: number) {
+  form.value.variantOptions?.splice(idx, 1)
+  if (form.value.locales) {
+    for (const lang of Object.keys(form.value.locales)) {
+      form.value.locales[lang as AppLocale]?.variantOptions?.splice(idx, 1)
+    }
+  }
+}
+
+function addCustomLabel() {
+  const val = newLabelInput.value.trim()
+  if (!val) return
+  if (activeLocaleSpecialTags.value.includes(val)) {
+    newLabelError.value = t('admin.serviceForm.errors.labelExists')
+    return
+  }
+  const updatedTags = [...activeLocaleSpecialTags.value]
+  updatedTags.push(val)
+  activeLocaleSpecialTags.value = updatedTags
+  newLabelInput.value = ''
+  newLabelError.value = ''
+}
+
+function toggleLabel(val: string) {
+  const arr = [...activeLocaleSpecialTags.value]
+  const i = arr.indexOf(val)
+  if (i >= 0) arr.splice(i, 1)
+  else arr.push(val)
+  activeLocaleSpecialTags.value = arr
+}
+
+const formLabelOptions = computed(() => {
+  const arr = [...LABEL_OPTIONS.value]
+  const customValues = activeLocaleSpecialTags.value.filter((t: string) => !arr.find((opt) => opt.value === t))
+  customValues.forEach((t: string) => {
+    arr.push({ label: t, value: t })
+  })
+  return arr
+})
+
+function getLabelChipClass(val: string) {
+  const isSelected = activeLocaleSpecialTags.value.includes(val)
+  const mapping = LABEL_STYLE_MAP[val]
+  if (mapping) return isSelected ? mapping.chipActive : mapping.chipInactive
+  return isSelected ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-300' : 'bg-surface-input text-primary-600/80 hover:bg-primary-100'
+}
+
+const LOCALE_FLAG: Record<AppLocale, string> = {
+  en: '🇬🇧',
+  vi: '🇻🇳',
+  de: '🇩🇪',
+}
+
+// Dot indicator: en tab → form.name exists; other locales → locales[loc].name exists
+function hasLocaleContent(loc: AppLocale): boolean {
+  if (loc === 'en') return !!form.value.name?.trim()
+  return !!form.value.locales?.[loc]?.name?.trim()
+}
+
+
 
 const servicesQueryKey = computed(() => [
   'services',
@@ -428,13 +609,13 @@ const { mutate: saveService, isPending: saving } = useMutation({
     fieldErrors.value = { name: '', categoryId: '', price: '', imageUrl: '', variantOptions: '' }
 
     if (!String(form.value.name || '').trim()) {
-      fieldErrors.value.name = 'Service name is required'
-      throw new Error('Service name is required')
+      fieldErrors.value.name = t('admin.serviceForm.errors.nameRequired')
+      throw new Error(t('admin.serviceForm.errors.nameRequired'))
     }
 
     if (!form.value.categoryId) {
-      fieldErrors.value.categoryId = 'Please select category'
-      throw new Error('Please select category')
+      fieldErrors.value.categoryId = t('admin.serviceForm.errors.categoryRequired')
+      throw new Error(t('admin.serviceForm.errors.categoryRequired'))
     }
 
     const hasVariants = !!form.value.hasVariants
@@ -450,18 +631,18 @@ const { mutate: saveService, isPending: saving } = useMutation({
       }))
 
       if (!options.length) {
-        fieldErrors.value.variantOptions = 'Please add at least one variant option'
-        throw new Error('Please add at least one variant option')
+        fieldErrors.value.variantOptions = t('admin.serviceForm.errors.variantRequired')
+        throw new Error(t('admin.serviceForm.errors.variantRequired'))
       }
 
       options.forEach((opt) => {
         if (!opt.name) {
-          fieldErrors.value.variantOptions = 'Variant option name is required'
-          throw new Error('Variant option name is required')
+          fieldErrors.value.variantOptions = t('admin.serviceForm.errors.variantNameRequired')
+          throw new Error(t('admin.serviceForm.errors.variantNameRequired'))
         }
         if (!Number.isFinite(opt.price) || opt.price <= 0) {
-          fieldErrors.value.variantOptions = 'Variant option price must be greater than 0'
-          throw new Error('Variant option price must be greater than 0')
+          fieldErrors.value.variantOptions = t('admin.serviceForm.errors.variantPriceRequired')
+          throw new Error(t('admin.serviceForm.errors.variantPriceRequired'))
         }
       })
 
@@ -469,26 +650,45 @@ const { mutate: saveService, isPending: saving } = useMutation({
       form.value.variantOptions = options
     } else {
       if (priceFrom === undefined) {
-        fieldErrors.value.price = 'Price from is required'
-        throw new Error('Price from is required')
+        fieldErrors.value.price = t('admin.serviceForm.errors.priceRequired')
+        throw new Error(t('admin.serviceForm.errors.priceRequired'))
       }
 
       if (Number(priceFrom) <= 0) {
-        fieldErrors.value.price = 'Price must be greater than 0'
-        throw new Error('Price must be greater than 0')
+        fieldErrors.value.price = t('admin.serviceForm.errors.priceMin')
+        throw new Error(t('admin.serviceForm.errors.priceMin'))
       }
 
       if (priceTo !== undefined && Number(priceTo) <= 0) {
-        fieldErrors.value.price = 'Price must be greater than 0'
-        throw new Error('Price must be greater than 0')
+        fieldErrors.value.price = t('admin.serviceForm.errors.priceMin')
+        throw new Error(t('admin.serviceForm.errors.priceMin'))
       }
 
       if (priceTo !== undefined && Number(priceFrom) >= Number(priceTo)) {
-        fieldErrors.value.price = 'Price from must be less than price to'
-        throw new Error('Price from must be less than price to')
+        fieldErrors.value.price = t('admin.serviceForm.errors.priceFromToOrder')
+        throw new Error(t('admin.serviceForm.errors.priceFromToOrder'))
       }
 
       normalizedPrice = Number(priceFrom)
+    }
+
+    // Build clean locales — skip 'en' (root fields ARE the English version),
+    // only persist non-default translations that have a name filled in.
+    const cleanLocales: ServiceLocales = {}
+    for (const loc of SUPPORTED_LOCALES) {
+      if (loc === 'en') continue
+      const entry = form.value.locales?.[loc]
+      if (entry?.name?.trim()) {
+        const cleanVariants = (entry.variantOptions || []).filter((o: any) => o.name?.trim() && Number.isFinite(o.price) && o.price > 0)
+        
+        cleanLocales[loc] = {
+          name: entry.name.trim(),
+          description: entry.description?.trim() || undefined,
+          shortDescription: entry.shortDescription?.trim() || undefined,
+          variantOptions: cleanVariants.length > 0 ? cleanVariants : undefined,
+          specialTags: entry.specialTags?.length ? entry.specialTags : undefined,
+        }
+      }
     }
 
     const payload = {
@@ -499,6 +699,7 @@ const { mutate: saveService, isPending: saving } = useMutation({
       priceTo,
       imageUrl: form.value.imageUrl || imgFallback,
       variantOptions: hasVariants ? form.value.variantOptions : undefined,
+      locales: Object.keys(cleanLocales).length > 0 ? cleanLocales : undefined,
     }
 
     if (editingService.value) {
@@ -598,6 +799,7 @@ const { mutate: toggleStatus } = useMutation({
 function openCreate() {
   editingService.value = null
   formLoading.value = false
+  formLocaleLang.value = 'en'
   form.value = {
     name: '',
     shortDescription: '',
@@ -615,6 +817,7 @@ function openCreate() {
     isCombo: false,
     specialTags: [],
     isActive: true,
+    locales: {},
   }
   priceFromInput.value = ''
   priceToInput.value = ''
@@ -660,6 +863,7 @@ async function openEdit(svc: any) {
       isCombo: false,
       specialTags: Array.isArray(detail.specialTags) ? detail.specialTags : [],
       isActive: detail.isActive !== undefined ? detail.isActive : true,
+      locales: detail.locales && typeof detail.locales === 'object' ? detail.locales : {},
     }
     priceFromInput.value = form.value.priceFrom != null ? String(form.value.priceFrom) : ''
     priceToInput.value = form.value.priceTo != null ? String(form.value.priceTo) : ''
@@ -669,6 +873,10 @@ async function openEdit(svc: any) {
   } finally {
     formLoading.value = false
   }
+}
+
+function getLabelBadgeClass(value: string) {
+  return LABEL_STYLE_MAP[value]?.badge || 'bg-primary-100 text-primary-700'
 }
 
 function resetForm() {
@@ -688,99 +896,7 @@ function parseOptionalNumber(value: string | number | null | undefined): number 
   return Number.isFinite(parsed) ? parsed : undefined
 }
 
-function normalizeCustomTag(value: string): string {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s_-]/g, '')
-    .replace(/\s+/g, '_')
-}
 
-function toggleTag(value: string) {
-  const tags = new Set(form.value.specialTags || [])
-  if (tags.has(value)) tags.delete(value)
-  else tags.add(value)
-  form.value.specialTags = Array.from(tags)
-}
-
-function hasTag(value: string) {
-  return (form.value.specialTags || []).includes(value)
-}
-
-const formLabelOptions = computed<Array<{ value: LabelValue; label: string }>>(() => {
-  const map = new Map<string, { value: LabelValue; label: string }>()
-
-  LABEL_OPTIONS.value.forEach((item) => {
-    map.set(String(item.value), item)
-  })
-
-  ;(form.value.specialTags || []).forEach((tag) => {
-    const normalized = normalizeCustomTag(tag)
-    if (!normalized || map.has(normalized)) return
-    map.set(normalized, {
-      value: normalized,
-      label: formatTagLabel(normalized),
-    })
-  })
-
-  return Array.from(map.values())
-})
-
-function addCustomLabel() {
-  newLabelError.value = ''
-  const normalized = normalizeCustomTag(newLabelInput.value)
-
-  if (!normalized) {
-    newLabelError.value = 'Please enter a label name'
-    return
-  }
-
-  if ((form.value.specialTags || []).includes(normalized)) {
-    newLabelError.value = 'This label already exists'
-    return
-  }
-
-  form.value.specialTags = [...(form.value.specialTags || []), normalized]
-  newLabelInput.value = ''
-}
-
-function toggleLabel(value: LabelValue) {
-  if (value === 'best_seller') {
-    form.value.isBestSeller = !form.value.isBestSeller
-    return
-  }
-  if (value === 'new_service') {
-    form.value.isNewService = !form.value.isNewService
-    return
-  }
-  toggleTag(value)
-}
-
-function isLabelActive(value: LabelValue) {
-  if (value === 'best_seller') return !!form.value.isBestSeller
-  if (value === 'new_service') return !!form.value.isNewService
-  return hasTag(value)
-}
-
-function getLabelChipClass(value: LabelValue) {
-  const style = LABEL_STYLE_MAP[value]
-  if (!style) return isLabelActive(value) ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-300' : 'bg-surface-input text-text-muted hover:bg-surface-page'
-  return isLabelActive(value) ? style.chipActive : style.chipInactive
-}
-
-function getLabelBadgeClass(value: string) {
-  return LABEL_STYLE_MAP[value]?.badge || 'bg-primary-100 text-primary-700'
-}
-
-function addVariantOption() {
-  form.value.variantOptions = [...(form.value.variantOptions || []), { name: '', price: 0 }]
-}
-
-function removeVariantOption(index: number) {
-  const list = [...(form.value.variantOptions || [])]
-  list.splice(index, 1)
-  form.value.variantOptions = list
-}
 
 async function processFile(file: File) {
   const isImage = String(file.type || '').startsWith('image/')
@@ -869,7 +985,8 @@ function getServiceDisplayPrice(svc: any) {
 }
 
 function getCategoryName(catId: string) {
-  return categories.value?.find((c: any) => c.id === catId)?.name || '—'
+  const cat = categories.value?.find((c: any) => c.id === catId)
+  return cat ? getLocaleCategoryName(cat) : '—'
 }
 
 function formatTagLabel(tag: string) {
@@ -883,8 +1000,9 @@ function getServiceLabelItems(svc: any) {
   const labels: Array<{ key: string; label: string }> = []
   if (svc?.isBestSeller) labels.push({ key: 'best_seller', label: t('menu.badges.best_seller') })
   if (svc?.isNewService) labels.push({ key: 'new_service', label: t('menu.badges.new_service') })
-  if (Array.isArray(svc?.specialTags)) {
-    svc.specialTags.forEach((tag: string) => {
+  const tags = getServiceSpecialTags(svc)
+  if (tags.length > 0) {
+    tags.forEach((tag: string) => {
       const normalizedTag = String(tag || '').trim()
       if (normalizedTag) labels.push({ key: normalizedTag, label: formatTagLabel(normalizedTag) })
     })
@@ -1030,7 +1148,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
           <Transition name="fade-down">
             <div v-if="openFilter === 'category'" class="filter-menu">
               <button type="button" :class="['filter-option', !selectedCategory ? 'filter-option-active' : '']" @click="setCategoryFilter('')">{{ t('admin.services.allCategories') }}</button>
-              <button v-for="cat in categories" :key="cat.id" type="button" :class="['filter-option', selectedCategory === cat.id ? 'filter-option-active' : '']" @click="setCategoryFilter(cat.id)">{{ cat.name }}</button>
+              <button v-for="cat in categories" :key="cat.id" type="button" :class="['filter-option', selectedCategory === cat.id ? 'filter-option-active' : '']" @click="setCategoryFilter(cat.id)">{{ getLocaleCategoryName(cat) }}</button>
             </div>
           </Transition>
         </div>
@@ -1095,7 +1213,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
         <!-- Content Right -->
         <div class="ml-5 flex flex-1 flex-col justify-between self-stretch py-1">
           <div class="relative">
-            <h4 class="pr-8 text-lg font-bold leading-tight text-text-primary line-clamp-1">{{ svc.name }}</h4>
+            <h4 class="pr-8 text-lg font-bold leading-tight text-text-primary line-clamp-1">{{ getServiceName(svc) }}</h4>
             
             <!-- Badges -->
             <div class="mt-1.5 flex flex-wrap gap-1.5">
@@ -1109,7 +1227,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
             </div>
 
             <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-text-secondary">
-              {{ svc.shortDescription || svc.description || t('admin.serviceManager.noDescription') }}
+              {{ getServiceShortDescription(svc) || getServiceDescription(svc) || t('admin.serviceManager.noDescription') }}
             </p>
           </div>
           
@@ -1237,11 +1355,39 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
           </div>
 
           <div v-else class="space-y-6 p-6">
+            <!-- ===== Language Tab (top of form) ===== -->
+            <div class="flex overflow-hidden rounded-xl border border-border bg-surface-input">
+              <button
+                v-for="loc in SUPPORTED_LOCALES"
+                :key="loc"
+                type="button"
+                @click="formLocaleLang = loc"
+                :class="[
+                  'relative flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-bold transition-all',
+                  formLocaleLang === loc
+                    ? 'bg-white text-primary-700 shadow-sm'
+                    : 'text-text-muted hover:text-text-primary',
+                ]"
+              >
+                <span>{{ t(`common.languages.${loc}`) }}</span>
+                <!-- green dot when this locale has content -->
+                <span
+                  v-if="hasLocaleContent(loc)"
+                  :class="[
+                    'absolute right-2 top-2 h-1.5 w-1.5 rounded-full',
+                    formLocaleLang === loc ? 'bg-primary-500' : 'bg-emerald-400',
+                  ]"
+                />
+              </button>
+            </div>
+            
+
+
             <!-- Service Name -->
             <div>
               <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('admin.serviceManager.serviceName') }}</label>
               <input
-                v-model="form.name"
+                v-model="activeLocaleName"
                 type="text"
                 :placeholder="t('admin.serviceManager.serviceNamePlaceholder')"
                 class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent placeholder:text-text-muted focus:ring-2 focus:ring-primary-600"
@@ -1284,7 +1430,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
                       :class="['filter-option', form.categoryId === cat.id ? 'filter-option-active' : '']" 
                       @click="form.categoryId = cat.id; formCategoryOpen = false"
                     >
-                      {{ cat.name }}
+                      {{ getLocaleCategoryName(cat) }}
                     </button>
                   </div>
                 </Transition>
@@ -1295,7 +1441,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
             <div class="rounded-xl border border-border p-4">
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="text-sm font-semibold text-text-primary">Product Variants</p>
+                  <p class="text-sm font-semibold text-text-primary">{{ t('admin.serviceManager.productVariants') }}</p>
                   <p class="text-xs text-text-muted">{{ t('admin.serviceManager.variantHint') }}</p>
                 </div>
                 <button
@@ -1344,7 +1490,8 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
                 class="grid grid-cols-[1fr_120px_32px] gap-3"
               >
                 <input
-                  v-model="opt.name"
+                  :value="getVariantName(idx)"
+                  @input="setVariantName(idx, ($event.target as HTMLInputElement).value)"
                   type="text"
                   :placeholder="t('admin.serviceManager.optionNamePlaceholder')"
                   class="w-full rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent focus:ring-2 focus:ring-primary-600"
@@ -1412,7 +1559,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
             <div>
               <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('admin.serviceManager.shortDescription') }}</label>
               <textarea
-                v-model="form.shortDescription"
+                v-model="activeLocaleShortDesc"
                 rows="2"
                 :placeholder="t('admin.serviceManager.shortDescriptionPlaceholder')"
                 class="w-full resize-none rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent placeholder:text-text-muted focus:ring-2 focus:ring-primary-600"
@@ -1423,7 +1570,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
             <div>
               <label class="mb-1.5 block text-sm font-medium text-text-secondary">{{ t('menu.description') }}</label>
               <textarea
-                v-model="form.description"
+                v-model="activeLocaleDescription"
                 rows="3"
                 :placeholder="t('admin.serviceManager.descriptionPlaceholder')"
                 class="w-full resize-none rounded-lg border-0 bg-surface-input px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-transparent placeholder:text-text-muted focus:ring-2 focus:ring-primary-600"

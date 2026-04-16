@@ -248,6 +248,9 @@ export default {
       descriptionPlaceholder: 'Describe the treatment benefits and process...',
       timeMinutes: 'Time (Minutes)',
       saveService: 'Save Service',
+      contentLanguages: 'Content Languages',
+      contentLangHint: 'Enter service name & description in each language. Falls back to the default language if a translation is missing.',
+      productVariants: 'Product Variants',
     },
     serviceForm: {
       updateServiceDetails: 'Update service details',
@@ -260,6 +263,18 @@ export default {
       chooseImage: 'Choose Image',
       updateService: 'Update Service',
       createService: 'Create Service',
+      errors: {
+        nameRequired: 'Service name is required',
+        categoryRequired: 'Please select a category',
+        labelExists: 'This label already exists',
+        labelNameRequired: 'Please enter a label name',
+        variantRequired: 'Please add at least one variant option',
+        variantNameRequired: 'Variant option name is required',
+        variantPriceRequired: 'Variant option price must be greater than 0',
+        priceRequired: 'Price is required',
+        priceMin: 'Price must be greater than 0',
+        priceFromToOrder: 'Price from must be less than price to',
+      },
     },
     settings: {
       title: 'Settings',

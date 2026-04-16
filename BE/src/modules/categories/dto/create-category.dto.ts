@@ -23,4 +23,13 @@ export class CreateCategoryDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  /**
+   * Only non-English locales should be populated here; 
+   * English (root) name is the base name.
+   */
+  @IsOptional()
+  locales?: Record<string, { 
+    name: string;
+  }>;
 }

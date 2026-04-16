@@ -8,6 +8,7 @@ import {
   Min,
   IsInt,
   IsArray,
+  IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -93,4 +94,19 @@ export class CreateServiceDto {
   @IsInt()
   @Min(0)
   sortOrder?: number;
+
+  /**
+   * Per-locale content overrides.
+   * Only non-English locales should be populated here;
+   * English content lives in the root fields.
+   */
+  @IsOptional()
+  @IsObject()
+  locales?: Record<string, { 
+    name?: string; 
+    description?: string; 
+    shortDescription?: string;
+    variantOptions?: Array<{ name: string; price?: number }>;
+    specialTags?: string[];
+  }>;
 }
