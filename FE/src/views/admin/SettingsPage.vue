@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
@@ -7,11 +7,13 @@ import { qrConfigApi } from '@/api/qr-config.api'
 import { uploadApi } from '@/api/upload.api'
 import { Save, Settings as SettingsIcon, Image as ImageIcon, Upload, AlertCircle } from 'lucide-vue-next'
 import Toast from '@/components/Toast.vue'
+import { useStoreManager } from '@/stores/store-manager.store'
 
 type CurrencyUnit = 'VND' | 'USD' | 'EUR'
 
 const router = useRouter()
 const { t } = useI18n({ useScope: 'global' })
+const storeManager = useStoreManager()
 
 const queryClient = useQueryClient()
 
@@ -49,7 +51,7 @@ const validatePhone = () => {
 }
 
 const { data: config, isLoading: loadingConfig } = useQuery({
-  queryKey: ['qr-config'],
+  queryKey: ['qr-config', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await qrConfigApi.getConfig()
     return data.data
@@ -150,6 +152,7 @@ const { mutate: saveConfig, isPending: saving } = useMutation({
   onSuccess: async () => {
     showToast(t('admin.settings.saved'), 'success')
     queryClient.invalidateQueries({ queryKey: ['qr-config'] })
+    storeManager.fetchStores()
     
     // Auto-redirect to next step in onboarding: Categories
     setTimeout(() => {

@@ -10,6 +10,7 @@ import {
 import { Category } from '../../categories/entities/category.entity';
 import { TrafficLog } from '../../traffic/entities/traffic-log.entity';
 import { Admin } from '../../auth/entities/admin.entity';
+import { Store } from '../../stores/entities/store.entity';
 
 @Entity('services')
 export class Service {
@@ -80,6 +81,13 @@ export class Service {
   @ManyToOne(() => Admin, (admin) => admin.services, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'admin_id' })
   admin: Admin;
+
+  @Column({ type: 'uuid', name: 'store_id', nullable: true })
+  storeId: string;
+
+  @ManyToOne(() => Store, (store) => store.services, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'store_id' })
+  store: Store;
 
   @ManyToOne(() => Category, (category) => category.services, {
     onDelete: 'CASCADE',

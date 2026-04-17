@@ -9,6 +9,9 @@ import type { ServiceQuery } from '@/types/service.types'
 import { formatPrice } from '@/lib/utils'
 import { Plus, Search, Pencil, Trash2, Image, ArrowRight } from 'lucide-vue-next'
 
+import { useStoreManager } from '@/stores/store-manager.store'
+
+const storeManager = useStoreManager()
 const router = useRouter()
 const queryClient = useQueryClient()
 const { t } = useI18n({ useScope: 'global' })
@@ -27,7 +30,7 @@ const queryParams = computed<ServiceQuery>(() => ({
 }))
 
 const { data: servicesData, isLoading } = useQuery({
-  queryKey: ['services', queryParams],
+  queryKey: ['services', computed(() => storeManager.currentStoreId), queryParams],
   queryFn: async () => {
     const { data } = await servicesApi.getAll(queryParams.value)
     return data.data
@@ -35,7 +38,7 @@ const { data: servicesData, isLoading } = useQuery({
 })
 
 const { data: categories } = useQuery({
-  queryKey: ['categories'],
+  queryKey: ['categories', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await categoriesApi.getAll()
     return data.data

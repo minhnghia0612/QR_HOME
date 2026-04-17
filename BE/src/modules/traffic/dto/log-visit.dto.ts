@@ -10,6 +10,10 @@ export class LogVisitDto {
   adminId: string;
 
   @IsOptional()
+  @IsUUID()
+  storeId?: string;
+
+  @IsOptional()
   @IsString()
   ipAddress?: string;
 

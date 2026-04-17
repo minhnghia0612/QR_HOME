@@ -6,6 +6,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Admin } from '../../auth/entities/admin.entity';
+import { Store } from '../../stores/entities/store.entity';
 
 export enum QrStatus {
   ACTIVE = 'active',
@@ -109,4 +110,11 @@ export class QrConfig {
   @ManyToOne(() => Admin, (admin) => admin.qrConfigs, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'admin_id' })
   admin: Admin;
+
+  @Column({ type: 'uuid', name: 'store_id', nullable: true })
+  storeId: string;
+
+  @ManyToOne(() => Store, (store) => store.qrConfigs, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'store_id' })
+  store: Store;
 }

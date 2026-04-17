@@ -23,7 +23,10 @@ export class TrafficLog {
   userAgent: string | null;
 
   @Column({ type: 'uuid', name: 'admin_id', nullable: true })
-  adminId: string;
+  adminId: string | null;
+
+  @Column({ type: 'uuid', name: 'store_id', nullable: true })
+  storeId: string | null;
 
   @CreateDateColumn({ type: 'timestamptz', name: 'visited_at' })
   visitedAt: Date;

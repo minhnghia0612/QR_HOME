@@ -23,4 +23,7 @@ export const qrConfigApi = {
 
   downloadQr: () =>
     apiClient.get<ApiResponse<string>>('/qr-config/download'),
+
+  getPublicConfig: (targetId: string) =>
+    apiClient.get<ApiResponse<QrConfig>>('/qr-config/public', { params: { id: targetId } }),
 }

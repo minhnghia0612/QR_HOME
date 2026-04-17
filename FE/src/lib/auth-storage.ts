@@ -16,6 +16,7 @@ export function clearAuthBrowserState() {
 
   window.localStorage.removeItem(AUTH_TOKEN_KEY)
   window.localStorage.removeItem(QUERY_CACHE_KEY)
+  window.localStorage.removeItem('qr_home_store_id')
 
   removeByPrefix(window.sessionStorage, PREVIEW_SESSION_PREFIX)
 }

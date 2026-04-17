@@ -8,6 +8,7 @@ import { Admin } from './entities/admin.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { QrConfigService } from '../qr-config/qr-config.service';
+import { StoresService } from '../stores/stores.service';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +17,7 @@ export class AuthService {
     private readonly adminRepo: Repository<Admin>,
     private readonly jwtService: JwtService,
     private readonly qrConfigService: QrConfigService,
+    private readonly storesService: StoresService,
   ) {}
 
   async register(
@@ -37,14 +39,21 @@ export class AuthService {
     });
     await this.adminRepo.save(admin);
 
-    // Initialize SPA config if spaName is provided
+    // Create a default store for the new admin using the provided store name or default
+    const store = await this.storesService.create(
+      { name: dto.spaName || 'My Store' },
+      admin.id,
+    );
+
+    // Initialize QR config tied to that store
     if (dto.spaName) {
-      await this.qrConfigService.updateSettingsConfig(admin.id, {
-        spaName: dto.spaName,
-      });
+      await this.qrConfigService.updateSettingsConfig(
+        admin.id,
+        { spaName: dto.spaName },
+        store.id,
+      );
     } else {
-      // Ensure config exists even without name
-      await this.qrConfigService.getConfig(admin.id);
+      await this.qrConfigService.getConfig(admin.id, store.id);
     }
 
     return this.buildAuthResponse(admin);
@@ -110,7 +119,12 @@ export class AuthService {
       });
 
       await this.adminRepo.save(admin);
-      await this.qrConfigService.getConfig(admin.id);
+      // Create default store + QR config for new Google user
+      const store = await this.storesService.create(
+        { name: 'My Store' },
+        admin.id,
+      );
+      await this.qrConfigService.getConfig(admin.id, store.id);
     }
 
     admin.lastLogin = new Date();

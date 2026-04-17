@@ -9,6 +9,7 @@ import { Category } from './entities/category.entity';
 import { Translation } from '../translation/entities/translation.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { StoresService } from '../stores/stores.service';
 
 @Injectable()
 export class CategoriesService {
@@ -17,59 +18,28 @@ export class CategoriesService {
     private readonly categoryRepo: Repository<Category>,
     @InjectRepository(Translation)
     private readonly translationRepo: Repository<Translation>,
+    private readonly storesService: StoresService,
   ) {}
 
-  async findAll(adminId: string): Promise<Category[]> {
+  async findAll(adminId?: string, storeId?: string): Promise<Category[]> {
+    const resolvedStoreId = await this.storesService.resolveStoreId(adminId as any, storeId);
     const items = await this.categoryRepo.find({
-      where: { adminId },
+      where: { storeId: resolvedStoreId },
       order: { sortOrder: 'ASC', createdAt: 'ASC' },
     });
 
-    if (items.length > 0) {
-      const itemIds = items.map((i) => i.id);
-      const translations = await this.translationRepo.find({
-        where: { entityType: 'CATEGORY', entityId: In(itemIds) },
-      });
-
-      for (const item of items) {
-        const itemTranslations = translations.filter((t) => t.entityId === item.id);
-        const locales: Record<string, any> = {};
-        for (const t of itemTranslations) {
-          if (t.key === 'content') {
-            try { locales[t.lang] = JSON.parse(t.value); } catch {}
-          }
-        }
-        (item as any).locales = locales;
-      }
-    }
-
+    await this.attachTranslations(items);
     return items;
   }
 
-  async findActive(adminId: string): Promise<Category[]> {
+  async findActive(adminId?: string, storeId?: string): Promise<Category[]> {
+    const resolvedStoreId = await this.storesService.resolveStoreId(adminId as any, storeId);
     const items = await this.categoryRepo.find({
-      where: { isActive: true, adminId },
+      where: { isActive: true, storeId: resolvedStoreId },
       order: { sortOrder: 'ASC' },
     });
 
-    if (items.length > 0) {
-      const itemIds = items.map((i) => i.id);
-      const translations = await this.translationRepo.find({
-        where: { entityType: 'CATEGORY', entityId: In(itemIds) },
-      });
-
-      for (const item of items) {
-        const itemTranslations = translations.filter((t) => t.entityId === item.id);
-        const locales: Record<string, any> = {};
-        for (const t of itemTranslations) {
-          if (t.key === 'content') {
-            try { locales[t.lang] = JSON.parse(t.value); } catch {}
-          }
-        }
-        (item as any).locales = locales;
-      }
-    }
-
+    await this.attachTranslations(items);
     return items;
   }
 
@@ -82,23 +52,15 @@ export class CategoriesService {
       throw new NotFoundException(`Category with id ${id} not found`);
     }
 
-    const translations = await this.translationRepo.find({
-      where: { entityType: 'CATEGORY', entityId: category.id },
-    });
-    const locales: Record<string, any> = {};
-    for (const t of translations) {
-      if (t.key === 'content') {
-        try { locales[t.lang] = JSON.parse(t.value); } catch {}
-      }
-    }
-    (category as any).locales = locales;
-
+    await this.attachTranslations([category]);
     return category;
   }
 
-  async create(dto: CreateCategoryDto, adminId: string): Promise<Category> {
+  async create(dto: CreateCategoryDto, adminId: string, storeId?: string): Promise<Category> {
+    const resolvedStoreId = await this.storesService.resolveStoreId(adminId, storeId);
+
     const existing = await this.categoryRepo.findOne({
-      where: { name: dto.name, adminId },
+      where: { name: dto.name, storeId: resolvedStoreId },
     });
 
     if (existing) {
@@ -109,14 +71,18 @@ export class CategoriesService {
     }
 
     const { locales, ...dtoWithoutLocales } = dto;
-    const category = this.categoryRepo.create({ ...dtoWithoutLocales, adminId });
+    const category = this.categoryRepo.create({
+      ...dtoWithoutLocales,
+      adminId,
+      storeId: resolvedStoreId,
+    });
     const saved = await this.categoryRepo.save(category);
     
     if (locales) {
       await this.saveTranslations(saved.id, locales);
     }
     
-    return this.findOne(saved.id, adminId);
+    return this.findOne(saved.id);
   }
 
   async update(id: string, dto: UpdateCategoryDto, adminId: string): Promise<Category> {
@@ -124,7 +90,7 @@ export class CategoriesService {
 
     if (dto.name && dto.name !== category.name) {
       const existing = await this.categoryRepo.findOne({
-        where: { name: dto.name, adminId },
+        where: { name: dto.name, storeId: category.storeId },
       });
 
       if (existing) {
@@ -143,7 +109,26 @@ export class CategoriesService {
       await this.saveTranslations(id, locales);
     }
 
-    return this.findOne(id, adminId);
+    return this.findOne(id);
+  }
+
+  private async attachTranslations(items: Category[]): Promise<void> {
+    if (!items.length) return;
+    const itemIds = items.map((i) => i.id);
+    const translations = await this.translationRepo.find({
+      where: { entityType: 'CATEGORY', entityId: In(itemIds) },
+    });
+
+    for (const item of items) {
+      const itemTranslations = translations.filter((t) => t.entityId === item.id);
+      const locales: Record<string, any> = {};
+      for (const t of itemTranslations) {
+        if (t.key === 'content') {
+          try { locales[t.lang] = JSON.parse(t.value); } catch {}
+        }
+      }
+      (item as any).locales = locales;
+    }
   }
 
   private async saveTranslations(entityId: string, localesData?: Record<string, any>) {

@@ -8,6 +8,7 @@ import {
 import { Category } from '../../categories/entities/category.entity';
 import { Service } from '../../services/entities/service.entity';
 import { QrConfig } from '../../qr-config/entities/qr-config.entity';
+import { Store } from '../../stores/entities/store.entity';
 
 @Entity('admins')
 export class Admin {
@@ -40,4 +41,7 @@ export class Admin {
 
   @OneToMany(() => QrConfig, (qrConfig) => qrConfig.admin)
   qrConfigs: QrConfig[];
+
+  @OneToMany(() => Store, (store) => store.admin)
+  stores: Store[];
 }

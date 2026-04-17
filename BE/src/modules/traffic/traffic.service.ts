@@ -31,16 +31,17 @@ export class TrafficService {
 
   async logVisit(dto: LogVisitDto): Promise<TrafficLog> {
     const log = this.trafficLogRepo.create({
-      serviceId: dto.serviceId || null,
-      adminId: dto.adminId,
-      ipAddress: dto.ipAddress || null,
-      userAgent: dto.userAgent || null,
+      serviceId: dto.serviceId ?? null,
+      adminId: dto.adminId ?? null,
+      storeId: dto.storeId ?? null,
+      ipAddress: dto.ipAddress ?? null,
+      userAgent: dto.userAgent ?? null,
     });
     return this.trafficLogRepo.save(log);
   }
 
   /** Dashboard: 7-day traffic chart (page views only, service_id IS NULL) */
-  async getWeeklyTraffic(adminId: string): Promise<{ date: string; count: number }[]> {
+  async getWeeklyTraffic(adminId: string, storeId?: string): Promise<{ date: string; count: number }[]> {
     const days: { date: string; count: number }[] = [];
     const now = new Date();
     
@@ -54,13 +55,19 @@ export class TrafficService {
     const sevenDaysAgo = new Date(days[0].date);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    const result: RawTrafficRow[] = await this.trafficLogRepo
+    const qb = this.trafficLogRepo
       .createQueryBuilder('log')
       .select('DATE(log.visitedAt)', 'date')
       .addSelect('COUNT(*)', 'count')
       .where('log.adminId = :adminId', { adminId })
       .andWhere('log.serviceId IS NULL')
-      .andWhere('log.visitedAt >= :since', { since: sevenDaysAgo })
+      .andWhere('log.visitedAt >= :since', { since: sevenDaysAgo });
+
+    if (storeId) {
+      qb.andWhere('log.storeId = :storeId', { storeId });
+    }
+
+    const result: RawTrafficRow[] = await qb
       .groupBy('DATE(log.visitedAt)')
       .orderBy('date', 'ASC')
       .getRawMany();
@@ -78,19 +85,25 @@ export class TrafficService {
   }
 
   /** Dashboard: Most viewed service (top 1) */
-  async getMostViewedService(adminId: string): Promise<{
+  async getMostViewedService(adminId: string, storeId?: string): Promise<{
     serviceId: string;
     name: string;
     views: number;
   } | null> {
-    const result: RawServiceViewRow | undefined = await this.trafficLogRepo
+    const qb = this.trafficLogRepo
       .createQueryBuilder('log')
       .select('log.serviceId', 'serviceId')
       .addSelect('service.name', 'name')
       .addSelect('COUNT(*)', 'views')
       .innerJoin('log.service', 'service')
       .where('log.adminId = :adminId', { adminId })
-      .andWhere('log.serviceId IS NOT NULL')
+      .andWhere('log.serviceId IS NOT NULL');
+
+    if (storeId) {
+      qb.andWhere('log.storeId = :storeId', { storeId });
+    }
+
+    const result: RawServiceViewRow | undefined = await qb
       .groupBy('log.serviceId')
       .addGroupBy('service.name')
       .orderBy('views', 'DESC')
@@ -108,6 +121,7 @@ export class TrafficService {
   async getTopViewedServices(
     adminId: string,
     limit = 5,
+    storeId?: string,
   ): Promise<
     {
       serviceId: string;
@@ -119,7 +133,7 @@ export class TrafficService {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const result: RawTopViewedRow[] = await this.trafficLogRepo
+    const qb = this.trafficLogRepo
       .createQueryBuilder('log')
       .select('log.serviceId', 'serviceId')
       .addSelect('service.name', 'serviceName')
@@ -128,7 +142,13 @@ export class TrafficService {
       .innerJoin('log.service', 'service')
       .where('log.adminId = :adminId', { adminId })
       .andWhere('log.serviceId IS NOT NULL')
-      .andWhere('log.visitedAt >= :since', { since: thirtyDaysAgo })
+      .andWhere('log.visitedAt >= :since', { since: thirtyDaysAgo });
+
+    if (storeId) {
+      qb.andWhere('log.storeId = :storeId', { storeId });
+    }
+
+    const result: RawTopViewedRow[] = await qb
       .groupBy('log.serviceId')
       .addGroupBy('service.name')
       .addGroupBy('service.imageUrl')
@@ -145,7 +165,7 @@ export class TrafficService {
   }
 
   /** Dashboard: Growth calculation */
-  async getGrowth(adminId: string): Promise<{
+  async getGrowth(adminId: string, storeId?: string): Promise<{
     todayViews: number;
     yesterdayViews: number;
     growthPercent: number | null;
@@ -157,21 +177,29 @@ export class TrafficService {
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
-    const todayViews = await this.trafficLogRepo
+    const todayQb = this.trafficLogRepo
       .createQueryBuilder('log')
       .where('log.adminId = :adminId', { adminId })
       .andWhere('log.serviceId IS NOT NULL')
       .andWhere('log.visitedAt >= :today', { today })
-      .andWhere('log.visitedAt < :tomorrow', { tomorrow })
-      .getCount();
+      .andWhere('log.visitedAt < :tomorrow', { tomorrow });
 
-    const yesterdayViews = await this.trafficLogRepo
+    if (storeId) {
+      todayQb.andWhere('log.storeId = :storeId', { storeId });
+    }
+    const todayViews = await todayQb.getCount();
+
+    const yesterdayQb = this.trafficLogRepo
       .createQueryBuilder('log')
       .where('log.serviceId IS NOT NULL')
       .andWhere('log.adminId = :adminId', { adminId })
       .andWhere('log.visitedAt >= :yesterday', { yesterday })
-      .andWhere('log.visitedAt < :today', { today })
-      .getCount();
+      .andWhere('log.visitedAt < :today', { today });
+
+    if (storeId) {
+      yesterdayQb.andWhere('log.storeId = :storeId', { storeId });
+    }
+    const yesterdayViews = await yesterdayQb.getCount();
 
     let growthPercent: number | null = null;
     if (yesterdayViews > 0) {
@@ -184,34 +212,39 @@ export class TrafficService {
   }
 
   /** Dashboard: total service views */
-  async getTotalServiceViews(adminId: string): Promise<number> {
-    return this.trafficLogRepo.count({
-      where: { serviceId: Not(IsNull()), adminId },
-    });
+  async getTotalServiceViews(adminId: string, storeId?: string): Promise<number> {
+    const where: any = { serviceId: Not(IsNull()), adminId };
+    if (storeId) where.storeId = storeId;
+    return this.trafficLogRepo.count({ where });
   }
 
-  async getTodayTotalViews(adminId: string): Promise<number> {
+  async getTodayTotalViews(adminId: string, storeId?: string): Promise<number> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
-    return this.trafficLogRepo
+    const qb = this.trafficLogRepo
       .createQueryBuilder('log')
       .where('log.adminId = :adminId', { adminId })
       .andWhere('log.visitedAt >= :today', { today })
-      .andWhere('log.visitedAt < :tomorrow', { tomorrow })
-      .getCount();
+      .andWhere('log.visitedAt < :tomorrow', { tomorrow });
+
+    if (storeId) {
+      qb.andWhere('log.storeId = :storeId', { storeId });
+    }
+
+    return qb.getCount();
   }
 
-  async getDashboardSummary(adminId: string) {
+  async getDashboardSummary(adminId: string, storeId?: string) {
     const [weekly, mostViewed, growth, totalViews, top5, todayTotalViews] = await Promise.all([
-      this.getWeeklyTraffic(adminId),
-      this.getMostViewedService(adminId),
-      this.getGrowth(adminId),
-      this.getTotalServiceViews(adminId),
-      this.getTopViewedServices(adminId, 5),
-      this.getTodayTotalViews(adminId),
+      this.getWeeklyTraffic(adminId, storeId),
+      this.getMostViewedService(adminId, storeId),
+      this.getGrowth(adminId, storeId),
+      this.getTotalServiceViews(adminId, storeId),
+      this.getTopViewedServices(adminId, 5, storeId),
+      this.getTodayTotalViews(adminId, storeId),
     ]);
 
     return {

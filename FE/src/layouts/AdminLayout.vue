@@ -2,17 +2,54 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { categoriesApi } from '@/api/categories.api'
 import { servicesApi } from '@/api/services.api'
-import { LayoutDashboard, BookOpen, Settings, LogOut, Menu, X, Palette, Globe, ChevronDown } from 'lucide-vue-next'
+import { LayoutDashboard, BookOpen, Settings, LogOut, Menu, X, Palette, Globe, ChevronDown, Store as StoreIcon, Plus, Trash2 } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES, setLocale, type AppLocale } from '@/i18n'
+import { useStoreManager } from '@/stores/store-manager.store'
+import { onMounted } from 'vue'
+
+const queryClient = useQueryClient()
 
 const { t, locale } = useI18n()
 const showLangMenu = ref(false)
 const langMenuRef = ref<HTMLElement | null>(null)
+const showStoreMenu = ref(false)
+const storeMenuRef = ref<HTMLElement | null>(null)
+
+const storeManager = useStoreManager()
+onMounted(() => {
+  storeManager.fetchStores()
+})
+
+const showAddStoreModal = ref(false)
+const newStoreName = ref('')
+const deletingStoreId = ref<string | null>(null)
+
+async function submitCreateStore() {
+  if (!newStoreName.value.trim()) return
+  try {
+    await storeManager.createStore(newStoreName.value.trim())
+    showAddStoreModal.value = false
+    newStoreName.value = ''
+  } catch (error: any) {
+    alert(error?.response?.data?.message || t('admin.stores.errors.createFailed'))
+  }
+}
+
+async function executeDeleteStore() {
+  if (!deletingStoreId.value) return
+  try {
+    await storeManager.deleteStore(deletingStoreId.value)
+  } catch (error: any) {
+    alert(error?.response?.data?.message || t('admin.stores.errors.deleteFailed'))
+  } finally {
+    deletingStoreId.value = null
+  }
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -28,11 +65,14 @@ function changeLanguage(lang: AppLocale) {
   showLangMenu.value = false
 }
 
-// Close lang menu on outside click
+// Close menus on outside click
 if (typeof window !== 'undefined') {
   window.addEventListener('click', (e) => {
     if (langMenuRef.value && !langMenuRef.value.contains(e.target as Node)) {
       showLangMenu.value = false
+    }
+    if (storeMenuRef.value && !storeMenuRef.value.contains(e.target as Node)) {
+      showStoreMenu.value = false
     }
   })
 }
@@ -42,7 +82,7 @@ const sidebarOpen = ref(false)
 
 // Config Status
 const { data: configRes, isLoading: loadingConfig } = useQuery({
-  queryKey: ['qr-config'],
+  queryKey: ['qr-config', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await qrConfigApi.getConfig()
     return (data as any).data || data
@@ -54,7 +94,7 @@ const { data: configRes, isLoading: loadingConfig } = useQuery({
 
 // Categories Status
 const { data: catsRes, isLoading: loadingCats } = useQuery({
-  queryKey: ['categories'],
+  queryKey: ['categories', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await categoriesApi.getAll()
     return (data as any).data || data
@@ -66,7 +106,7 @@ const { data: catsRes, isLoading: loadingCats } = useQuery({
 
 // Services Status
 const { data: servicesRes, isLoading: loadingServices } = useQuery({
-  queryKey: ['nav-services-count'],
+  queryKey: ['nav-services-count', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await servicesApi.getAll({ limit: 1 })
     return (data as any).data || data
@@ -87,7 +127,7 @@ const isStep3Complete = computed(() => {
 const isSetupComplete = computed(() => isStep1Complete.value && isStep2Complete.value && isStep3Complete.value)
 const navLoading = computed(() => loadingConfig.value || loadingCats.value || loadingServices.value)
 
-// Dynamic Navigation (Simplified Order: Dashboard -> Categories -> Services -> Settings)
+// Dynamic Navigation
 const availableNavLinks = computed(() => {
   const allLinks = [
     { to: '/admin/dashboard', label: t('admin.common.nav.dashboard'), icon: LayoutDashboard, visible: isStep3Complete.value },
@@ -218,6 +258,60 @@ async function logout() {
           </span>
         </div>
         <div class="flex items-center gap-6">
+          <!-- Store Switcher -->
+          <div class="relative" ref="storeMenuRef">
+            <button 
+              @click="showStoreMenu = !showStoreMenu"
+              class="flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-bold text-text-primary transition-all hover:bg-surface-input active:scale-95"
+            >
+              <StoreIcon class="h-4 w-4 text-primary-600" />
+              <span class="max-w-[120px] truncate" v-if="storeManager.currentStore">{{ storeManager.currentStore.name }}</span>
+              <span v-else-if="storeManager.isLoading">{{ t('admin.stores.loading') }}</span>
+              <span v-else>{{ t('admin.stores.noStore') }}</span>
+              <ChevronDown :class="['h-3 w-3 transition-transform', showStoreMenu ? 'rotate-180' : '']" />
+            </button>
+            <transition name="fade-down">
+              <div v-if="showStoreMenu" class="absolute right-0 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-white shadow-popup ring-1 ring-black/5 flex flex-col p-1">
+                <div class="max-h-64 overflow-y-auto">
+                  <div 
+                    v-for="st in storeManager.stores" 
+                    :key="st.id"
+                    class="group flex items-center gap-2 w-full rounded-lg px-2 py-2 text-sm transition-colors text-left"
+                    :class="storeManager.currentStoreId === st.id ? 'bg-primary-50' : 'hover:bg-surface-input'"
+                  >
+                    <button 
+                      @click="storeManager.setCurrentStore(st.id, queryClient); showStoreMenu = false"
+                      class="flex flex-1 items-center gap-2 truncate"
+                      :class="storeManager.currentStoreId === st.id ? 'font-bold text-primary-700' : 'text-text-primary'"
+                    >
+                      <StoreIcon class="h-4 w-4 opacity-70" />
+                      <span class="truncate">{{ st.name }}</span>
+                    </button>
+                    
+                    <!-- Delete Button (x) -->
+                    <button 
+                      v-if="storeManager.stores.length > 1"
+                      @click.stop="deletingStoreId = st.id"
+                      class="flex h-7 w-7 items-center justify-center rounded-md text-text-muted opacity-0 group-hover:opacity-100 hover:bg-danger-50 hover:text-danger transition-all"
+                      :title="t('admin.stores.deleteStore')"
+                    >
+                      <X class="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div class="h-px w-full bg-border my-1"></div>
+                <button 
+                  @click="showStoreMenu = false; showAddStoreModal = true"
+                  class="flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors"
+                >
+                  <Plus class="h-4 w-4" />
+                  {{ t('admin.stores.addStore') }}
+                </button>
+              </div>
+            </transition>
+          </div>
+
           <!-- Language Switcher -->
           <div class="relative" ref="langMenuRef">
             <button 
@@ -269,5 +363,46 @@ async function logout() {
         <router-view />
       </main>
     </div>
+    <!-- Modals -->
+    <Teleport to="body">
+      <!-- Add Store Modal -->
+      <div v-if="showAddStoreModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl ring-1 ring-black/5">
+          <h3 class="mb-1 text-xl font-bold text-text-primary">{{ t('admin.stores.addStore') }}</h3>
+          <p class="mb-4 text-sm text-text-muted">{{ t('admin.stores.addStoreHint') }}</p>
+          <input 
+            v-model="newStoreName" 
+            :placeholder="t('admin.stores.storeNamePlaceholder')"
+            class="w-full rounded-xl border border-border bg-surface-input px-4 py-3 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+            @keyup.enter="submitCreateStore"
+            autofocus
+          />
+          <div class="mt-6 flex justify-end gap-3">
+            <button @click="showAddStoreModal = false; newStoreName = ''" class="rounded-xl border border-border px-4 py-2 text-sm font-medium text-text-secondary hover:bg-surface-page">
+              {{ t('admin.common.cancel') }}
+            </button>
+            <button @click="submitCreateStore" :disabled="!newStoreName.trim()" class="rounded-xl bg-primary-600 px-4 py-2 text-sm font-bold text-white shadow-md hover:bg-primary-700 active:scale-95 disabled:opacity-50">
+              {{ t('admin.stores.createStore') }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delete Confirm Modal -->
+      <div v-if="deletingStoreId" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+        <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl ring-1 ring-black/5">
+          <h3 class="mb-2 text-lg font-bold text-text-primary">{{ t('admin.stores.deleteStoreTitle') }}</h3>
+          <p class="text-sm text-text-muted mb-6">{{ t('admin.stores.deleteStoreHint') }}</p>
+          <div class="flex justify-end gap-3">
+            <button @click="deletingStoreId = null" class="rounded-xl border border-border px-4 py-2 text-sm font-medium text-text-secondary hover:bg-surface-page">
+              {{ t('admin.common.cancel') }}
+            </button>
+            <button @click="executeDeleteStore" class="rounded-xl bg-danger px-4 py-2 text-sm font-bold text-white shadow-md hover:opacity-90 active:scale-95">
+              {{ t('admin.serviceManager.delete') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>

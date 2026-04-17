@@ -5,12 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { qrConfigApi } from '@/api/qr-config.api'
 import type { QrStatus } from '@/types/qr-config.types'
 import { QrCode, Play, Pause, Download, AlertCircle, CheckCircle2 } from 'lucide-vue-next'
+import { useStoreManager } from '@/stores/store-manager.store'
 
+const storeManager = useStoreManager()
 const queryClient = useQueryClient()
 const { t } = useI18n({ useScope: 'global' })
 
 const { data: config, isLoading } = useQuery({
-  queryKey: ['qr-config'],
+  queryKey: ['qr-config', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await qrConfigApi.getConfig()
     return data.data

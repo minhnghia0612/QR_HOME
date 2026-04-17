@@ -29,6 +29,10 @@ export class QueryServiceDto extends PaginationDto {
   adminId?: string;
 
   @IsOptional()
+  @IsUUID()
+  storeId?: string;
+
+  @IsOptional()
   @IsString()
   @IsIn(['createdAt', 'sortOrder'])
   sortBy?: 'createdAt' | 'sortOrder';

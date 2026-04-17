@@ -16,11 +16,18 @@ import {
   Plus, Search, Image, X, Upload, Pencil, Trash2, Eye, ChevronDown,
   ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight 
 } from 'lucide-vue-next'
-import { useAuthStore } from '@/stores/auth.store'
+import { useStoreManager } from '@/stores/store-manager.store'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth.store'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { io, type Socket } from 'socket.io-client'
+import Toast from '@/components/Toast.vue'
 import imgFallback from '@/assets/img_fallback.png'
+
+const storeManager = useStoreManager()
+const router = useRouter()
+const authStore = useAuthStore()
+const { t } = useI18n({ useScope: 'global' })
 
 type SpecialTag = 'must_try' | 'limited_edition' | 'summer_special' | 'happy_hour'
 type LabelValue = 'best_seller' | 'new_service' | SpecialTag | string
@@ -70,11 +77,6 @@ const LABEL_STYLE_MAP: Record<string, { chipActive: string; chipInactive: string
     badge: 'bg-primary-100 text-primary-700',
   },
 }
-
-const router = useRouter()
-import Toast from '@/components/Toast.vue'
-const authStore = useAuthStore()
-const { t } = useI18n({ useScope: 'global' })
 
 const queryClient = useQueryClient()
 const { getServiceName, getServiceShortDescription, getServiceDescription, getServiceSpecialTags } = useServiceLocale()
@@ -155,6 +157,13 @@ watch([selectedStatus, selectedCategory], () => {
 
 watch(selectedSort, () => {
   page.value = 1
+})
+
+const previewUrl = computed(() => {
+  const storeId = storeManager.currentStoreId
+  if (!storeId) return ''
+
+  return `/menu/${storeId}`
 })
 
 const statusLabel = computed(() => {
@@ -403,6 +412,7 @@ function hasLocaleContent(loc: AppLocale): boolean {
 
 const servicesQueryKey = computed(() => [
   'services',
+  storeManager.currentStoreId,
   searchQuery.value,
   selectedStatus.value,
   selectedCategory.value,
@@ -495,7 +505,7 @@ watch(servicesView, (next) => {
 })
 
 const { data: categories, isLoading: loadingCategories } = useQuery({
-  queryKey: ['categories'],
+  queryKey: ['categories', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await categoriesApi.getAll()
     return data.data
@@ -505,7 +515,7 @@ const { data: categories, isLoading: loadingCategories } = useQuery({
 })
 
 const { data: trafficData, isLoading: loadingTraffic } = useQuery({
-  queryKey: ['traffic-dashboard'],
+  queryKey: ['traffic-dashboard', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await trafficApi.getDashboard()
     return data.data
@@ -559,7 +569,7 @@ onMounted(() => {
 })
 
 const { data: qrConfig } = useQuery({
-  queryKey: ['qr-config'],
+  queryKey: ['qr-config', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await qrConfigApi.getConfig()
     return (data as any).data || data
@@ -1045,7 +1055,7 @@ const pageLoading = computed(() => loadingServices.value || loadingTraffic.value
       </div>
       <div class="flex items-center gap-3">
         <RouterLink
-          :to="'/menu/' + authStore.admin?.id"
+          :to="previewUrl"
           target="_blank"
           class="flex items-center gap-2 rounded-xl border border-border bg-white px-5 py-3 text-sm font-extrabold text-text-primary shadow-sm transition-all hover:bg-surface-input active:scale-95"
         >

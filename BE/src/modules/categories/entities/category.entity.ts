@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { Service } from '../../services/entities/service.entity';
 import { Admin } from '../../auth/entities/admin.entity';
+import { Store } from '../../stores/entities/store.entity';
 
 @Entity('categories')
 export class Category {
@@ -37,6 +38,13 @@ export class Category {
   @ManyToOne(() => Admin, (admin) => admin.categories, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'admin_id' })
   admin: Admin;
+
+  @Column({ type: 'uuid', name: 'store_id', nullable: true })
+  storeId: string;
+
+  @ManyToOne(() => Store, (store) => store.categories, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'store_id' })
+  store: Store;
 
   @OneToMany(() => Service, (service) => service.category)
   services: Service[];

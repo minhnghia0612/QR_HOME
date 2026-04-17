@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useQuery, useMutation } from '@tanstack/vue-query'
 import { categoriesApi } from '@/api/categories.api'
 import { servicesApi } from '@/api/services.api'
+import { qrConfigApi } from '@/api/qr-config.api'
 import { trafficApi } from '@/api/traffic.api'
 import apiClient from '@/api/client'
 import { useAuthStore } from '@/stores/auth.store'
@@ -18,11 +19,43 @@ import { useServiceLocale } from '@/composables/useServiceLocale'
 const route = useRoute()
 const authStore = useAuthStore()
 const { t, te, locale } = useI18n({ useScope: 'global' })
-const adminId = computed(() => route.params.id as string)
+const targetId = computed(() => route.params.id as string)
+
 const { getServiceName, getServiceDescription, getServiceShortDescription, getServiceSpecialTags, getVariantName } = useServiceLocale()
-const publicCategoriesQueryKey = computed(() => ['public-categories', adminId.value])
-const publicConfigQueryKey = computed(() => ['public-config', adminId.value])
-const publicServicesQueryKey = computed(() => ['public-services', adminId.value])
+
+const publicConfigQueryKey = computed(() => ['public-config', targetId.value])
+
+const { data: configRes, isLoading: loadingConfig } = useQuery({
+  queryKey: publicConfigQueryKey,
+  queryFn: async () => {
+    const { data } = await qrConfigApi.getPublicConfig(targetId.value)
+    return (data as any).data || data
+  },
+  enabled: computed(() => !!targetId.value),
+  staleTime: 0,
+  refetchOnMount: 'always',
+  refetchOnWindowFocus: true,
+})
+
+const spaConfig = computed(() => {
+  const raw = configRes.value
+  return (raw as any)?.status ? raw : (raw as any)?.data || raw || {}
+})
+
+// Resolved IDs from the config
+const resolvedStoreId = computed(() => spaConfig.value?.storeId)
+const resolvedAdminId = computed(() => spaConfig.value?.adminId)
+
+const isSessionAdmin = computed(() => {
+  return !!authStore.token && authStore.admin?.id === resolvedAdminId.value
+})
+const hasPendingAdminSession = computed(() => !!authStore.token && !authStore.admin)
+
+const previewSession = computed(() => getAdminPreviewSession(resolvedAdminId.value || ''))
+const isAdminPreview = computed(() => isSessionAdmin.value)
+
+const publicCategoriesQueryKey = computed(() => ['public-categories', resolvedStoreId.value || targetId.value, isAdminPreview.value])
+const publicServicesQueryKey = computed(() => ['public-services', resolvedStoreId.value || targetId.value, isAdminPreview.value])
 const PUBLIC_MENU_REFETCH_INTERVAL_MS = 15000
 
 const searchQuery = ref('')
@@ -40,41 +73,24 @@ const SWIPE_THRESHOLD_PX = 40
 const { data: categoriesRes, isLoading: loadingCats } = useQuery({
   queryKey: publicCategoriesQueryKey,
   queryFn: async () => {
-    const { data } = await categoriesApi.getActive({ adminId: adminId.value })
+    // If Admin Preview, use the admin endpoint to see ALL categories (including inactive ones)
+    if (isAdminPreview.value) {
+      const { data } = await categoriesApi.getAll()
+      return (data as any).data || data
+    }
+
+    const { data } = await categoriesApi.getActive({ 
+      adminId: resolvedAdminId.value,
+      storeId: resolvedStoreId.value || targetId.value 
+    })
     return (data as any).data || data
   },
-  enabled: computed(() => !!adminId.value),
+  enabled: computed(() => !loadingConfig.value && !!(resolvedStoreId.value || targetId.value)),
   staleTime: 0,
   refetchOnMount: 'always',
   refetchOnWindowFocus: true,
   refetchInterval: PUBLIC_MENU_REFETCH_INTERVAL_MS,
 })
-
-const { data: configRes, isLoading: loadingConfig } = useQuery({
-  queryKey: publicConfigQueryKey,
-  queryFn: async () => {
-    const { data } = await apiClient.get(`/qr-config/public?adminId=${adminId.value}`)
-    return (data as any).data || data
-  },
-  enabled: computed(() => !!adminId.value),
-  staleTime: 0,
-  refetchOnMount: 'always',
-  refetchOnWindowFocus: true,
-})
-
-const router = useRouter()
-const spaConfig = computed(() => {
-  const raw = configRes.value
-  return (raw as any)?.status ? raw : (raw as any)?.data || raw || {}
-})
-
-const isSessionAdmin = computed(() => {
-  return !!authStore.token && authStore.admin?.id === adminId.value
-})
-const hasPendingAdminSession = computed(() => !!authStore.token && !authStore.admin)
-
-const previewSession = computed(() => getAdminPreviewSession(adminId.value))
-const isAdminPreview = computed(() => isSessionAdmin.value)
 
 const themeId = computed(() => {
   return String(getPreviewValue('themeId', spaConfig.value?.themeId || 'classic'))
@@ -197,9 +213,17 @@ const allServices = computed(() => {
 const { data: servicesRes, isLoading: loadingServices } = useQuery({
   queryKey: publicServicesQueryKey,
   queryFn: async () => {
+    // If Admin Preview, use the admin endpoint to see ALL services (including inactive ones)
+    if (isAdminPreview.value) {
+      const { data } = await servicesApi.getAll({ limit: 100 })
+      const payload = (data as any).data || data
+      return payload?.items || payload || []
+    }
+
     // Fetch all pages so newly added services/categories are not hidden by default pagination.
     const firstResponse = await servicesApi.getPublic({
-      adminId: adminId.value,
+      adminId: resolvedAdminId.value,
+      storeId: resolvedStoreId.value || targetId.value,
       page: 1,
       limit: 100,
     } as any)
@@ -216,7 +240,8 @@ const { data: servicesRes, isLoading: loadingServices } = useQuery({
     for (let page = 2; page <= totalPages; page += 1) {
       requests.push(
         servicesApi.getPublic({
-          adminId: adminId.value,
+          adminId: resolvedAdminId.value,
+          storeId: resolvedStoreId.value || targetId.value,
           page,
           limit: 100,
         } as any),
@@ -231,7 +256,7 @@ const { data: servicesRes, isLoading: loadingServices } = useQuery({
 
     return [...firstItems, ...extraItems]
   },
-  enabled: computed(() => !!adminId.value),
+  enabled: computed(() => !loadingConfig.value && !!(resolvedStoreId.value || targetId.value)),
   staleTime: 0,
   refetchOnMount: 'always',
   refetchOnWindowFocus: true,
@@ -311,15 +336,16 @@ onMounted(() => {
 })
 
 const { mutate: logTraffic } = useMutation({
-  mutationFn: (params: { serviceId?: string; adminId: string }) => trafficApi.logVisit(params),
+  mutationFn: (params: { serviceId?: string; adminId?: string; storeId?: string }) => trafficApi.logVisit(params),
 })
 
-// Log overall page visit when adminId becomes available
-watch(adminId, (newId) => {
+// Log overall page visit when resolved IDs become available
+watch([resolvedAdminId, resolvedStoreId], ([admin, store]) => {
   if (hasPendingAdminSession.value) return
-  const isAdmin = isAdminPreview.value
-  if (newId && !isAdmin) {
-    logTraffic({ adminId: newId })
+  if (isAdminPreview.value) return
+  
+  if (admin && store) {
+    logTraffic({ adminId: admin, storeId: store })
   }
 }, { immediate: true })
 
@@ -601,8 +627,12 @@ function openDetail(service: any) {
   showDetail.value = true
   if (hasPendingAdminSession.value) return
   const isAdmin = isAdminPreview.value
-  if (!isAdmin && adminId.value) {
-    logTraffic({ serviceId: service.id, adminId: adminId.value })
+  if (!isAdmin && resolvedAdminId.value && resolvedStoreId.value) {
+    logTraffic({ 
+      serviceId: service.id, 
+      adminId: resolvedAdminId.value,
+      storeId: resolvedStoreId.value
+    })
   }
 }
 

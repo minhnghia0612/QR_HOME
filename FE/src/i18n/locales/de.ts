@@ -331,5 +331,22 @@ export default {
       saved: 'Theme und Kundenoberflaeche erfolgreich angewendet',
       saveFailed: 'Theme konnte nicht gespeichert werden',
     },
+    stores: {
+      addStore: 'Neues Geschäft hinzufügen',
+      addStoreHint: 'Jeder Shop hat sein eigenes, unabhängiges Menü (Kategorien & Services).',
+      storeNamePlaceholder: 'Shop-Name (z. B. Filiale Stadtzentrum)',
+      createStore: 'Geschäft erstellen',
+      deleteStoreTitle: 'Geschäft löschen?',
+      deleteStoreHint: 'Alle Kategorien und Services in diesem Shop werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.',
+      deleteStore: 'Geschäft löschen',
+      noStore: 'Kein Geschäft',
+      loading: 'Wird geladen...',
+      errors: {
+        createFailed: 'Geschäft konnte nicht erstellt werden',
+        deleteFailed: 'Geschäft konnte nicht gelöscht werden',
+        nameRequired: 'Bitte geben Sie einen Geschäftsnamen ein',
+        lastStore: 'Das letzte Geschäft kann nicht gelöscht werden.',
+      },
+    },
   },
 }

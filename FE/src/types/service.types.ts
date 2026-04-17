@@ -79,4 +79,6 @@ export interface ServiceQuery {
   label?: 'best_seller' | 'new_service' | 'combo'
   sortBy?: 'createdAt' | 'sortOrder'
   sortDirection?: 'ASC' | 'DESC'
+  adminId?: string
+  storeId?: string
 }

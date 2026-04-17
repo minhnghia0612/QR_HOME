@@ -15,6 +15,7 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetAdmin } from '../../common/decorators/get-admin.decorator';
+import { GetStoreId } from '../../common/decorators/get-store-id.decorator';
 
 @Controller('categories')
 export class CategoriesController {
@@ -22,13 +23,13 @@ export class CategoriesController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  findAll(@GetAdmin() admin: any) {
-    return this.categoriesService.findAll(admin.id);
+  findAll(@GetAdmin() admin: any, @GetStoreId() storeId?: string) {
+    return this.categoriesService.findAll(admin.id, storeId);
   }
 
   @Get('active')
-  findActive(@Query('adminId') adminId: string) {
-    return this.categoriesService.findActive(adminId);
+  findActive(@Query('adminId') adminId: string, @Query('storeId') storeId?: string) {
+    return this.categoriesService.findActive(adminId, storeId);
   }
 
   @Get(':id')
@@ -38,8 +39,8 @@ export class CategoriesController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() dto: CreateCategoryDto, @GetAdmin() admin: any) {
-    return this.categoriesService.create(dto, admin.id);
+  create(@Body() dto: CreateCategoryDto, @GetAdmin() admin: any, @GetStoreId() storeId?: string) {
+    return this.categoriesService.create(dto, admin.id, storeId);
   }
 
   @UseGuards(JwtAuthGuard)

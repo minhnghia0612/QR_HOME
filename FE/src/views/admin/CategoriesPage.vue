@@ -8,8 +8,9 @@ import { Plus, Pencil, Trash2, X, FolderOpen, ArrowRight } from 'lucide-vue-next
 import Toast from '@/components/Toast.vue'
 import { SUPPORTED_LOCALES, type AppLocale } from '@/i18n'
 import { useCategoryLocale } from '@/composables/useCategoryLocale'
+import { useStoreManager } from '@/stores/store-manager.store'
 
-const router = useRouter()
+const storeManager = useStoreManager()
 const queryClient = useQueryClient()
 const { t } = useI18n({ useScope: 'global' })
 const { getCategoryName } = useCategoryLocale()
@@ -65,7 +66,7 @@ function showToast(message: string, type: 'success' | 'danger' | 'warning' = 'su
 }
 
 const { data: categories, isLoading } = useQuery({
-  queryKey: ['categories'],
+  queryKey: ['categories', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await categoriesApi.getAll()
     return data.data

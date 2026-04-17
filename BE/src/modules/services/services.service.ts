@@ -6,6 +6,7 @@ import { Translation } from '../translation/entities/translation.entity';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { QueryServiceDto } from './dto/query-service.dto';
+import { StoresService } from '../stores/stores.service';
 
 @Injectable()
 export class ServicesService {
@@ -14,9 +15,10 @@ export class ServicesService {
     private readonly serviceRepo: Repository<Service>,
     @InjectRepository(Translation)
     private readonly translationRepo: Repository<Translation>,
+    private readonly storesService: StoresService,
   ) {}
 
-  async findAll(query: QueryServiceDto, adminId?: string): Promise<{
+  async findAll(query: QueryServiceDto, adminId?: string, storeId?: string): Promise<{
     items: Service[];
     total: number;
     page: number;
@@ -31,8 +33,12 @@ export class ServicesService {
       .createQueryBuilder('service')
       .leftJoinAndSelect('service.category', 'category');
 
+    // Filter by storeId if admin is authenticated and storeId resolved
     if (adminId) {
-      qb.andWhere('service.adminId = :adminId', { adminId });
+      const resolvedStoreId = await this.storesService.resolveStoreId(adminId, storeId);
+      qb.andWhere('service.storeId = :storeId', { storeId: resolvedStoreId });
+    } else if (query.storeId) {
+      qb.andWhere('service.storeId = :storeId', { storeId: query.storeId });
     } else if (query.adminId) {
       qb.andWhere('service.adminId = :adminId', { adminId: query.adminId });
     }
@@ -112,7 +118,7 @@ export class ServicesService {
     };
   }
 
-  async findAllActive(query: QueryServiceDto, adminId?: string): Promise<{
+  async findAllActive(query: QueryServiceDto, adminId?: string, storeId?: string): Promise<{
     items: Service[];
     total: number;
     page: number;
@@ -120,7 +126,7 @@ export class ServicesService {
     totalPages: number;
   }> {
     const activeQuery = { ...query, isActive: true };
-    return this.findAll(activeQuery, adminId);
+    return this.findAll(activeQuery, adminId, storeId);
   }
 
   async findOne(id: string, adminId?: string): Promise<Service> {
@@ -220,9 +226,10 @@ export class ServicesService {
     return payload;
   }
 
-  async create(dto: CreateServiceDto, adminId: string): Promise<Service> {
+  async create(dto: CreateServiceDto, adminId: string, storeId?: string): Promise<Service> {
+    const resolvedStoreId = await this.storesService.resolveStoreId(adminId, storeId);
     const existing = await this.serviceRepo.findOne({
-      where: { name: dto.name, adminId },
+      where: { name: dto.name, storeId: resolvedStoreId },
     });
 
     if (existing) {
@@ -247,6 +254,7 @@ export class ServicesService {
     const service = this.serviceRepo.create({
       ...(payload as Partial<Service>),
       adminId,
+      storeId: resolvedStoreId,
     } as Partial<Service>);
     
     const saved = await this.serviceRepo.save(service);
@@ -331,11 +339,17 @@ export class ServicesService {
     await this.serviceRepo.remove(service);
   }
 
-  async countActive(adminId: string): Promise<number> {
+  async countActive(adminId: string, storeId?: string): Promise<number> {
+    if (storeId) {
+      return this.serviceRepo.count({ where: { isActive: true, storeId } });
+    }
     return this.serviceRepo.count({ where: { isActive: true, adminId } });
   }
 
-  async countAll(adminId: string): Promise<number> {
+  async countAll(adminId: string, storeId?: string): Promise<number> {
+    if (storeId) {
+      return this.serviceRepo.count({ where: { storeId } });
+    }
     return this.serviceRepo.count({ where: { adminId } });
   }
 }

@@ -5,19 +5,21 @@ import { Download } from 'lucide-vue-next'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { categoriesApi } from '@/api/categories.api'
 import { servicesApi } from '@/api/services.api'
-import { computed, onBeforeUnmount, watch } from 'vue'
+import { computed, onBeforeUnmount, watch, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { io, type Socket } from 'socket.io-client'
 import { useAuthStore } from '@/stores/auth.store'
+import { useStoreManager } from '@/stores/store-manager.store'
 import imgFallback from '@/assets/img_fallback.png'
 
+const storeManager = useStoreManager()
 const queryClient = useQueryClient()
 const authStore = useAuthStore()
 const { t } = useI18n({ useScope: 'global' })
 let dashboardSocket: Socket | null = null
 
 const { data: dashboard, isLoading: loadingDashboard } = useQuery({
-  queryKey: ['dashboard'],
+  queryKey: ['dashboard', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await trafficApi.getDashboard()
     return data.data
@@ -28,7 +30,7 @@ const { data: dashboard, isLoading: loadingDashboard } = useQuery({
 })
 
 const { data: qrConfig, isLoading: loadingQrConfig } = useQuery({
-  queryKey: ['qr-config'],
+  queryKey: ['qr-config', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await qrConfigApi.getConfig()
     return data.data
@@ -38,7 +40,7 @@ const { data: qrConfig, isLoading: loadingQrConfig } = useQuery({
 })
 
 const { data: categories } = useQuery({
-  queryKey: ['categories'],
+  queryKey: ['categories', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await categoriesApi.getAll()
     return data.data
@@ -46,7 +48,7 @@ const { data: categories } = useQuery({
 })
 
 const { data: services } = useQuery({
-  queryKey: ['services-count'],
+  queryKey: ['services-count', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await servicesApi.getAll({ limit: 1 })
     return data.data
@@ -54,7 +56,7 @@ const { data: services } = useQuery({
 })
 
 const { data: qrImageRes } = useQuery({
-  queryKey: computed(() => ['qr-image', qrConfig.value?.status, qrConfig.value?.qrUrl]),
+  queryKey: computed(() => ['qr-image', storeManager.currentStoreId, qrConfig.value?.status, qrConfig.value?.qrUrl]),
   queryFn: async () => {
     const { data } = await qrConfigApi.downloadQr()
     return data.data
@@ -66,9 +68,9 @@ const { data: qrImageRes } = useQuery({
 
 const setupProgress = computed(() => {
   const steps = [
-    { id: 'settings', label: 'Spa Information', done: !!qrConfig.value?.spaName, link: '/admin/qr' },
-    { id: 'category', label: 'First Category', done: !!categories.value?.length, link: '/admin/categories' },
-    { id: 'service', label: 'First Service', done: !!services.value?.total, link: '/admin/services' }
+    { id: 'settings', label: t('admin.dashboard.setupProgress.spaInfo'), done: !!qrConfig.value?.spaName, link: '/admin/qr' },
+    { id: 'category', label: t('admin.dashboard.setupProgress.firstCategory'), done: !!categories.value?.length, link: '/admin/categories' },
+    { id: 'service', label: t('admin.dashboard.setupProgress.firstService'), done: !!services.value?.total, link: '/admin/services' }
   ]
   const completed = steps.filter(s => s.done).length
   return { steps, completed, allDone: completed === steps.length }
@@ -84,6 +86,22 @@ const { mutate: updateQrStatus, isPending: updatingStatus } = useMutation({
     queryClient.invalidateQueries({ queryKey: ['qr-config'] })
   },
 })
+
+const generating = ref(false)
+async function generateQr() {
+  if (generating.value) return
+  generating.value = true
+  try {
+    const { data } = await qrConfigApi.generate()
+    if (data.data) {
+      queryClient.invalidateQueries({ queryKey: ['qr-config'] })
+    }
+  } catch (error) {
+    console.error('Failed to generate QR:', error)
+  } finally {
+    generating.value = false
+  }
+}
 
 function connectDashboardSocket(adminId: string) {
   if (dashboardSocket?.connected) {
@@ -192,7 +210,7 @@ async function downloadQr() {
     <div v-else class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h2 class="text-4xl font-bold tracking-tight text-text-primary">
-          Welcome, {{ qrConfig?.spaName }}
+          {{ t('admin.dashboard.welcome') }}, {{ qrConfig?.spaName || storeManager.currentStore?.name }}
         </h2>
       </div>
       <button
@@ -284,8 +302,18 @@ async function downloadQr() {
           </div>
         </div>
 
+        <div v-if="(qrConfig?.status as string) === 'inactive'" class="mt-6 flex flex-col gap-3">
+           <p class="text-[11px] text-primary-700 font-medium px-1">{{ t('admin.dashboard.generateQrHint') }}</p>
+           <button
+             @click="generateQr"
+             :disabled="generating"
+             class="w-full rounded-xl bg-primary-600 py-3 text-sm font-bold text-white shadow-md hover:bg-primary-700 active:scale-95 disabled:opacity-50"
+           >
+             {{ t('admin.dashboard.generateQr') }}
+           </button>
+        </div>
         <button
-          v-if="!loadingQrConfig && qrConfig?.status !== 'inactive'"
+          v-else-if="!loadingQrConfig && qrConfig?.status !== 'inactive'"
           @click="updateQrStatus(qrConfig?.status === 'active' ? 'paused' : 'active')"
           :disabled="updatingStatus"
           class="mt-6 w-full rounded-xl py-3 text-sm font-bold transition-all"

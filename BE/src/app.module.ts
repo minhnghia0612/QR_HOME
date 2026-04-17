@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { AuthModule } from './modules/auth/auth.module';
+import { StoresModule } from './modules/stores/stores.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ServicesModule } from './modules/services/services.module';
 import { QrConfigModule } from './modules/qr-config/qr-config.module';
@@ -35,6 +36,7 @@ import { UploadModule } from './modules/upload/upload.module';
       serveRoot: '/uploads',
     }),
     AuthModule,
+    StoresModule,
     CategoriesModule,
     ServicesModule,
     QrConfigModule,

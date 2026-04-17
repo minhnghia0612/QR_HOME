@@ -6,7 +6,7 @@ export const categoriesApi = {
   getAll: () =>
     apiClient.get<ApiResponse<Category[]>>('/categories'),
 
-  getActive: (params?: { adminId: string }) =>
+  getActive: (params?: { adminId?: string; storeId?: string }) =>
     apiClient.get<ApiResponse<Category[]>>('/categories/active', { params }),
 
   getOne: (id: string) =>

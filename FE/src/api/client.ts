@@ -22,6 +22,12 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  const storeId = localStorage.getItem('qr_home_store_id')
+  if (storeId) {
+    config.headers['x-store-id'] = storeId
+  }
+
   return config
 })
 

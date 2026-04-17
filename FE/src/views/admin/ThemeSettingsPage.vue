@@ -11,6 +11,8 @@ import Toast from '@/components/Toast.vue'
 type CustomerUiSize = 'large' | 'normal' | 'compact'
 
 const authStore = useAuthStore()
+import { useStoreManager } from '@/stores/store-manager.store'
+const storeManager = useStoreManager()
 const queryClient = useQueryClient()
 const { t } = useI18n({ useScope: 'global' })
 
@@ -34,7 +36,7 @@ const THEMES = [
 ]
 
 const { data: config, isLoading: loadingConfig } = useQuery({
-  queryKey: ['qr-config'],
+  queryKey: ['qr-config', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await qrConfigApi.getConfig()
     return data.data
@@ -139,10 +141,10 @@ const { mutate: saveTheme, isPending: saving } = useMutation({
 })
 
 const previewUrl = computed(() => {
-  const adminId = authStore.admin?.id
-  if (!adminId) return ''
+  const storeId = storeManager.currentStoreId
+  if (!storeId) return ''
 
-  return `/menu/${adminId}`
+  return `/menu/${storeId}`
 })
 
 const previewFrameKey = computed(() => {
