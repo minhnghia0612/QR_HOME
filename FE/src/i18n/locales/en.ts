@@ -182,6 +182,8 @@ export default {
       addStoreHint: 'Each store has its own independent menu (categories & services).',
       storeNamePlaceholder: 'Store name (e.g. Downtown Branch)',
       createStore: 'Create Store',
+      createdSuccessfully: 'Store created successfully.',
+      deletedSuccessfully: 'Store deleted successfully.',
       deleteStore: 'Delete store',
       deleteStoreTitle: 'Delete Store?',
       deleteStoreHint: 'All categories & services in this store will be permanently deleted. This action cannot be undone.',
@@ -190,6 +192,7 @@ export default {
         deleteFailed: 'Failed to delete store',
         nameRequired: 'Please enter a store name',
         lastStore: 'Cannot delete the last store.',
+        alreadyExists: 'A store with this name already exists, please choose another.',
       },
     },
     qr: {

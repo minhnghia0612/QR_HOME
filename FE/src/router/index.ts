@@ -3,11 +3,13 @@ import { useAuthStore } from '@/stores/auth.store'
 import { qrConfigApi } from '@/api/qr-config.api'
 import { categoriesApi } from '@/api/categories.api'
 import { servicesApi } from '@/api/services.api'
+import { useStoreManager } from '@/stores/store-manager.store'
 
 const ONBOARDING_CACHE_TTL_MS = 3000
 let onboardingCache:
   | {
-  adminId: string
+      adminId: string
+      storeId: string
       checkedAt: number
       isStep1Complete: boolean
       isStep2Complete: boolean
@@ -99,6 +101,7 @@ const router = createRouter({
 // Auth & Onboarding guard
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
+  const storeManager = useStoreManager() // Added to get current store ID
   
   if (to.meta.requiresAuth) {
     if (!authStore.isAuthenticated) {
@@ -115,10 +118,12 @@ router.beforeEach(async (to) => {
         return { name: 'landing' }
       }
 
+      const currentStoreId = storeManager.currentStoreId || ''
       const now = Date.now()
       const hasFreshCache =
         !!onboardingCache &&
         onboardingCache.adminId === currentAdminId &&
+        onboardingCache.storeId === currentStoreId &&
         now - onboardingCache.checkedAt < ONBOARDING_CACHE_TTL_MS
 
       if (hasFreshCache) {
@@ -211,6 +216,7 @@ router.beforeEach(async (to) => {
 
         onboardingCache = {
           adminId: currentAdminId,
+          storeId: currentStoreId,
           checkedAt: now,
           isStep1Complete,
           isStep2Complete,
@@ -223,6 +229,7 @@ router.beforeEach(async (to) => {
       } else {
         onboardingCache = {
           adminId: currentAdminId,
+          storeId: currentStoreId,
           checkedAt: now,
           isStep1Complete,
           isStep2Complete,

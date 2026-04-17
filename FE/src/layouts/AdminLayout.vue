@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
@@ -10,7 +10,7 @@ import { LayoutDashboard, BookOpen, Settings, LogOut, Menu, X, Palette, Globe, C
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES, setLocale, type AppLocale } from '@/i18n'
 import { useStoreManager } from '@/stores/store-manager.store'
-import { onMounted } from 'vue'
+import Toast from '@/components/Toast.vue'
 
 const queryClient = useQueryClient()
 
@@ -29,14 +29,36 @@ const showAddStoreModal = ref(false)
 const newStoreName = ref('')
 const deletingStoreId = ref<string | null>(null)
 
+const toastData = ref({ 
+  show: false, 
+  message: '', 
+  type: 'success' as 'success' | 'danger' | 'warning' 
+})
+
+function showToast(message: string, type: 'success' | 'danger' | 'warning' = 'success') {
+  toastData.value = { show: true, message, type }
+}
+
 async function submitCreateStore() {
   if (!newStoreName.value.trim()) return
   try {
-    await storeManager.createStore(newStoreName.value.trim())
+    const newStore = await storeManager.createStore(newStoreName.value.trim())
     showAddStoreModal.value = false
     newStoreName.value = ''
+    
+    // Auto-select the newly created store
+    if (newStore && newStore.id) {
+      storeManager.setCurrentStore(newStore.id, queryClient)
+      showToast(t('admin.stores.createdSuccessfully') || 'Store created successfully', 'success')
+      // Navigate to Settings page to finish setup
+      router.push({ name: 'admin-settings' })
+    }
   } catch (error: any) {
-    alert(error?.response?.data?.message || t('admin.stores.errors.createFailed'))
+    if (error?.response?.status === 409) {
+      showToast(t('admin.stores.errors.alreadyExists'), 'danger')
+    } else {
+      showToast(error?.response?.data?.message || t('admin.stores.errors.createFailed'), 'danger')
+    }
   }
 }
 
@@ -44,8 +66,9 @@ async function executeDeleteStore() {
   if (!deletingStoreId.value) return
   try {
     await storeManager.deleteStore(deletingStoreId.value)
+    showToast(t('admin.stores.deletedSuccessfully') || 'Store deleted successfully', 'success')
   } catch (error: any) {
-    alert(error?.response?.data?.message || t('admin.stores.errors.deleteFailed'))
+    showToast(error?.response?.data?.message || t('admin.stores.errors.deleteFailed'), 'danger')
   } finally {
     deletingStoreId.value = null
   }
@@ -403,6 +426,14 @@ async function logout() {
           </div>
         </div>
       </div>
+
+      <!-- Toast -->
+      <Toast 
+        :show="toastData.show" 
+        :message="toastData.message" 
+        :type="toastData.type" 
+        @close="toastData.show = false" 
+      />
     </Teleport>
   </div>
 </template>

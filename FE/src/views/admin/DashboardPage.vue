@@ -18,7 +18,7 @@ const authStore = useAuthStore()
 const { t } = useI18n({ useScope: 'global' })
 let dashboardSocket: Socket | null = null
 
-const { data: dashboard, isLoading: loadingDashboard } = useQuery({
+const { data: dashboard, isFetching: loadingDashboard } = useQuery({
   queryKey: ['dashboard', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await trafficApi.getDashboard()
@@ -29,7 +29,7 @@ const { data: dashboard, isLoading: loadingDashboard } = useQuery({
   refetchOnWindowFocus: false,
 })
 
-const { data: qrConfig, isLoading: loadingQrConfig } = useQuery({
+const { data: qrConfig, isFetching: loadingQrConfig } = useQuery({
   queryKey: ['qr-config', computed(() => storeManager.currentStoreId)],
   queryFn: async () => {
     const { data } = await qrConfigApi.getConfig()
@@ -55,7 +55,7 @@ const { data: services } = useQuery({
   }
 })
 
-const { data: qrImageRes } = useQuery({
+const { data: qrImageRes, isFetching: loadingQrImage } = useQuery({
   queryKey: computed(() => ['qr-image', storeManager.currentStoreId, qrConfig.value?.status, qrConfig.value?.qrUrl]),
   queryFn: async () => {
     const { data } = await qrConfigApi.downloadQr()
@@ -290,7 +290,8 @@ async function downloadQr() {
 
         <div class="mt-6 flex justify-center">
           <div class="flex h-48 w-48 items-center justify-center rounded-3xl bg-surface-input overflow-hidden ring-1 ring-border shadow-inner p-4">
-            <template v-if="loadingQrConfig">
+            <!-- Show skeleton if config is loading OR if QR image is loading/missing while status is active -->
+            <template v-if="loadingQrConfig || (qrConfig?.status === 'active' && (loadingQrImage || !qrImageRes))">
               <div class="h-full w-full rounded-2xl bg-white/80 animate-pulse"></div>
             </template>
             <template v-else-if="qrConfig?.status === 'active' && qrImageRes">
@@ -302,18 +303,8 @@ async function downloadQr() {
           </div>
         </div>
 
-        <div v-if="(qrConfig?.status as string) === 'inactive'" class="mt-6 flex flex-col gap-3">
-           <p class="text-[11px] text-primary-700 font-medium px-1">{{ t('admin.dashboard.generateQrHint') }}</p>
-           <button
-             @click="generateQr"
-             :disabled="generating"
-             class="w-full rounded-xl bg-primary-600 py-3 text-sm font-bold text-white shadow-md hover:bg-primary-700 active:scale-95 disabled:opacity-50"
-           >
-             {{ t('admin.dashboard.generateQr') }}
-           </button>
-        </div>
         <button
-          v-else-if="!loadingQrConfig && qrConfig?.status !== 'inactive'"
+          v-if="!loadingQrConfig && qrConfig?.status !== 'inactive'"
           @click="updateQrStatus(qrConfig?.status === 'active' ? 'paused' : 'active')"
           :disabled="updatingStatus"
           class="mt-6 w-full rounded-xl py-3 text-sm font-bold transition-all"

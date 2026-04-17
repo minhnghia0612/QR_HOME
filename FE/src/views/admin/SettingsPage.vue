@@ -61,7 +61,7 @@ const { data: config, isLoading: loadingConfig } = useQuery({
 watch(config, (val) => {
   if (val) {
     form.value = {
-      spaName: val.spaName || '',
+      spaName: val.spaName || storeManager.currentStore?.name || '',
       spaAddress: val.spaAddress || '',
       spaPhone: val.spaPhone || '',
       spaEmail: val.spaEmail || '',

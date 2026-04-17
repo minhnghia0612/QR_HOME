@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -18,6 +19,16 @@ export class StoresService {
   ) {}
 
   async create(createStoreDto: CreateStoreDto, adminId: string) {
+    // Check for duplicate name for this admin
+    const existing = await this.storesRepository.findOne({
+      where: { name: createStoreDto.name, adminId },
+    });
+    if (existing) {
+      throw new ConflictException(
+        `Store with name "${createStoreDto.name}" already exists.`,
+      );
+    }
+
     const store = this.storesRepository.create({
       ...createStoreDto,
       adminId,
@@ -101,6 +112,19 @@ export class StoresService {
 
   async update(id: string, updateStoreDto: UpdateStoreDto, adminId: string) {
     const store = await this.findOne(id, adminId);
+
+    // If name is changing, check for duplicates
+    if (updateStoreDto.name && updateStoreDto.name !== store.name) {
+      const existing = await this.storesRepository.findOne({
+        where: { name: updateStoreDto.name, adminId },
+      });
+      if (existing) {
+        throw new ConflictException(
+          `Store with name "${updateStoreDto.name}" already exists.`,
+        );
+      }
+    }
+
     Object.assign(store, updateStoreDto);
     return this.storesRepository.save(store);
   }

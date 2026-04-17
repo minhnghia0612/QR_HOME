@@ -182,6 +182,8 @@ export default {
       addStoreHint: 'Mỗi cửa hàng có menu (danh mục & dịch vụ) riêng độc lập.',
       storeNamePlaceholder: 'Tên cửa hàng (vd: Chi nhánh Quận 1)',
       createStore: 'Tạo Cửa Hàng',
+      createdSuccessfully: 'Tạo cửa hàng thành công.',
+      deletedSuccessfully: 'Xóa cửa hàng thành công.',
       deleteStore: 'Xóa cửa hàng',
       deleteStoreTitle: 'Xác nhận xóa cửa hàng',
       deleteStoreHint: 'Bạn có chắc chắn muốn xóa cửa hàng này? Tất cả dịch vụ, danh mục và cấu hình của cửa hàng sẽ bị xóa vĩnh viễn.',
@@ -190,6 +192,7 @@ export default {
         deleteFailed: 'Xóa cửa hàng thất bại',
         nameRequired: 'Vui lòng nhập tên cửa hàng',
         lastStore: 'Không thể xóa cửa hàng cuối cùng.',
+        alreadyExists: 'Tên cửa hàng này đã tồn tại, vui lòng chọn tên khác.',
       },
     },
     qr: {
