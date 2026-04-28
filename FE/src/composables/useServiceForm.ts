@@ -9,9 +9,8 @@ import type { ServiceLocales } from '@/types/service.types'
 import imgFallback from '@/assets/img_fallback.png'
 import { parseOptionalNumber } from '@/utils/service.utils'
 import { useServiceFormLocales } from './useServiceFormLocales'
-import { useServiceFormUpload } from './useServiceFormUpload'
-
-export function useServiceForm(showToast: (msg: string, type: 'success'|'danger'|'warning') => void, pageRef: any, selectedSortRef: any) {
+import { useImageUpload } from '@/composables/useImageUpload'
+export function useServiceForm(showToast: (msg: string, type?: 'success'|'danger'|'warning') => void, pageRef: any, selectedSortRef: any) {
   const queryClient = useQueryClient()
   const { t } = useI18n({ useScope: 'global' })
 
@@ -73,8 +72,7 @@ export function useServiceForm(showToast: (msg: string, type: 'success'|'danger'
     isDraggingImage,
     handleUpload,
     handleDrop,
-  } = useServiceFormUpload(form, showToast, t)
-
+  } = useImageUpload(form, showToast)
   function getApiErrorMessage(err: any, fallback: string): string {
     const raw = err?.response?.data?.message
     if (Array.isArray(raw)) {

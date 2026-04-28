@@ -12,7 +12,7 @@ const props = defineProps<{
   editingService: any
   formLoading: boolean
   saving: boolean
-  uploadLoading: boolean
+  uploadLoading: string | boolean | null
   isDraggingImage: boolean
   formError: string
   fieldErrors: Record<string, string>
@@ -345,7 +345,7 @@ function handleImgError(e: Event) {
               <Upload class="mb-2 h-8 w-8 text-text-muted" />
               <span class="text-sm font-bold text-text-primary">{{ uploadLoading ? t('admin.settings.uploadingBanner') : t('admin.settings.uploadHint') }}</span>
               <span class="mt-1 text-xs text-text-muted">{{ t('admin.settings.bannerHint') }}</span>
-              <input type="file" accept="image/*" class="hidden" @change="e => emit('upload', e)" :disabled="uploadLoading" />
+              <input type="file" accept="image/*" class="hidden" @change="e => emit('upload', e)" :disabled="!!uploadLoading" />
             </label>
             <p v-if="fieldErrors.imageUrl" class="mt-1 text-xs font-medium text-danger">{{ fieldErrors.imageUrl }}</p>
             <div v-if="form.imageUrl && form.imageUrl !== imgFallback" class="mt-3 overflow-hidden rounded-xl">
