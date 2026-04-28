@@ -24,16 +24,16 @@ const { getCategoryName } = useCategoryLocale()
       :key="cat.id"
       class="group rounded-3xl bg-white p-6 shadow-card transition-all hover:shadow-elevated"
     >
-      <div class="flex items-start justify-between">
-        <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex min-w-0 flex-1 items-center gap-3">
+          <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
             <FolderOpen class="h-5 w-5" />
           </div>
-          <div>
-            <h3 class="text-base font-bold text-text-primary">{{ getCategoryName(cat) }}</h3>
+          <div class="min-w-0 flex-1">
+            <h3 class="line-clamp-2 break-words text-base font-bold text-text-primary" :title="getCategoryName(cat)">{{ getCategoryName(cat) }}</h3>
           </div>
         </div>
-        <div class="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <div class="flex flex-shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           <button
             class="rounded-lg p-1.5 text-text-muted hover:bg-primary-100 hover:text-primary-600"
             @click="emit('edit', cat)"

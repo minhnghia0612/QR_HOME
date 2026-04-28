@@ -297,6 +297,7 @@ export default {
       saveFailed: 'Einstellungen konnten nicht gespeichert werden',
       logoUploaded: 'Logo erfolgreich hochgeladen.',
       bannerUploaded: 'Banner erfolgreich hochgeladen.',
+      imageSizeExceeds: 'Datei ist zu gross. Bitte laden Sie eine kleinere Datei hoch.',
       errors: {
         phoneRequired: 'Telefonnummer ist erforderlich',
         phoneFormat: 'Telefonnummer muss im Format 0987654321 oder 098 765 4321 sein',

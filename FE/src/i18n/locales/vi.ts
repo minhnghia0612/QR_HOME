@@ -326,6 +326,7 @@ export default {
       saveFailed: 'Lưu cài đặt thất bại',
       logoUploaded: 'Tải Logo thành công.',
       bannerUploaded: 'Tải Banner thành công.',
+      imageSizeExceeds: 'Ảnh quá lớn. Vui lòng tải lên tệp nhỏ hơn.',
       errors: {
         phoneRequired: 'Số điện thoại là bắt buộc',
         phoneFormat: 'Số điện thoại đúng định dạng 0987654321 hoặc 098 765 4321',

@@ -326,6 +326,7 @@ export default {
       saveFailed: 'Failed to save settings',
       logoUploaded: 'Logo uploaded successfully.',
       bannerUploaded: 'Banner uploaded successfully.',
+      imageSizeExceeds: 'File is too large. Please upload a smaller file.',
       errors: {
         phoneRequired: 'Phone number is required',
         phoneFormat: 'Phone number must be in the format 0987654321 or 098 765 4321',
