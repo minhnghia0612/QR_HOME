@@ -169,6 +169,16 @@ function isActive(path: string) {
   return currentRoute.value === path || currentRoute.value.startsWith(path + '/')
 }
 
+async function handleSwitchStore(storeId: string) {
+  if (storeId === storeManager.currentStoreId) {
+    showStoreMenu.value = false
+    return
+  }
+  storeManager.setCurrentStore(storeId, queryClient)
+  showStoreMenu.value = false
+  await router.push({ name: 'admin-dashboard' })
+}
+
 async function logout() {
   await authStore.logout()
 }
@@ -303,7 +313,7 @@ async function logout() {
                     :class="storeManager.currentStoreId === st.id ? 'bg-primary-50' : 'hover:bg-surface-input'"
                   >
                     <button 
-                      @click="storeManager.setCurrentStore(st.id, queryClient); showStoreMenu = false"
+                      @click="handleSwitchStore(st.id)"
                       class="flex flex-1 items-center gap-2 truncate"
                       :class="storeManager.currentStoreId === st.id ? 'font-bold text-primary-700' : 'text-text-primary'"
                     >
