@@ -219,7 +219,7 @@ const { t } = useI18n({ useScope: 'global' })
 
     <div v-for="group in groupedByCategory" :key="group.category?.id" class="space-y-4">
       <h2
-        class="t-cat-title select-none text-xl font-extrabold tracking-tight text-text-primary"
+        class="t-cat-title select-none text-xl font-extrabold tracking-tight text-text-primary leading-tight break-all"
         style="margin-bottom: 2rem !important;"
       >
         {{ group.category?.name }}
@@ -245,7 +245,7 @@ const { t } = useI18n({ useScope: 'global' })
           <!-- Info -->
           <div class="t-card-info flex flex-1 flex-col justify-between py-1 pr-2">
             <div>
-              <h3 class="t-card-name text-[15px] font-bold text-text-primary leading-tight line-clamp-1">{{ getServiceName(svc) }}</h3>
+              <h3 class="t-card-name text-[15px] font-bold text-text-primary leading-tight line-clamp-2 break-all">{{ getServiceName(svc) }}</h3>
               <p class="mt-1 text-xs text-text-secondary leading-normal line-clamp-2">{{ getServiceShortDescription(svc) }}</p>
               <div class="mt-2 flex flex-wrap gap-1.5">
                 <div

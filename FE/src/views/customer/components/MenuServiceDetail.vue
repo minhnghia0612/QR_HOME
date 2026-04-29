@@ -72,7 +72,7 @@ const { getServiceName, getServiceDescription } = useServiceLocale()
 
           <!-- Content -->
           <div class="relative -mt-6 rounded-t-[28px] bg-surface-page px-6 pt-6 pb-20 flex-1">
-            <h2 class="text-3xl font-black tracking-tight text-text-primary leading-tight">
+            <h2 class="text-3xl font-black tracking-tight text-text-primary leading-tight break-all">
               {{ getServiceName(service) }}
             </h2>
 

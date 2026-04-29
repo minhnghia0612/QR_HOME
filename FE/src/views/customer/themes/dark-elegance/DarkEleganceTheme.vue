@@ -157,7 +157,7 @@ const { t } = useI18n({ useScope: 'global' })
               <img :src="svc.imageUrl || imgFallbackAsset" :alt="svc.name" class="h-full w-full object-cover rounded-2xl" @error="handleImgError" />
             </div>
             <div class="min-w-0 flex-1">
-              <p class="line-clamp-1 text-lg font-black text-white">{{ getServiceName(svc) }}</p>
+              <p class="line-clamp-2 break-all text-lg font-black text-white leading-tight">{{ getServiceName(svc) }}</p>
               <p class="mt-1 line-clamp-2 text-xs font-medium text-white/60">{{ getServiceShortDescription(svc) }}</p>
               <div class="mt-2 flex flex-wrap gap-1.5">
                 <span

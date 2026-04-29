@@ -151,7 +151,7 @@ const { t } = useI18n({ useScope: 'global' })
     <!-- Service grid by category -->
     <div v-else v-for="group in groupedByCategory" :key="`nature-group-${group.category?.id}`" class="space-y-3">
       <div class="flex items-center gap-3">
-        <h3 class="nl-group-title text-lg font-black uppercase tracking-tight text-text-primary">{{ group.category?.name }}</h3>
+        <h3 class="nl-group-title text-lg font-black uppercase tracking-tight text-text-primary leading-tight">{{ group.category?.name }}</h3>
         <span class="h-px flex-1 bg-border"></span>
       </div>
       <div class="nl-service-grid grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -166,7 +166,7 @@ const { t } = useI18n({ useScope: 'global' })
           </div>
           <div class="nl-service-info flex min-w-0 flex-1 flex-col justify-between py-1">
             <div>
-              <p class="line-clamp-1 text-[15px] font-black text-text-primary">{{ getServiceName(svc) }}</p>
+              <p class="line-clamp-2 break-all text-[15px] font-black text-text-primary leading-tight">{{ getServiceName(svc) }}</p>
               <p class="mt-1 line-clamp-2 text-xs font-medium text-text-secondary">{{ getServiceShortDescription(svc) }}</p>
               <div class="mt-2 flex flex-wrap gap-1.5">
                 <span

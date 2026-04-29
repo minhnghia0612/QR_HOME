@@ -45,7 +45,7 @@ const { t } = useI18n({ useScope: 'global' })
     <div class="neon-hero-card rounded-[30px] p-5 sm:p-6">
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0 flex-1">
-          <p class="line-clamp-1 text-3xl font-black text-white">{{ spaConfig.spaName || t('menu.defaultNeonSpaName') }}</p>
+          <p class="text-3xl font-black text-white leading-tight">{{ spaConfig.spaName || t('menu.defaultNeonSpaName') }}</p>
           <p class="mt-1 line-clamp-2 text-sm font-semibold text-cyan-100/85">
             {{ spaConfig.welcomeMessage || t('menu.defaultNeonWelcome') }}
           </p>

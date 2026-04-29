@@ -157,7 +157,7 @@ const { t } = useI18n({ useScope: 'global' })
     <template v-else-if="!roseCategoryViewOpen">
       <div v-for="group in groupedByCategory" :key="`rose-group-${group.category?.id}`" class="space-y-3">
         <div class="flex items-center gap-3">
-          <h3 class="nl-group-title text-lg font-black uppercase tracking-tight text-text-primary">{{ group.category?.name }}</h3>
+          <h3 class="nl-group-title text-lg font-black uppercase tracking-tight text-text-primary leading-tight">{{ group.category?.name }}</h3>
           <span class="h-px flex-1 bg-border"></span>
           <button
             type="button"
@@ -180,7 +180,7 @@ const { t } = useI18n({ useScope: 'global' })
               <img :src="svc.imageUrl || imgFallbackAsset" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
             </div>
             <div class="rose-slide-info mt-3">
-              <p class="line-clamp-1 text-[18px] font-black text-text-primary">{{ getServiceName(svc) }}</p>
+              <p class="line-clamp-2 break-all text-[18px] font-black text-text-primary leading-tight">{{ getServiceName(svc) }}</p>
               <p class="mt-1 line-clamp-1 text-xs font-medium text-text-secondary">{{ getServiceShortDescription(svc) }}</p>
               <div class="mt-2 flex flex-wrap gap-1.5">
                 <span
@@ -219,7 +219,7 @@ const { t } = useI18n({ useScope: 'global' })
 
       <div class="space-y-3">
         <div class="flex items-center gap-3">
-          <h3 class="nl-group-title text-lg font-black uppercase tracking-tight text-text-primary">
+          <h3 class="nl-group-title text-lg font-black uppercase tracking-tight text-text-primary leading-tight">
             {{ categories.find((c: any) => c.id === selectedCategoryId)?.name || t('menu.category') }}
           </h3>
           <span class="h-px flex-1 bg-border"></span>
@@ -245,7 +245,7 @@ const { t } = useI18n({ useScope: 'global' })
             </div>
             <div class="nl-service-info flex min-w-0 flex-1 flex-col justify-between py-1">
               <div>
-                <p class="line-clamp-1 text-[15px] font-black text-text-primary">{{ getServiceName(svc) }}</p>
+                <p class="line-clamp-2 break-all text-[15px] font-black text-text-primary leading-tight">{{ getServiceName(svc) }}</p>
                 <p class="mt-1 line-clamp-2 text-xs font-medium text-text-secondary">{{ getServiceShortDescription(svc) }}</p>
                 <div class="mt-2 flex flex-wrap gap-1.5">
                   <span

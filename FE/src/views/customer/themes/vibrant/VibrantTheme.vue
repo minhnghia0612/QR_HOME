@@ -119,7 +119,7 @@ const { t } = useI18n({ useScope: 'global' })
               <img :src="svc.imageUrl || imgFallbackAsset" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
             </div>
             <div class="vibrant-card-body">
-              <p class="line-clamp-1 text-[20px] font-black leading-tight text-text-primary">{{ getServiceName(svc) }}</p>
+              <p class="line-clamp-2 break-all text-[20px] font-black leading-tight text-text-primary">{{ getServiceName(svc) }}</p>
               <div class="mt-2 flex flex-wrap gap-1.5">
                 <span v-for="label in getServiceLabelItems(svc)" :key="`vibrant-label-${svc.id}-${label.key}`"
                   :class="['rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider', getBadgeClasses(label.key)]">

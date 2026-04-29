@@ -174,7 +174,7 @@ const { t } = useI18n({ useScope: 'global' })
               <img :src="svc.imageUrl || imgFallbackAsset" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
             </div>
             <div class="p-3">
-              <p class="line-clamp-1 text-sm font-black text-text-primary">{{ getServiceName(svc) }}</p>
+              <p class="line-clamp-2 break-all text-sm font-black text-text-primary leading-tight">{{ getServiceName(svc) }}</p>
               <div class="mt-2 flex flex-wrap gap-1.5">
                 <span
                   v-for="label in getServiceLabelItems(svc)"
@@ -201,7 +201,7 @@ const { t } = useI18n({ useScope: 'global' })
               <img :src="svc.imageUrl || imgFallbackAsset" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
             </div>
             <div class="p-3">
-              <p class="line-clamp-1 text-sm font-black text-text-primary">{{ getServiceName(svc) }}</p>
+              <p class="line-clamp-2 break-all text-sm font-black text-text-primary leading-tight">{{ getServiceName(svc) }}</p>
               <div class="mt-2 flex flex-wrap gap-1.5">
                 <span
                   v-for="label in getServiceLabelItems(svc)"
