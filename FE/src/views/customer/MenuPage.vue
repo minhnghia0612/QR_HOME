@@ -47,7 +47,9 @@ const resolvedStoreId = computed(() => spaConfig.value?.storeId)
 const resolvedAdminId = computed(() => spaConfig.value?.adminId)
 
 const isSessionAdmin = computed(() => {
-  return !!authStore.token && authStore.admin?.id === resolvedAdminId.value
+  const currentAdminId = String(authStore.admin?.id || '')
+  const configAdminId = String(resolvedAdminId.value || '')
+  return !!authStore.token && !!currentAdminId && currentAdminId === configAdminId
 })
 const hasPendingAdminSession = computed(() => !!authStore.token && !authStore.admin)
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useStoreManager } from '@/stores/store-manager.store'
 import { useDashboardTraffic } from '@/composables/useDashboardTraffic'
 import { useQrManagement } from '@/composables/useQrManagement'
@@ -11,7 +11,13 @@ import TopServices from './dashboard/components/TopServices.vue'
 const storeManager = useStoreManager()
 
 const { dashboard, loadingDashboard, weeklyWithData, maxBarValue } = useDashboardTraffic()
-const { qrConfig, loadingQrConfig, qrImageRes, loadingQrImage, updateQrStatus, updatingStatus, downloadQr } = useQrManagement()
+const { qrConfig, loadingQrConfig, qrImageRes, loadingQrImage, updateQrStatus, updatingStatus, downloadQr, generateQr } = useQrManagement()
+
+watch(() => qrConfig.value, (newConfig) => {
+  if (newConfig && !newConfig.qrUrl && newConfig.status === 'active') {
+    generateQr()
+  }
+}, { immediate: true })
 
 const pageLoading = computed(() => loadingDashboard.value || loadingQrConfig.value)
 

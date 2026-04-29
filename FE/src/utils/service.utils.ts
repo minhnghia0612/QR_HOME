@@ -37,8 +37,8 @@ export function formatPriceRange(from: number, to: number, currencyUnit: string)
   return `${new Intl.NumberFormat('vi-VN').format(from)} - ${new Intl.NumberFormat('vi-VN').format(to)} VND`
 }
 
-export function getServiceDisplayPrice(svc: any) {
-  const curr = svc?.currency || 'VND'
+export function getServiceDisplayPrice(svc: any, configCurrency?: string) {
+  const curr = configCurrency || svc?.currency || 'VND'
   
   if (svc?.hasVariants && Array.isArray(svc?.variantOptions) && svc.variantOptions.length) {
     const prices = svc.variantOptions

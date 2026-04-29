@@ -11,6 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'toggle-status'): void
+  (e: 'generate-qr'): void
 }>()
 
 const { t } = useI18n({ useScope: 'global' })

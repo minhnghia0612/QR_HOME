@@ -4,6 +4,8 @@ export type CustomerUiSize = 'large' | 'normal' | 'compact'
 
 export interface QrConfig {
   id: string
+  adminId: string
+  storeId: string
   status: QrStatus
   qrUrl: string | null
   generatedAt: string | null

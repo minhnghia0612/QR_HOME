@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Pencil, Trash2 } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import imgFallback from '@/assets/img_fallback.png'
 import { useServiceLocale } from '@/composables/useServiceLocale'
 import { getServiceLabelItems, getLabelBadgeClass, getServiceDisplayPrice } from '@/utils/service.utils'
+import { useQuery } from '@tanstack/vue-query'
+import { useStoreManager } from '@/stores/store-manager.store'
 
 const props = defineProps<{
   services: any[]
@@ -18,6 +21,12 @@ const emit = defineEmits<{
 
 const { t } = useI18n({ useScope: 'global' })
 const { getServiceName, getServiceShortDescription, getServiceDescription, getServiceSpecialTags } = useServiceLocale()
+
+const storeManager = useStoreManager()
+const { data: configRes } = useQuery({
+  queryKey: ['qr-config', computed(() => storeManager.currentStoreId)],
+})
+const currencyUnit = computed(() => (configRes.value as any)?.currencyUnit || 'VND')
 
 function handleImgError(e: Event) {
   const target = e.target as HTMLImageElement
@@ -94,7 +103,7 @@ function handleImgError(e: Event) {
         
         <div class="mt-3 flex items-center justify-between">
           <div>
-            <span class="text-xl font-black text-[#0048B5]">{{ getServiceDisplayPrice(svc) }}</span>
+            <span class="text-xl font-black text-[#0048B5]">{{ getServiceDisplayPrice(svc, currencyUnit) }}</span>
           </div>
           <button
             @click="emit('toggle-status', svc)"
