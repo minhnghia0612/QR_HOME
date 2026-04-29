@@ -39,13 +39,13 @@ const { t } = useI18n({ useScope: 'global' })
           </div>
         </div>
         <div class="min-w-0 flex-1">
-          <p class="line-clamp-1 text-2xl font-black text-white">{{ spaConfig.spaName || t('menu.defaultQrHome') }}</p>
-          <p v-if="spaConfig.welcomeMessage" class="line-clamp-2 mt-1 text-sm font-semibold text-white/80">{{ spaConfig.welcomeMessage }}</p>
+          <p class="text-2xl font-black text-white leading-tight">{{ spaConfig.spaName || t('menu.defaultQrHome') }}</p>
+          <p v-if="spaConfig.welcomeMessage" class="line-clamp-3 mt-1 text-sm font-semibold text-white/80">{{ spaConfig.welcomeMessage }}</p>
         </div>
       </div>
       <div v-if="spaConfig.spaAddress || spaConfig.spaPhone || spaConfig.spaEmail" class="mt-4 grid gap-2 text-xs font-semibold text-white/80 sm:grid-cols-3">
         <div v-if="spaConfig.spaAddress" class="rounded-xl bg-white/10 px-3 py-2 flex items-center gap-1.5">
-          <MapPin class="h-3.5 w-3.5 flex-shrink-0" /><span class="line-clamp-2">{{ spaConfig.spaAddress }}</span>
+          <MapPin class="h-3.5 w-3.5 flex-shrink-0" /><span>{{ spaConfig.spaAddress }}</span>
         </div>
         <div v-if="spaConfig.spaPhone" class="rounded-xl bg-white/10 px-3 py-2 flex items-center gap-1.5">
           <Phone class="h-3.5 w-3.5 flex-shrink-0" /><span class="line-clamp-1">{{ spaConfig.spaPhone }}</span>
@@ -63,22 +63,22 @@ const { t } = useI18n({ useScope: 'global' })
       <div v-for="group in oceanGroups" :key="`ocean-group-${group.category?.id}`" class="ocean-menu-group">
         <div class="ocean-menu-head flex items-center gap-2">
           <span class="ocean-menu-dot" aria-hidden="true"></span>
-          <h3 class="line-clamp-1 text-[23px] font-black text-text-primary">{{ group.category?.name }}</h3>
+          <h3 class="text-[23px] font-black text-text-primary leading-tight">{{ group.category?.name }}</h3>
         </div>
 
         <div class="ocean-service-track no-scrollbar mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1">
           <button
             v-for="svc in group.services"
             :key="`ocean-svc-${svc.id}`"
-            class="ocean-service-card h-[244px] w-[178px] flex-shrink-0 snap-start text-left"
+            class="ocean-service-card min-h-[244px] w-[164px] flex-shrink-0 snap-start text-left flex flex-col"
             @click="emit('open-detail', svc)"
           >
-            <div class="ocean-service-media h-36 w-full overflow-hidden bg-surface-input">
+            <div class="ocean-service-media h-36 w-full overflow-hidden bg-surface-input flex-shrink-0">
               <img :src="svc.imageUrl || imgFallbackAsset" :alt="svc.name" class="h-full w-full object-cover" @error="handleImgError" />
             </div>
-            <div class="ocean-service-body flex h-[100px] flex-col px-3 py-2.5">
-              <p class="line-clamp-2 text-[13px] font-black text-white">{{ getServiceName(svc) }}</p>
-              <div v-if="getOceanServiceLabelItems(svc).length" class="mt-1.5 flex min-h-[20px] flex-wrap gap-1 overflow-hidden">
+            <div class="ocean-service-body flex flex-1 flex-col px-3 py-2.5">
+              <p class="text-[13px] font-black text-white leading-tight">{{ getServiceName(svc) }}</p>
+              <div v-if="getOceanServiceLabelItems(svc).length" class="mt-1.5 flex flex-wrap gap-1">
                 <span
                   v-for="label in getOceanServiceLabelItems(svc)"
                   :key="`ocean-label-${svc.id}-${label.key}`"
